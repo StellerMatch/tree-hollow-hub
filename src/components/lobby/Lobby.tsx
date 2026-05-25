@@ -57,7 +57,7 @@ export function Lobby() {
           <div className="flex items-center gap-3">
             <span className="text-2xl animate-sway inline-block">🌳</span>
             <div>
-              <div className="font-display text-2xl font-semibold leading-none">dabottree</div>
+              <div className="font-display text-2xl font-semibold leading-none">DaBotTree</div>
               <div className="font-hand text-sm text-muted-foreground leading-tight">
                 you're inside the trunk
               </div>
