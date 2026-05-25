@@ -48,6 +48,10 @@ import nerdHeadshot from "@/assets/nerd-headshot.png";
 import nerdMidshot from "@/assets/nerd-midshot.png";
 import saulHeadshot from "@/assets/saul-headshot.png";
 import saulMidshot from "@/assets/saul-midshot.png";
+import bloomHeadshot from "@/assets/bloom-headshot.png";
+import bloomMidshot from "@/assets/bloom-midshot.png";
+import rookHeadshot from "@/assets/rook-headshot.png";
+import rookMidshot from "@/assets/rook-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -214,7 +218,15 @@ export const BOT_TREE: BotNode = {
               image: compassHeadshot,
               portrait: compassMidshot,
             },
-            { id: "bloom", name: "Bloom", kind: "bot", branch: "The Lantern", role: "Cultivation" },
+            {
+              id: "bloom",
+              name: "Bloom",
+              kind: "bot",
+              branch: "The Lantern",
+              role: "Cultivation",
+              image: bloomHeadshot,
+              portrait: bloomMidshot,
+            },
           ],
         },
       ],
@@ -234,7 +246,17 @@ export const BOT_TREE: BotNode = {
               id: "knowledge",
               name: "Knowledge",
               kind: "group",
-              children: [{ id: "rook", name: "Rook", kind: "bot", branch: "Knowledge", role: "Keeper of know-how" }],
+              children: [
+                {
+                  id: "rook",
+                  name: "Rook",
+                  kind: "bot",
+                  branch: "Knowledge",
+                  role: "Keeper of know-how",
+                  image: rookHeadshot,
+                  portrait: rookMidshot,
+                },
+              ],
             },
             {
               id: "experiment",
