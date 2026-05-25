@@ -28,8 +28,14 @@ import echoHeadshot from "@/assets/echo-headshot.png";
 import echoMidshot from "@/assets/echo-midshot.png";
 import ivyHeadshot from "@/assets/ivy-headshot.png";
 import ivyMidshot from "@/assets/ivy-midshot.png";
+import ledgerHeadshot from "@/assets/ledger-headshot.png";
+import ledgerMidshot from "@/assets/ledger-midshot.png";
+import shieldHeadshot from "@/assets/shield-headshot.png";
+import shieldMidshot from "@/assets/shield-midshot.png";
 import stagehandHeadshot from "@/assets/stagehand-headshot.png";
 import stagehandMidshot from "@/assets/stagehand-midshot.png";
+import tidyHeadshot from "@/assets/tidy-headshot.png";
+import tidyMidshot from "@/assets/tidy-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -103,9 +109,33 @@ export const BOT_TREE: BotNode = {
           name: "The Shadows",
           kind: "group",
           children: [
-            { id: "ledger", name: "Ledger", kind: "bot", branch: "The Shadows", role: "Keeper of records" },
-            { id: "shield", name: "Shield", kind: "bot", branch: "The Shadows", role: "Guardrails & safety" },
-            { id: "tidy", name: "Tidy", kind: "bot", branch: "The Shadows", role: "Cleanup & hygiene" },
+            {
+              id: "ledger",
+              name: "Ledger",
+              kind: "bot",
+              branch: "The Shadows",
+              role: "Keeper of records",
+              image: ledgerHeadshot,
+              portrait: ledgerMidshot,
+            },
+            {
+              id: "shield",
+              name: "Shield",
+              kind: "bot",
+              branch: "The Shadows",
+              role: "Guardrails & safety",
+              image: shieldHeadshot,
+              portrait: shieldMidshot,
+            },
+            {
+              id: "tidy",
+              name: "Tidy",
+              kind: "bot",
+              branch: "The Shadows",
+              role: "Cleanup & hygiene",
+              image: tidyHeadshot,
+              portrait: tidyMidshot,
+            },
             {
               id: "raiz",
               name: "Raíz",
