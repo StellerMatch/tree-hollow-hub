@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const STORAGE_KEY = "dabottree.access";
-const CODE = "acorn"; // case-insensitive
+const CODE = "1621";
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(false);
