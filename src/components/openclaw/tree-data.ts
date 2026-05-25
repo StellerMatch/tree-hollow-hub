@@ -239,25 +239,25 @@ export const BOT_TREE: BotNode = {
       children: [
         {
           id: "at-branches",
-          name: "@branches",
+          name: "App Branches",
           kind: "group",
           children: [
             {
               id: "rook",
               name: "Rook",
               kind: "bot",
-              branch: "@branches",
+              branch: "App Branches",
               role: "Keeper of know-how",
               image: rookHeadshot,
               portrait: rookMidshot,
             },
-            { id: "tinker", name: "Tinker", kind: "bot", branch: "@branches", role: "Prototyper" },
-            { id: "weaver", name: "Weaver", kind: "bot", branch: "@branches", role: "Early-stage grower" },
+            { id: "tinker", name: "Tinker", kind: "bot", branch: "App Branches", role: "Prototyper" },
+            { id: "weaver", name: "Weaver", kind: "bot", branch: "App Branches", role: "Early-stage grower" },
             {
               id: "ward",
               name: "Ward",
               kind: "bot",
-              branch: "@branches",
+              branch: "App Branches",
               role: "Caretaker of shipped things",
               children: [
                 { id: "boomer", name: "Boomer", kind: "bot", branch: "Ward", role: "Launch & momentum" },
