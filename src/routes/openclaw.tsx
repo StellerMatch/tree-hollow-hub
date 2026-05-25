@@ -461,13 +461,13 @@ function DetailModal({ node, onClose }: { node: BotNode | null; onClose: () => v
                 <img
                   src={node.portrait}
                   alt={`${node.name} — mid shot`}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover object-[center_top]"
                 />
               ) : node.image ? (
                 <img
                   src={node.image}
                   alt={node.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover object-[center_top]"
                 />
               ) : (
                 <span className="font-display text-6xl" style={{ color: AMBER }}>
