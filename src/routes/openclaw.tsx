@@ -6,11 +6,11 @@ export const Route = createFileRoute("/openclaw")({
   component: OpenClawPage,
   head: () => ({
     meta: [
-      { title: "OpenClaw Bot Tree — DaBotTree" },
+      { title: "OG DaBotTree" },
       {
         name: "description",
         content:
-          "The living hierarchy of OpenClaw — who sits on which branch of the Bot Tree, and what they quietly do all day.",
+          "The living hierarchy of OG DaBotTree — who sits on which branch of the Bot Tree, and what they quietly do all day.",
       },
       { name: "robots", content: "noindex,nofollow" },
     ],
@@ -91,7 +91,7 @@ function OpenClawPage() {
           </Link>
           <div className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground/80">
             <span className="inline-block h-2 w-2 rounded-full animate-pulse" style={{ background: AMBER }} />
-            openclaw
+            og dabottree
           </div>
         </header>
 
@@ -108,7 +108,7 @@ function OpenClawPage() {
               WebkitTextFillColor: "transparent",
             }}
           >
-            OpenClaw Bot Tree
+            OG DaBotTree
           </h1>
           <p className="mt-4 mx-auto max-w-xl font-hand text-lg md:text-xl text-muted-foreground">
             who lives on which level, and what they quietly do all day.
