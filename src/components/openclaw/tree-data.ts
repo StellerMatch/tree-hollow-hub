@@ -36,6 +36,12 @@ import stagehandHeadshot from "@/assets/stagehand-headshot.png";
 import stagehandMidshot from "@/assets/stagehand-midshot.png";
 import tidyHeadshot from "@/assets/tidy-headshot.png";
 import tidyMidshot from "@/assets/tidy-midshot.png";
+import vaultHeadshot from "@/assets/vault-headshot.png";
+import vaultMidshot from "@/assets/vault-midshot.png";
+import lumaHeadshot from "@/assets/luma-headshot.png";
+import lumaMidshot from "@/assets/luma-midshot.png";
+import compassHeadshot from "@/assets/compass-headshot.png";
+import compassMidshot from "@/assets/compass-midshot.png";
 import raizHeadshot from "@/assets/raiz-headshot.png";
 import raizMidshot from "@/assets/raiz-midshot.png";
 import nerdHeadshot from "@/assets/nerd-headshot.png";
@@ -181,9 +187,33 @@ export const BOT_TREE: BotNode = {
           name: "The Lantern",
           kind: "group",
           children: [
-            { id: "vault", name: "Vault", kind: "bot", branch: "The Lantern", role: "Secrets & storage" },
-            { id: "luma", name: "Luma", kind: "bot", branch: "The Lantern", role: "Illumination" },
-            { id: "compass", name: "Compass", kind: "bot", branch: "The Lantern", role: "Direction-setter" },
+            {
+              id: "vault",
+              name: "Vault",
+              kind: "bot",
+              branch: "The Lantern",
+              role: "Secrets & storage",
+              image: vaultHeadshot,
+              portrait: vaultMidshot,
+            },
+            {
+              id: "luma",
+              name: "Luma",
+              kind: "bot",
+              branch: "The Lantern",
+              role: "Illumination",
+              image: lumaHeadshot,
+              portrait: lumaMidshot,
+            },
+            {
+              id: "compass",
+              name: "Compass",
+              kind: "bot",
+              branch: "The Lantern",
+              role: "Direction-setter",
+              image: compassHeadshot,
+              portrait: compassMidshot,
+            },
             { id: "bloom", name: "Bloom", kind: "bot", branch: "The Lantern", role: "Cultivation" },
           ],
         },
