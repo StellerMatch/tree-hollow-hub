@@ -26,6 +26,10 @@ import chiefHeadshot from "@/assets/chief-headshot.png";
 import chiefMidshot from "@/assets/chief-midshot.png";
 import echoHeadshot from "@/assets/echo-headshot.png";
 import echoMidshot from "@/assets/echo-midshot.png";
+import ivyHeadshot from "@/assets/ivy-headshot.png";
+import ivyMidshot from "@/assets/ivy-midshot.png";
+import stagehandHeadshot from "@/assets/stagehand-headshot.png";
+import stagehandMidshot from "@/assets/stagehand-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -85,7 +89,15 @@ export const BOT_TREE: BotNode = {
             },
           ],
         },
-        { id: "ivy", name: "Ivy", kind: "bot", branch: "High Council", role: "Growth & connection" },
+        {
+          id: "ivy",
+          name: "Ivy",
+          kind: "bot",
+          branch: "High Council",
+          role: "Growth & connection",
+          image: ivyHeadshot,
+          portrait: ivyMidshot,
+        },
         {
           id: "shadows",
           name: "The Shadows",
@@ -207,7 +219,17 @@ export const BOT_TREE: BotNode = {
           id: "toybox",
           name: "Toybox",
           kind: "group",
-          children: [{ id: "stagehand", name: "Stagehand", kind: "bot", branch: "Toybox", role: "Sets the scene" }],
+          children: [
+            {
+              id: "stagehand",
+              name: "Stagehand",
+              kind: "bot",
+              branch: "Toybox",
+              role: "Sets the scene",
+              image: stagehandHeadshot,
+              portrait: stagehandMidshot,
+            },
+          ],
         },
       ],
     },
