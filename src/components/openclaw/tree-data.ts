@@ -1,0 +1,254 @@
+export type NodeKind = "boss" | "group" | "bot";
+
+export type BotNode = {
+  id: string;
+  name: string;
+  kind: NodeKind;
+  marker?: string;
+  branch?: string;
+  role?: string;
+  image?: string;
+  description?: string;
+  boundary?: string;
+  /** Short tier label shown above the node when relevant (e.g. "Trunk", "Canopy") */
+  tier?: string;
+  children?: BotNode[];
+};
+
+/**
+ * Edit this tree to add / remove / move bots.
+ * `kind: "group"` renders as a collapsible branch header.
+ * `kind: "bot"`   renders as a clickable bot node (opens detail panel).
+ * `kind: "boss"`  renders as the crowned top node.
+ * Any node can have children.
+ */
+export const BOT_TREE: BotNode = {
+  id: "nick",
+  name: "Nick",
+  kind: "boss",
+  tier: "Boss",
+  role: "The one who planted the tree",
+  description:
+    "Sits at the top of the canopy. Decides which branches grow and which ones get pruned.",
+  children: [
+    {
+      id: "chief",
+      name: "Chief",
+      kind: "bot",
+      tier: "Chief",
+      role: "Right hand of the Boss",
+      description: "Carries orders down the trunk and brings news back up.",
+    },
+    {
+      id: "high-council",
+      name: "High Council",
+      kind: "group",
+      tier: "Trunk",
+      children: [
+        {
+          id: "echo",
+          name: "Echo",
+          kind: "bot",
+          branch: "High Council",
+          role: "Voice of the Trunk",
+          description: "Carries decisions outward; makes sure the den hears them.",
+          children: [
+            {
+              id: "fox-den",
+              name: "Fox Den",
+              kind: "group",
+              children: [
+                { id: "scout", name: "Scout", kind: "bot", branch: "Fox Den", role: "Pathfinder" },
+                { id: "ticket", name: "Ticket", kind: "bot", branch: "Fox Den", role: "Intake & triage" },
+                { id: "scribe-1", name: "Scribe 1", kind: "bot", branch: "Fox Den", role: "Note-taker" },
+                { id: "scribe-2", name: "Scribe 2", kind: "bot", branch: "Fox Den", role: "Note-taker" },
+                { id: "scribe-3", name: "Scribe 3", kind: "bot", branch: "Fox Den", role: "Note-taker" },
+              ],
+            },
+          ],
+        },
+        { id: "ivy", name: "Ivy", kind: "bot", branch: "High Council", role: "Growth & connection" },
+        {
+          id: "shadows",
+          name: "The Shadows",
+          kind: "group",
+          children: [
+            { id: "ledger", name: "Ledger", kind: "bot", branch: "The Shadows", role: "Keeper of records" },
+            { id: "shield", name: "Shield", kind: "bot", branch: "The Shadows", role: "Guardrails & safety" },
+            { id: "tidy", name: "Tidy", kind: "bot", branch: "The Shadows", role: "Cleanup & hygiene" },
+            {
+              id: "raiz",
+              name: "Raíz",
+              kind: "bot",
+              marker: "⭐⭐💜",
+              branch: "The Shadows",
+              role: "Bot Tree Landscaper",
+              description:
+                "Raíz protects the Bot Tree structure, keeping roles clear, branches healthy, and handoffs clean.",
+              boundary:
+                "Advisory only; recommends structural improvements but does not approve changes.",
+            },
+            { id: "nerd", name: "Nerd", kind: "bot", branch: "The Shadows", role: "Research & reference" },
+            { id: "saul", name: "Saul", kind: "bot", branch: "The Shadows", role: "Counsel" },
+          ],
+        },
+        {
+          id: "lantern",
+          name: "The Lantern",
+          kind: "group",
+          children: [
+            { id: "vault", name: "Vault", kind: "bot", branch: "The Lantern", role: "Secrets & storage" },
+            { id: "luma", name: "Luma", kind: "bot", branch: "The Lantern", role: "Illumination" },
+            { id: "compass", name: "Compass", kind: "bot", branch: "The Lantern", role: "Direction-setter" },
+            { id: "bloom", name: "Bloom", kind: "bot", branch: "The Lantern", role: "Cultivation" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "branches",
+      name: "The Branches",
+      kind: "group",
+      tier: "Branches",
+      children: [
+        {
+          id: "app-branches",
+          name: "App Branches",
+          kind: "group",
+          children: [
+            {
+              id: "knowledge",
+              name: "Knowledge",
+              kind: "group",
+              children: [{ id: "rook", name: "Rook", kind: "bot", branch: "Knowledge", role: "Keeper of know-how" }],
+            },
+            {
+              id: "experiment",
+              name: "Experiment",
+              kind: "group",
+              children: [{ id: "tinker", name: "Tinker", kind: "bot", branch: "Experiment", role: "Prototyper" }],
+            },
+            {
+              id: "nursery",
+              name: "Nursery",
+              kind: "group",
+              children: [{ id: "weaver", name: "Weaver", kind: "bot", branch: "Nursery", role: "Early-stage grower" }],
+            },
+            {
+              id: "built",
+              name: "Built",
+              kind: "group",
+              children: [
+                {
+                  id: "ward",
+                  name: "Ward",
+                  kind: "bot",
+                  branch: "Built",
+                  role: "Caretaker of shipped things",
+                  children: [
+                    { id: "boomer", name: "Boomer", kind: "bot", branch: "Ward", role: "Launch & momentum" },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "rcapay-lane",
+              name: "RCAPay app lane",
+              kind: "group",
+              children: [{ id: "rcapay", name: "RCAPay", kind: "bot", branch: "RCAPay lane", role: "Payments runner" }],
+            },
+          ],
+        },
+        {
+          id: "my-branch",
+          name: "My Branch",
+          kind: "group",
+          children: [
+            {
+              id: "spark",
+              name: "Spark",
+              kind: "bot",
+              branch: "My Branch",
+              role: "Ignition",
+              children: [
+                {
+                  id: "haven",
+                  name: "Haven",
+                  kind: "bot",
+                  branch: "Spark",
+                  role: "Safe place to think",
+                  children: [{ id: "skye", name: "Skye", kind: "bot", branch: "Haven", role: "Open-air dreamer" }],
+                },
+                { id: "muse", name: "Muse", kind: "bot", branch: "Spark", role: "Inspiration" },
+                { id: "forge", name: "Forge", kind: "bot", branch: "Spark", role: "Make it real" },
+              ],
+            },
+          ],
+        },
+        {
+          id: "toybox",
+          name: "Toybox",
+          kind: "group",
+          children: [{ id: "stagehand", name: "Stagehand", kind: "bot", branch: "Toybox", role: "Sets the scene" }],
+        },
+      ],
+    },
+    {
+      id: "architects",
+      name: "Architects",
+      kind: "group",
+      tier: "Architects",
+      children: [
+        {
+          id: "build-a-bears",
+          name: "Build-A-Bears",
+          kind: "group",
+          children: [
+            {
+              id: "momma",
+              name: "Momma",
+              kind: "bot",
+              branch: "Build-A-Bears",
+              role: "Maker of makers",
+              children: [
+                { id: "ace", name: "Ace", kind: "bot", branch: "Momma", role: "Apprentice" },
+                { id: "bolt", name: "Bolt", kind: "bot", branch: "Momma", role: "Fastener" },
+                { id: "craft", name: "Craft", kind: "bot", branch: "Momma", role: "Finisher" },
+              ],
+            },
+          ],
+        },
+        {
+          id: "grandpa-bears",
+          name: "Grandpa Bears",
+          kind: "group",
+          children: [
+            { id: "byte", name: "Byte", kind: "bot", branch: "Grandpa Bears", role: "Old-school memory" },
+            { id: "bubba", name: "Bubba", kind: "bot", branch: "Grandpa Bears", role: "Big steady presence" },
+          ],
+        },
+        {
+          id: "squirrels",
+          name: "Squirrels",
+          kind: "group",
+          children: [
+            { id: "gauge", name: "Gauge", kind: "bot", branch: "Squirrels", role: "Measurer" },
+            { id: "quill", name: "Quill", kind: "bot", branch: "Squirrels", role: "Writer" },
+            { id: "signal", name: "Signal", kind: "bot", branch: "Squirrels", role: "Comms" },
+            { id: "trail", name: "Trail", kind: "bot", branch: "Squirrels", role: "Path-marker" },
+            { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring" },
+            { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder" },
+          ],
+        },
+        { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog" },
+      ],
+    },
+  ],
+};
+
+/** Walk the tree and collect ids to expand by default (top 2 levels). */
+export function defaultExpanded(node: BotNode, depth = 0, acc = new Set<string>()): Set<string> {
+  if (depth <= 1) acc.add(node.id);
+  node.children?.forEach((c) => defaultExpanded(c, depth + 1, acc));
+  return acc;
+}
