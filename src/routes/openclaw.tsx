@@ -120,38 +120,30 @@ function OpenClawPage() {
           </div>
         </div>
 
-        {/* main: tree + detail */}
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-          {/* tree */}
+        {/* main: tree */}
+        <div
+          className="relative rounded-3xl border-2 bark-texture p-4 md:p-8 animate-fade-up"
+          style={{ borderColor: AMBER_SOFT, animationDelay: "200ms" }}
+        >
           <div
-            className="relative rounded-3xl border-2 bark-texture p-4 md:p-8 animate-fade-up"
-            style={{ borderColor: AMBER_SOFT, animationDelay: "200ms" }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 rounded-3xl opacity-30"
-              style={{ background: `radial-gradient(ellipse at top, ${AMBER_SOFT}, transparent 70%)` }}
+            className="pointer-events-none absolute inset-0 rounded-3xl opacity-30"
+            style={{ background: `radial-gradient(ellipse at top, ${AMBER_SOFT}, transparent 70%)` }}
+          />
+          <div className="relative">
+            <TreeNode
+              node={BOT_TREE}
+              depth={0}
+              isLast
+              expanded={expanded}
+              onToggle={toggle}
+              selectedId={selected?.id ?? null}
+              onSelect={setSelected}
             />
-            <div className="relative">
-              <TreeNode
-                node={BOT_TREE}
-                depth={0}
-                isLast
-                expanded={expanded}
-                onToggle={toggle}
-                selectedId={selected?.id ?? null}
-                onSelect={setSelected}
-              />
-            </div>
           </div>
-
-          {/* detail panel */}
-          <aside
-            className="animate-fade-up lg:sticky lg:top-6 lg:self-start"
-            style={{ animationDelay: "300ms" }}
-          >
-            <DetailPanel node={selected} onClose={() => setSelected(null)} />
-          </aside>
         </div>
+
+        {/* detail modal */}
+        <DetailModal node={selected} onClose={() => setSelected(null)} />
 
         <div
           className="mt-12 h-2 rounded-full"
