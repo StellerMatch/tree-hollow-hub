@@ -1,59 +1,87 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { LEVELS, type Character } from "@/components/openclaw/roster";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { BOT_TREE, defaultExpanded, type BotNode } from "@/components/openclaw/tree-data";
 
 export const Route = createFileRoute("/openclaw")({
   component: OpenClawPage,
   head: () => ({
     meta: [
-      { title: "OpenClaw — the roster of the tree" },
+      { title: "OpenClaw Bot Tree — DaBotTree" },
       {
         name: "description",
         content:
-          "The cast of characters that live in DaBotTree, level by level.",
+          "The living hierarchy of OpenClaw — who sits on which branch of the Bot Tree, and what they quietly do all day.",
       },
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
 });
 
-const ORANGE = "oklch(0.78 0.18 50)";
-const ORANGE_SOFT = "oklch(0.78 0.18 50 / 0.18)";
-const ORANGE_GLOW = "oklch(0.78 0.18 50 / 0.45)";
+const AMBER = "oklch(0.78 0.18 50)";
+const AMBER_SOFT = "oklch(0.78 0.18 50 / 0.18)";
+const AMBER_LINE = "oklch(0.78 0.18 50 / 0.35)";
+const AMBER_GLOW = "oklch(0.78 0.18 50 / 0.45)";
+const EMERALD = "oklch(0.7 0.14 160)";
 
 function OpenClawPage() {
-  const [open, setOpen] = useState<Character | null>(null);
+  const [selected, setSelected] = useState<BotNode | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(() => defaultExpanded(BOT_TREE));
+
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const counts = useMemo(() => countNodes(BOT_TREE), []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      {/* ambient warm lights */}
+      {/* ambient warm lanterns */}
       <div className="pointer-events-none absolute inset-0">
         <div
           className="absolute left-[5%] top-[10%] h-80 w-80 rounded-full opacity-30 animate-flicker"
-          style={{ background: `radial-gradient(circle, ${ORANGE_GLOW}, transparent 70%)` }}
+          style={{ background: `radial-gradient(circle, ${AMBER_GLOW}, transparent 70%)` }}
         />
         <div
-          className="absolute right-[5%] top-[30%] h-72 w-72 rounded-full opacity-25 animate-flicker"
+          className="absolute right-[5%] top-[35%] h-72 w-72 rounded-full opacity-25 animate-flicker"
           style={{
-            background: `radial-gradient(circle, ${ORANGE_GLOW}, transparent 70%)`,
+            background: `radial-gradient(circle, ${AMBER_GLOW}, transparent 70%)`,
             animationDelay: "1.2s",
           }}
         />
         <div
           className="absolute bottom-[5%] left-[40%] h-96 w-96 rounded-full opacity-20 animate-flicker"
           style={{
-            background: `radial-gradient(circle, ${ORANGE_GLOW}, transparent 70%)`,
+            background: `radial-gradient(circle, ${AMBER_GLOW}, transparent 70%)`,
             animationDelay: "0.5s",
           }}
         />
+        {/* drifting sparks */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <span
+            key={i}
+            className="absolute animate-drift text-[10px]"
+            style={{
+              left: `${(i * 11) % 100}%`,
+              animationDelay: `${i * 1.7}s`,
+              animationDuration: `${16 + (i % 5) * 2}s`,
+              color: AMBER,
+            }}
+          >
+            ✦
+          </span>
+        ))}
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[oklch(0.12_0.02_60)] to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[oklch(0.12_0.02_60)] to-transparent" />
 
-      <div className="relative mx-auto max-w-5xl px-4 py-10 md:py-16">
-        {/* header */}
-        <header className="mb-10 flex items-center justify-between animate-fade-up">
+      <div className="relative mx-auto max-w-6xl px-4 py-8 md:py-12">
+        {/* header bar */}
+        <header className="mb-8 flex items-center justify-between animate-fade-up">
           <Link
             to="/"
             className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
@@ -62,245 +90,428 @@ function OpenClawPage() {
             <span className="font-hand text-base">back to the lobby</span>
           </Link>
           <div className="hidden md:flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground/80">
-            <span
-              className="inline-block h-2 w-2 rounded-full animate-pulse"
-              style={{ background: ORANGE }}
-            />
+            <span className="inline-block h-2 w-2 rounded-full animate-pulse" style={{ background: AMBER }} />
             openclaw
           </div>
         </header>
 
         {/* title */}
-        <div
-          className="mb-12 md:mb-16 text-center animate-fade-up"
-          style={{ animationDelay: "150ms" }}
-        >
-          <div
-            className="font-hand text-lg md:text-xl mb-2"
-            style={{ color: ORANGE }}
-          >
+        <div className="mb-10 md:mb-14 text-center animate-fade-up" style={{ animationDelay: "120ms" }}>
+          <div className="font-hand text-lg md:text-xl mb-2" style={{ color: AMBER }}>
             the workshop in the canopy
           </div>
           <h1
             className="font-display text-5xl md:text-7xl font-semibold leading-tight"
             style={{
-              background: `linear-gradient(180deg, ${ORANGE}, oklch(0.6 0.18 35))`,
+              background: `linear-gradient(180deg, ${AMBER}, oklch(0.6 0.18 35))`,
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
             }}
           >
-            OpenClaw
+            OpenClaw Bot Tree
           </h1>
           <p className="mt-4 mx-auto max-w-xl font-hand text-lg md:text-xl text-muted-foreground">
-            the roster of the tree — who lives on which level, and what they
-            quietly do all day.
+            who lives on which level, and what they quietly do all day.
           </p>
-        </div>
-
-        {/* levels */}
-        <div className="relative">
-          {/* trunk line */}
-          <div
-            className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 hidden md:block"
-            style={{
-              background: `linear-gradient(180deg, transparent, ${ORANGE_SOFT}, transparent)`,
-            }}
-          />
-
-          <div className="space-y-16 md:space-y-24">
-            {LEVELS.map((level, lIdx) => (
-              <section
-                key={level.id}
-                className="relative animate-fade-up"
-                style={{ animationDelay: `${250 + lIdx * 120}ms` }}
-              >
-                {/* level header */}
-                <div className="mb-6 md:mb-8 text-center">
-                  <div className="text-3xl md:text-4xl animate-sway inline-block">
-                    {level.icon}
-                  </div>
-                  <h2
-                    className="mt-2 font-display text-2xl md:text-3xl font-semibold"
-                    style={{ color: ORANGE }}
-                  >
-                    {level.name}
-                  </h2>
-                  <div className="font-hand text-sm md:text-base text-muted-foreground">
-                    {level.subtitle}
-                  </div>
-                </div>
-
-                {/* characters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                  {level.characters.map((c) => (
-                    <CharacterCard
-                      key={c.id}
-                      character={c}
-                      onClick={() => setOpen(c)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
+          <div className="mt-4 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            <span>{counts.groups} branches</span>
+            <span className="opacity-40">·</span>
+            <span>{counts.bots} bots</span>
           </div>
         </div>
 
+        {/* main: tree + detail */}
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          {/* tree */}
+          <div
+            className="relative rounded-3xl border-2 bark-texture p-4 md:p-8 animate-fade-up"
+            style={{ borderColor: AMBER_SOFT, animationDelay: "200ms" }}
+          >
+            <div
+              className="pointer-events-none absolute inset-0 rounded-3xl opacity-30"
+              style={{ background: `radial-gradient(ellipse at top, ${AMBER_SOFT}, transparent 70%)` }}
+            />
+            <div className="relative">
+              <TreeNode
+                node={BOT_TREE}
+                depth={0}
+                isLast
+                expanded={expanded}
+                onToggle={toggle}
+                selectedId={selected?.id ?? null}
+                onSelect={setSelected}
+              />
+            </div>
+          </div>
+
+          {/* detail panel */}
+          <aside
+            className="animate-fade-up lg:sticky lg:top-6 lg:self-start"
+            style={{ animationDelay: "300ms" }}
+          >
+            <DetailPanel node={selected} onClose={() => setSelected(null)} />
+          </aside>
+        </div>
+
         <div
-          className="mt-20 h-2 rounded-full"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${ORANGE_SOFT}, transparent)`,
-          }}
+          className="mt-12 h-2 rounded-full"
+          style={{ background: `linear-gradient(90deg, transparent, ${AMBER_SOFT}, transparent)` }}
         />
         <p className="mt-6 text-center font-hand text-sm text-muted-foreground/70">
-          more characters move in as the tree grows.
+          the tree creaks. somewhere, a bot is sharpening a tool.
         </p>
       </div>
-
-      {open && <CharacterModal character={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }
 
-function CharacterCard({
-  character,
-  onClick,
+// ---------- Tree ----------
+
+function TreeNode({
+  node,
+  depth,
+  isLast,
+  expanded,
+  onToggle,
+  selectedId,
+  onSelect,
 }: {
-  character: Character;
-  onClick: () => void;
+  node: BotNode;
+  depth: number;
+  isLast: boolean;
+  expanded: Set<string>;
+  onToggle: (id: string) => void;
+  selectedId: string | null;
+  onSelect: (n: BotNode) => void;
 }) {
+  const hasChildren = !!node.children?.length;
+  const isOpen = expanded.has(node.id);
+  const isSelected = selectedId === node.id;
+
   return (
-    <button
-      onClick={onClick}
-      className="group relative text-left rounded-2xl border-2 bark-texture p-5 md:p-6 transition hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_oklch(0.78_0.18_50_/_0.5)]"
-      style={{ borderColor: ORANGE_SOFT }}
-    >
-      <div
-        className="absolute inset-0 rounded-2xl opacity-0 transition group-hover:opacity-100 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at top, ${ORANGE_SOFT}, transparent 70%)`,
-        }}
+    <div className="relative">
+      <NodePill
+        node={node}
+        depth={depth}
+        isOpen={isOpen}
+        isSelected={isSelected}
+        hasChildren={hasChildren}
+        onToggle={() => hasChildren && onToggle(node.id)}
+        onSelect={() => onSelect(node)}
       />
-      <div className="relative flex items-start gap-4">
-        {/* hero photo slot */}
+
+      {hasChildren && isOpen && (
         <div
-          className="relative shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl overflow-hidden flex items-center justify-center text-4xl md:text-5xl"
+          className="relative mt-2 ml-4 md:ml-6 pl-4 md:pl-6 space-y-2"
           style={{
-            background: `radial-gradient(circle at 30% 30%, ${ORANGE_SOFT}, oklch(0.18 0.02 60))`,
-            boxShadow: `inset 0 0 20px oklch(0.1 0.02 60 / 0.8)`,
+            borderLeft: `1px dashed ${AMBER_LINE}`,
           }}
         >
-          {character.photo ? (
-            <img
-              src={character.photo}
-              alt={character.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="drop-shadow-lg">{character.emoji}</span>
-          )}
-          <div
-            className="absolute inset-0 ring-1 ring-inset rounded-2xl"
-            style={{ boxShadow: `inset 0 0 0 1px ${ORANGE_SOFT}` }}
-          />
+          {node.children!.map((c, i) => (
+            <div key={c.id} className="relative">
+              {/* connector tick */}
+              <div
+                className="absolute top-[22px] -left-4 md:-left-6 w-4 md:w-6 h-px"
+                style={{ background: AMBER_LINE }}
+              />
+              <TreeNode
+                node={c}
+                depth={depth + 1}
+                isLast={i === node.children!.length - 1}
+                expanded={expanded}
+                onToggle={onToggle}
+                selectedId={selectedId}
+                onSelect={onSelect}
+              />
+            </div>
+          ))}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div
-            className="font-hand text-sm"
-            style={{ color: ORANGE }}
-          >
-            {character.role}
-          </div>
-          <h3 className="font-display text-xl md:text-2xl font-semibold leading-tight">
-            {character.name}
-          </h3>
-          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-            {character.description}
-          </p>
-        </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }
 
-function CharacterModal({
-  character,
-  onClose,
+function NodePill({
+  node,
+  depth,
+  isOpen,
+  isSelected,
+  hasChildren,
+  onToggle,
+  onSelect,
 }: {
-  character: Character;
-  onClose: () => void;
+  node: BotNode;
+  depth: number;
+  isOpen: boolean;
+  isSelected: boolean;
+  hasChildren: boolean;
+  onToggle: () => void;
+  onSelect: () => void;
 }) {
+  const isBoss = node.kind === "boss";
+  const isGroup = node.kind === "group";
+  const isBot = node.kind === "bot";
+
+  const borderColor = isSelected ? AMBER : isGroup ? AMBER_LINE : AMBER_SOFT;
+  const bg = isSelected
+    ? `linear-gradient(135deg, ${AMBER_SOFT}, transparent)`
+    : "transparent";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-up"
-      style={{ animationDuration: "0.3s" }}
+      className="group flex items-stretch gap-2 rounded-2xl border transition"
+      style={{
+        borderColor,
+        background: bg,
+        boxShadow: isSelected ? `0 0 30px ${AMBER_GLOW}` : undefined,
+      }}
+    >
+      {/* expand toggle */}
+      {hasChildren ? (
+        <button
+          onClick={onToggle}
+          aria-label={isOpen ? "collapse" : "expand"}
+          className="flex items-center justify-center w-9 shrink-0 rounded-l-2xl text-sm text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+        >
+          <span
+            className="inline-block transition-transform"
+            style={{ transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+          >
+            ▸
+          </span>
+        </button>
+      ) : (
+        <div className="w-9 shrink-0 flex items-center justify-center">
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: AMBER_LINE }} />
+        </div>
+      )}
+
+      {/* body */}
+      <button
+        onClick={() => (isBot || isBoss ? onSelect() : onToggle())}
+        className="flex-1 flex items-center gap-3 py-2.5 pr-3 text-left rounded-r-2xl transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
+      >
+        {/* avatar */}
+        <Avatar node={node} isBoss={isBoss} isGroup={isGroup} isSelected={isSelected} />
+
+        {/* labels */}
+        <div className="min-w-0 flex-1">
+          {node.tier && depth <= 1 && (
+            <div
+              className="font-hand text-[11px] uppercase tracking-[0.2em] leading-none mb-0.5"
+              style={{ color: EMERALD }}
+            >
+              {node.tier}
+            </div>
+          )}
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className={
+                isBoss
+                  ? "font-display text-xl md:text-2xl font-semibold truncate"
+                  : isGroup
+                  ? "font-display text-base md:text-lg font-semibold truncate"
+                  : "font-display text-base font-medium truncate"
+              }
+              style={isGroup ? { color: AMBER } : undefined}
+            >
+              {isBoss ? `👑 ${node.name}` : node.name}
+            </span>
+            {node.marker && (
+              <span className="text-xs leading-none shrink-0" aria-label="marker">
+                {node.marker}
+              </span>
+            )}
+            {isGroup && node.children && (
+              <span className="ml-auto shrink-0 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                {node.children.length}
+              </span>
+            )}
+          </div>
+          {node.role && !isGroup && (
+            <div className="font-hand text-xs text-muted-foreground truncate">{node.role}</div>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function Avatar({
+  node,
+  isBoss,
+  isGroup,
+  isSelected,
+}: {
+  node: BotNode;
+  isBoss: boolean;
+  isGroup: boolean;
+  isSelected: boolean;
+}) {
+  const size = isBoss ? "h-12 w-12 text-2xl" : "h-10 w-10 text-lg";
+  const initials = node.name
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .split(" ")
+    .map((s) => s[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div
+      className={`relative shrink-0 ${size} rounded-xl overflow-hidden flex items-center justify-center font-display`}
+      style={{
+        background: isGroup
+          ? `linear-gradient(135deg, oklch(0.32 0.04 140 / 0.6), oklch(0.22 0.03 60))`
+          : `radial-gradient(circle at 30% 30%, ${AMBER_SOFT}, oklch(0.18 0.02 60))`,
+        boxShadow: isSelected
+          ? `0 0 0 1px ${AMBER}, inset 0 0 12px oklch(0.1 0.02 60 / 0.8)`
+          : `inset 0 0 12px oklch(0.1 0.02 60 / 0.8)`,
+      }}
+    >
+      {node.image ? (
+        <img src={node.image} alt={node.name} className="h-full w-full object-cover" />
+      ) : isGroup ? (
+        <span style={{ color: EMERALD }}>🌿</span>
+      ) : (
+        <span style={{ color: AMBER }}>{initials || "·"}</span>
+      )}
+    </div>
+  );
+}
+
+// ---------- Detail panel ----------
+
+function DetailPanel({ node, onClose }: { node: BotNode | null; onClose: () => void }) {
+  if (!node) {
+    return (
+      <div
+        className="rounded-3xl border-2 bark-texture p-6 text-center"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-4xl mb-2">🪞</div>
+        <div className="font-hand text-base text-muted-foreground">
+          tap a bot to peek inside their workshop.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      key={node.id}
+      className="relative rounded-3xl border-2 bark-texture p-6 md:p-7 shadow-[var(--shadow-deep)] animate-fade-up"
+      style={{ borderColor: AMBER, animationDuration: "0.25s" }}
     >
       <div
-        className="absolute inset-0 bg-[oklch(0.1_0.02_60/0.85)] backdrop-blur-sm"
-        onClick={onClose}
+        className="pointer-events-none absolute inset-0 rounded-3xl opacity-25"
+        style={{ background: `radial-gradient(ellipse at top, ${AMBER}, transparent 70%)` }}
       />
-      <div
-        className="relative w-full max-w-md bark-texture rounded-3xl border-2 p-6 md:p-8 shadow-[var(--shadow-deep)]"
-        style={{ borderColor: ORANGE }}
-      >
-        <div
-          className="absolute inset-0 rounded-3xl opacity-20 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse at top, ${ORANGE}, transparent 70%)`,
-          }}
-        />
-        <div className="relative">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div
-              className="h-24 w-24 md:h-28 md:w-28 rounded-2xl overflow-hidden flex items-center justify-center text-5xl md:text-6xl"
-              style={{
-                background: `radial-gradient(circle at 30% 30%, ${ORANGE_SOFT}, oklch(0.18 0.02 60))`,
-                boxShadow: `inset 0 0 24px oklch(0.1 0.02 60 / 0.8)`,
-              }}
-            >
-              {character.photo ? (
-                <img
-                  src={character.photo}
-                  alt={character.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="drop-shadow-lg">{character.emoji}</span>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="text-2xl text-muted-foreground transition hover:text-foreground"
-              aria-label="close"
-            >
-              ✕
-            </button>
+      <div className="relative">
+        <div className="flex items-start gap-4">
+          <div
+            className="relative shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl overflow-hidden flex items-center justify-center text-3xl font-display"
+            style={{
+              background: `radial-gradient(circle at 30% 30%, ${AMBER_SOFT}, oklch(0.18 0.02 60))`,
+              boxShadow: `inset 0 0 16px oklch(0.1 0.02 60 / 0.8), 0 0 24px ${AMBER_GLOW}`,
+              color: AMBER,
+            }}
+          >
+            {node.image ? (
+              <img src={node.image} alt={node.name} className="h-full w-full object-cover" />
+            ) : (
+              node.name
+                .replace(/[^a-zA-Z0-9 ]/g, "")
+                .split(" ")
+                .map((s) => s[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase() || "·"
+            )}
           </div>
-          <div className="font-hand text-base" style={{ color: ORANGE }}>
-            {character.role}
+          <div className="min-w-0 flex-1">
+            {node.branch && (
+              <div
+                className="font-hand text-[11px] uppercase tracking-[0.2em] leading-none mb-1"
+                style={{ color: EMERALD }}
+              >
+                {node.branch}
+              </div>
+            )}
+            <h3 className="font-display text-2xl md:text-3xl font-semibold leading-tight">
+              {node.name}
+            </h3>
+            {node.marker && <div className="mt-1 text-sm">{node.marker}</div>}
+            {node.role && (
+              <div className="mt-1 font-hand text-sm" style={{ color: AMBER }}>
+                {node.role}
+              </div>
+            )}
           </div>
-          <h2 className="font-display text-3xl md:text-4xl font-semibold leading-tight mt-1">
-            {character.name}
-          </h2>
-          <p className="mt-4 text-muted-foreground leading-relaxed">
-            {character.description}
-          </p>
-
-          <div className="mt-6 flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 rounded-xl px-4 py-3 text-center font-display text-lg font-semibold transition hover:scale-[1.02]"
-              style={{
-                background: ORANGE,
-                color: "oklch(0.15 0.03 60)",
-                boxShadow: `0 0 30px ${ORANGE_GLOW}`,
-              }}
-            >
-              close
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            aria-label="close"
+            className="text-xl text-muted-foreground transition hover:text-foreground"
+          >
+            ✕
+          </button>
         </div>
+
+        {node.description && (
+          <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed">
+            {node.description}
+          </p>
+        )}
+
+        {node.boundary && (
+          <div
+            className="mt-4 rounded-xl border p-3 text-xs leading-relaxed"
+            style={{
+              borderColor: AMBER_SOFT,
+              background: "oklch(0.2 0.02 60 / 0.5)",
+              color: "oklch(0.85 0.04 80)",
+            }}
+          >
+            <span className="font-hand text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+              boundary
+            </span>
+            <div className="mt-1">{node.boundary}</div>
+          </div>
+        )}
+
+        {node.children && node.children.length > 0 && (
+          <div className="mt-5">
+            <div className="font-hand text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-2">
+              under their wing
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {node.children.map((c) => (
+                <span
+                  key={c.id}
+                  className="rounded-full border px-2.5 py-1 text-xs"
+                  style={{ borderColor: AMBER_SOFT, color: "oklch(0.9 0.03 85)" }}
+                >
+                  {c.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+// ---------- helpers ----------
+
+function countNodes(node: BotNode): { groups: number; bots: number } {
+  let groups = 0;
+  let bots = 0;
+  const walk = (n: BotNode) => {
+    if (n.kind === "group") groups++;
+    if (n.kind === "bot") bots++;
+    n.children?.forEach(walk);
+  };
+  walk(node);
+  return { groups, bots };
 }
