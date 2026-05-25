@@ -57,8 +57,9 @@ export function ProjectModal({
           <div className="mt-6 flex gap-3">
             <a
               href={project.href}
-              target="_blank"
-              rel="noreferrer"
+              {...(project.href.startsWith("/")
+                ? {}
+                : { target: "_blank", rel: "noreferrer" })}
               className="flex-1 rounded-xl px-4 py-3 text-center font-display text-lg font-semibold transition hover:scale-[1.02]"
               style={{
                 background: project.hue,

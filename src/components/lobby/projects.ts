@@ -16,7 +16,7 @@ export const PROJECTS: Project[] = [
     tagline: "the workshop in the canopy",
     description:
       "An open workbench for bots, agents, and small claws that fetch things. Tools clatter behind the door.",
-    href: "#",
+    href: "/openclaw",
     icon: "🦾",
     kind: "door",
     hue: "oklch(0.78 0.18 50)",

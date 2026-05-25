@@ -9,8 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as IndexRouteImport } from './routes/index'
 
+const OpenclawRoute = OpenclawRouteImport.update({
+  id: '/openclaw',
+  path: '/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +25,39 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/openclaw': typeof OpenclawRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/openclaw': typeof OpenclawRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/openclaw': typeof OpenclawRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/openclaw'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/openclaw'
+  id: '__root__' | '/' | '/openclaw'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  OpenclawRoute: typeof OpenclawRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/openclaw': {
+      id: '/openclaw'
+      path: '/openclaw'
+      fullPath: '/openclaw'
+      preLoaderRoute: typeof OpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  OpenclawRoute: OpenclawRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
