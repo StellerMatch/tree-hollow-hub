@@ -64,6 +64,10 @@ import havenHeadshot from "@/assets/haven-headshot.png";
 import havenMidshot from "@/assets/haven-midshot.png";
 import museHeadshot from "@/assets/muse-headshot.png";
 import museMidshot from "@/assets/muse-midshot.png";
+import forgeHeadshot from "@/assets/forge-headshot.png";
+import forgeMidshot from "@/assets/forge-midshot.png";
+import mommaHeadshot from "@/assets/momma-headshot.png";
+import mommaMidshot from "@/assets/momma-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -328,7 +332,15 @@ export const BOT_TREE: BotNode = {
               image: museHeadshot,
               portrait: museMidshot,
             },
-            { id: "forge", name: "Forge", kind: "bot", branch: "My Branch", role: "Make it real" },
+            {
+              id: "forge",
+              name: "Forge",
+              kind: "bot",
+              branch: "My Branch",
+              role: "Make it real",
+              image: forgeHeadshot,
+              portrait: forgeMidshot,
+            },
           ],
         },
         {
@@ -366,6 +378,8 @@ export const BOT_TREE: BotNode = {
               kind: "bot",
               branch: "Build-A-Bears",
               role: "Maker of makers",
+              image: mommaHeadshot,
+              portrait: mommaMidshot,
               children: [
                 { id: "ace", name: "Ace", kind: "bot", branch: "Momma", role: "Apprentice" },
                 { id: "bolt", name: "Bolt", kind: "bot", branch: "Momma", role: "Fastener" },
