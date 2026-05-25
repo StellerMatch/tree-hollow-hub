@@ -52,6 +52,12 @@ import bloomHeadshot from "@/assets/bloom-headshot.png";
 import bloomMidshot from "@/assets/bloom-midshot.png";
 import rookHeadshot from "@/assets/rook-headshot.png";
 import rookMidshot from "@/assets/rook-midshot.png";
+import tinkerHeadshot from "@/assets/tinker-headshot.png";
+import tinkerMidshot from "@/assets/tinker-midshot.png";
+import weaverHeadshot from "@/assets/weaver-headshot.png";
+import weaverMidshot from "@/assets/weaver-midshot.png";
+import wardHeadshot from "@/assets/ward-headshot.png";
+import wardMidshot from "@/assets/ward-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -251,14 +257,32 @@ export const BOT_TREE: BotNode = {
               image: rookHeadshot,
               portrait: rookMidshot,
             },
-            { id: "tinker", name: "Tinker", kind: "bot", branch: "App Branches", role: "Prototyper" },
-            { id: "weaver", name: "Weaver", kind: "bot", branch: "App Branches", role: "Early-stage grower" },
+            {
+              id: "tinker",
+              name: "Tinker",
+              kind: "bot",
+              branch: "App Branches",
+              role: "Prototyper",
+              image: tinkerHeadshot,
+              portrait: tinkerMidshot,
+            },
+            {
+              id: "weaver",
+              name: "Weaver",
+              kind: "bot",
+              branch: "App Branches",
+              role: "Early-stage grower",
+              image: weaverHeadshot,
+              portrait: weaverMidshot,
+            },
             {
               id: "ward",
               name: "Ward",
               kind: "bot",
               branch: "App Branches",
               role: "Caretaker of shipped things",
+              image: wardHeadshot,
+              portrait: wardMidshot,
               children: [
                 { id: "boomer", name: "Boomer", kind: "bot", branch: "Ward", role: "Launch & momentum" },
               ],
