@@ -19,7 +19,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (value.trim().toLowerCase() === CODE) {
+    if (value.trim() === CODE) {
       localStorage.setItem(STORAGE_KEY, "1");
       setUnlocked(true);
     } else {
@@ -45,7 +45,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
         <div className="mb-8 text-center">
           <div className="mb-3 inline-block animate-sway text-5xl">🌳</div>
           <h1 className="font-display text-4xl font-semibold tracking-tight text-glow">
-            dabottree
+            DaBotTree
           </h1>
           <p className="mt-2 text-sm text-muted-foreground font-hand text-base">
             whisper the word to enter the tree
