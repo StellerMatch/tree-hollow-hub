@@ -72,10 +72,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "dabottree — a private lobby" },
+      { title: "DaBotTree — a private lobby" },
       { name: "description", content: "A hidden creative lobby inside a magical tree." },
       { name: "robots", content: "noindex, nofollow" },
-      { property: "og:title", content: "dabottree" },
+      { property: "og:title", content: "DaBotTree" },
       { property: "og:description", content: "A hidden lobby. Access by invitation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
