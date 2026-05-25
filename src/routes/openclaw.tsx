@@ -463,6 +463,19 @@ function DetailPanel({ node, onClose }: { node: BotNode | null; onClose: () => v
           </p>
         )}
 
+        {node.portrait && (
+          <div
+            className="mt-5 overflow-hidden rounded-2xl border"
+            style={{ borderColor: AMBER_SOFT, boxShadow: `0 0 24px ${AMBER_GLOW}` }}
+          >
+            <img
+              src={node.portrait}
+              alt={`${node.name} — full portrait`}
+              className="w-full h-auto object-cover"
+            />
+          </div>
+        )}
+
         {node.boundary && (
           <div
             className="mt-4 rounded-xl border p-3 text-xs leading-relaxed"

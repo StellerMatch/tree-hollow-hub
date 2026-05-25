@@ -8,12 +8,16 @@ export type BotNode = {
   branch?: string;
   role?: string;
   image?: string;
+  portrait?: string;
   description?: string;
   boundary?: string;
   /** Short tier label shown above the node when relevant (e.g. "Trunk", "Canopy") */
   tier?: string;
   children?: BotNode[];
 };
+
+import bossHeadshot from "@/assets/boss-headshot.png";
+import bossFullBody from "@/assets/boss-fullbody.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -23,11 +27,13 @@ export type BotNode = {
  * Any node can have children.
  */
 export const BOT_TREE: BotNode = {
-  id: "nick",
-  name: "Nick",
+  id: "boss",
+  name: "Boss",
   kind: "boss",
   tier: "Boss",
   role: "The one who planted the tree",
+  image: bossHeadshot,
+  portrait: bossFullBody,
   description:
     "Sits at the top of the canopy. Decides which branches grow and which ones get pruned.",
   children: [
