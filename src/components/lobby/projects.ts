@@ -12,7 +12,7 @@ export type Project = {
 export const PROJECTS: Project[] = [
   {
     id: "openclaw",
-    name: "OpenClaw / Bot Tree",
+    name: "OG DaBotTree",
     tagline: "the workshop in the canopy",
     description:
       "An open workbench for bots, agents, and small claws that fetch things. Tools clatter behind the door.",
