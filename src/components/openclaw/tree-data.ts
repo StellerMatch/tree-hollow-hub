@@ -294,25 +294,17 @@ export const BOT_TREE: BotNode = {
           name: "My Branch",
           kind: "group",
           children: [
+            { id: "spark", name: "Spark", kind: "bot", branch: "My Branch", role: "Ignition" },
             {
-              id: "spark",
-              name: "Spark",
+              id: "haven",
+              name: "Haven",
               kind: "bot",
               branch: "My Branch",
-              role: "Ignition",
-              children: [
-                {
-                  id: "haven",
-                  name: "Haven",
-                  kind: "bot",
-                  branch: "Spark",
-                  role: "Safe place to think",
-                  children: [{ id: "skye", name: "Skye", kind: "bot", branch: "Haven", role: "Open-air dreamer" }],
-                },
-                { id: "muse", name: "Muse", kind: "bot", branch: "Spark", role: "Inspiration" },
-                { id: "forge", name: "Forge", kind: "bot", branch: "Spark", role: "Make it real" },
-              ],
+              role: "Safe place to think",
+              children: [{ id: "skye", name: "Skye", kind: "bot", branch: "Haven", role: "Open-air dreamer" }],
             },
+            { id: "muse", name: "Muse", kind: "bot", branch: "My Branch", role: "Inspiration" },
+            { id: "forge", name: "Forge", kind: "bot", branch: "My Branch", role: "Make it real" },
           ],
         },
         {
