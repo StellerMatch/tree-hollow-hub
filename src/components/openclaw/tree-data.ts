@@ -58,6 +58,12 @@ import weaverHeadshot from "@/assets/weaver-headshot.png";
 import weaverMidshot from "@/assets/weaver-midshot.png";
 import wardHeadshot from "@/assets/ward-headshot.png";
 import wardMidshot from "@/assets/ward-midshot.png";
+import sparkHeadshot from "@/assets/spark-headshot.png";
+import sparkMidshot from "@/assets/spark-midshot.png";
+import havenHeadshot from "@/assets/haven-headshot.png";
+import havenMidshot from "@/assets/haven-midshot.png";
+import museHeadshot from "@/assets/muse-headshot.png";
+import museMidshot from "@/assets/muse-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -294,16 +300,34 @@ export const BOT_TREE: BotNode = {
           name: "My Branch",
           kind: "group",
           children: [
-            { id: "spark", name: "Spark", kind: "bot", branch: "My Branch", role: "Ignition" },
+            {
+              id: "spark",
+              name: "Spark",
+              kind: "bot",
+              branch: "My Branch",
+              role: "Ignition",
+              image: sparkHeadshot,
+              portrait: sparkMidshot,
+            },
             {
               id: "haven",
               name: "Haven",
               kind: "bot",
               branch: "My Branch",
               role: "Safe place to think",
+              image: havenHeadshot,
+              portrait: havenMidshot,
               children: [{ id: "skye", name: "Skye", kind: "bot", branch: "Haven", role: "Open-air dreamer" }],
             },
-            { id: "muse", name: "Muse", kind: "bot", branch: "My Branch", role: "Inspiration" },
+            {
+              id: "muse",
+              name: "Muse",
+              kind: "bot",
+              branch: "My Branch",
+              role: "Inspiration",
+              image: museHeadshot,
+              portrait: museMidshot,
+            },
             { id: "forge", name: "Forge", kind: "bot", branch: "My Branch", role: "Make it real" },
           ],
         },
