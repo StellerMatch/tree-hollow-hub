@@ -1,0 +1,79 @@
+export type Project = {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  href: string;
+  icon: string;
+  kind: "door" | "stall" | "window" | "tunnel" | "sign" | "mystery";
+  hue: string; // accent color
+};
+
+export const PROJECTS: Project[] = [
+  {
+    id: "openclaw",
+    name: "OpenClaw / Bot Tree",
+    tagline: "the workshop in the canopy",
+    description:
+      "An open workbench for bots, agents, and small claws that fetch things. Tools clatter behind the door.",
+    href: "#",
+    icon: "🦾",
+    kind: "door",
+    hue: "oklch(0.78 0.18 50)",
+  },
+  {
+    id: "zombie-football",
+    name: "Zombie Football",
+    tagline: "stadium under the roots",
+    description:
+      "Eleven on eleven, but most of them are decomposing. A weird sports thing in progress.",
+    href: "#",
+    icon: "🏈",
+    kind: "tunnel",
+    hue: "oklch(0.6 0.22 145)",
+  },
+  {
+    id: "video-tools",
+    name: "Video Tools",
+    tagline: "the cutting room window",
+    description:
+      "Little utilities for trimming, ripping, and reassembling moving pictures. Light leaks out the glass.",
+    href: "#",
+    icon: "🎞️",
+    kind: "window",
+    hue: "oklch(0.7 0.18 200)",
+  },
+  {
+    id: "experiments",
+    name: "Experiments",
+    tagline: "the bubbling stall",
+    description:
+      "Half-finished prototypes, weird interactions, things that may or may not work. Try the soup.",
+    href: "#",
+    icon: "⚗️",
+    kind: "stall",
+    hue: "oklch(0.7 0.2 320)",
+  },
+  {
+    id: "notes",
+    name: "Notes / Ideas",
+    tagline: "the chalkboard alcove",
+    description:
+      "Half-thoughts pinned to bark. Some of these will become projects. Most won't.",
+    href: "#",
+    icon: "📓",
+    kind: "sign",
+    hue: "oklch(0.8 0.16 85)",
+  },
+  {
+    id: "mystery",
+    name: "Mystery Door",
+    tagline: "?",
+    description:
+      "It hums when you stand near it. The handle is warm. Probably fine to open.",
+    href: "#",
+    icon: "🚪",
+    kind: "mystery",
+    hue: "oklch(0.65 0.2 0)",
+  },
+];
