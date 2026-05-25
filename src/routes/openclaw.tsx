@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BOT_TREE, defaultExpanded, type BotNode } from "@/components/openclaw/tree-data";
 
 export const Route = createFileRoute("/openclaw")({
