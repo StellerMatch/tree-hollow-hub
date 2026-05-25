@@ -11,6 +11,10 @@ export type BotNode = {
   portrait?: string;
   description?: string;
   boundary?: string;
+  /** Bullet list of strengths shown in the detail modal. */
+  strengths?: string[];
+  /** Bullet list of weaknesses / growth areas shown in the detail modal. */
+  weaknesses?: string[];
   /** Short tier label shown above the node when relevant (e.g. "Trunk", "Canopy") */
   tier?: string;
   children?: BotNode[];

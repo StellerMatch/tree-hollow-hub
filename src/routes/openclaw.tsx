@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BOT_TREE, defaultExpanded, type BotNode } from "@/components/openclaw/tree-data";
 
 export const Route = createFileRoute("/openclaw")({
@@ -120,38 +120,30 @@ function OpenClawPage() {
           </div>
         </div>
 
-        {/* main: tree + detail */}
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-          {/* tree */}
+        {/* main: tree */}
+        <div
+          className="relative rounded-3xl border-2 bark-texture p-4 md:p-8 animate-fade-up"
+          style={{ borderColor: AMBER_SOFT, animationDelay: "200ms" }}
+        >
           <div
-            className="relative rounded-3xl border-2 bark-texture p-4 md:p-8 animate-fade-up"
-            style={{ borderColor: AMBER_SOFT, animationDelay: "200ms" }}
-          >
-            <div
-              className="pointer-events-none absolute inset-0 rounded-3xl opacity-30"
-              style={{ background: `radial-gradient(ellipse at top, ${AMBER_SOFT}, transparent 70%)` }}
+            className="pointer-events-none absolute inset-0 rounded-3xl opacity-30"
+            style={{ background: `radial-gradient(ellipse at top, ${AMBER_SOFT}, transparent 70%)` }}
+          />
+          <div className="relative">
+            <TreeNode
+              node={BOT_TREE}
+              depth={0}
+              isLast
+              expanded={expanded}
+              onToggle={toggle}
+              selectedId={selected?.id ?? null}
+              onSelect={setSelected}
             />
-            <div className="relative">
-              <TreeNode
-                node={BOT_TREE}
-                depth={0}
-                isLast
-                expanded={expanded}
-                onToggle={toggle}
-                selectedId={selected?.id ?? null}
-                onSelect={setSelected}
-              />
-            </div>
           </div>
-
-          {/* detail panel */}
-          <aside
-            className="animate-fade-up lg:sticky lg:top-6 lg:self-start"
-            style={{ animationDelay: "300ms" }}
-          >
-            <DetailPanel node={selected} onClose={() => setSelected(null)} />
-          </aside>
         </div>
+
+        {/* detail modal */}
+        <DetailModal node={selected} onClose={() => setSelected(null)} />
 
         <div
           className="mt-12 h-2 rounded-full"
@@ -380,137 +372,233 @@ function Avatar({
   );
 }
 
-// ---------- Detail panel ----------
+// ---------- Detail modal ----------
 
-function DetailPanel({ node, onClose }: { node: BotNode | null; onClose: () => void }) {
-  if (!node) {
-    return (
-      <div
-        className="rounded-3xl border-2 bark-texture p-6 text-center"
-        style={{ borderColor: AMBER_SOFT }}
-      >
-        <div className="text-4xl mb-2">🪞</div>
-        <div className="font-hand text-base text-muted-foreground">
-          tap a bot to peek inside their workshop.
-        </div>
-      </div>
-    );
-  }
+function DetailModal({ node, onClose }: { node: BotNode | null; onClose: () => void }) {
+  // close on escape
+  useEffect(() => {
+    if (!node) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    // lock body scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [node, onClose]);
+
+  if (!node) return null;
+
+  const strengths = node.strengths ?? [
+    "Add a strength here",
+    "Another thing they're great at",
+    "Quiet superpower",
+  ];
+  const weaknesses = node.weaknesses ?? [
+    "A growth area",
+    "Where they ask for help",
+    "Something to watch",
+  ];
 
   return (
     <div
-      key={node.id}
-      className="relative rounded-3xl border-2 bark-texture p-6 md:p-7 shadow-[var(--shadow-deep)] animate-fade-up"
-      style={{ borderColor: AMBER, animationDuration: "0.25s" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${node.name} details`}
     >
-      <div
-        className="pointer-events-none absolute inset-0 rounded-3xl opacity-25"
-        style={{ background: `radial-gradient(ellipse at top, ${AMBER}, transparent 70%)` }}
+      {/* backdrop */}
+      <button
+        aria-label="close"
+        onClick={onClose}
+        className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.78)] backdrop-blur-sm animate-fade-in"
       />
-      <div className="relative">
-        <div className="flex items-start gap-4">
-          <div
-            className="relative shrink-0 h-20 w-20 md:h-24 md:w-24 rounded-2xl overflow-hidden flex items-center justify-center text-3xl font-display"
-            style={{
-              background: `radial-gradient(circle at 30% 30%, ${AMBER_SOFT}, oklch(0.18 0.02 60))`,
-              boxShadow: `inset 0 0 16px oklch(0.1 0.02 60 / 0.8), 0 0 24px ${AMBER_GLOW}`,
-              color: AMBER,
-            }}
-          >
-            {node.image ? (
-              <img src={node.image} alt={node.name} className="h-full w-full object-cover" />
-            ) : (
-              node.name
-                .replace(/[^a-zA-Z0-9 ]/g, "")
-                .split(" ")
-                .map((s) => s[0])
-                .slice(0, 2)
-                .join("")
-                .toUpperCase() || "·"
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
+
+      {/* dialog */}
+      <div
+        key={node.id}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border-2 bark-texture shadow-[var(--shadow-deep)] animate-fade-up"
+        style={{ borderColor: AMBER, animationDuration: "0.25s" }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 rounded-3xl opacity-25"
+          style={{ background: `radial-gradient(ellipse at top, ${AMBER}, transparent 70%)` }}
+        />
+
+        <button
+          onClick={onClose}
+          aria-label="close"
+          className="absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border text-lg text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.5)]"
+          style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.6)" }}
+        >
+          ✕
+        </button>
+
+        <div className="relative grid gap-6 p-5 md:p-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          {/* LEFT — mid shot */}
+          <div className="space-y-4">
             {node.branch && (
               <div
-                className="font-hand text-[11px] uppercase tracking-[0.2em] leading-none mb-1"
+                className="font-hand text-[11px] uppercase tracking-[0.2em] leading-none"
                 style={{ color: EMERALD }}
               >
                 {node.branch}
               </div>
             )}
-            <h3 className="font-display text-2xl md:text-3xl font-semibold leading-tight">
+            <div
+              className="relative overflow-hidden rounded-2xl border aspect-[3/4] flex items-center justify-center"
+              style={{
+                borderColor: AMBER_SOFT,
+                background: `radial-gradient(circle at 30% 30%, ${AMBER_SOFT}, oklch(0.14 0.02 60))`,
+                boxShadow: `inset 0 0 24px oklch(0.08 0.02 60 / 0.9), 0 0 28px ${AMBER_GLOW}`,
+              }}
+            >
+              {node.portrait ? (
+                <img
+                  src={node.portrait}
+                  alt={`${node.name} — mid shot`}
+                  className="h-full w-full object-cover"
+                />
+              ) : node.image ? (
+                <img
+                  src={node.image}
+                  alt={node.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="font-display text-6xl" style={{ color: AMBER }}>
+                  {node.name
+                    .replace(/[^a-zA-Z0-9 ]/g, "")
+                    .split(" ")
+                    .map((s) => s[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase() || "·"}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT — info */}
+          <div className="min-w-0">
+            <h3 className="font-display text-3xl md:text-4xl font-semibold leading-tight">
               {node.name}
+              {node.marker && (
+                <span className="ml-2 text-base align-middle">{node.marker}</span>
+              )}
             </h3>
-            {node.marker && <div className="mt-1 text-sm">{node.marker}</div>}
             {node.role && (
-              <div className="mt-1 font-hand text-sm" style={{ color: AMBER }}>
+              <div className="mt-1 font-hand text-base" style={{ color: AMBER }}>
                 {node.role}
               </div>
             )}
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="close"
-            className="text-xl text-muted-foreground transition hover:text-foreground"
-          >
-            ✕
-          </button>
-        </div>
 
-        {node.description && (
-          <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed">
-            {node.description}
-          </p>
-        )}
+            {node.description && (
+              <p className="mt-4 text-sm md:text-base text-muted-foreground leading-relaxed">
+                {node.description}
+              </p>
+            )}
 
-        {node.portrait && (
-          <div
-            className="mt-5 overflow-hidden rounded-2xl border"
-            style={{ borderColor: AMBER_SOFT, boxShadow: `0 0 24px ${AMBER_GLOW}` }}
-          >
-            <img
-              src={node.portrait}
-              alt={`${node.name} — full portrait`}
-              className="w-full h-auto object-cover"
-            />
-          </div>
-        )}
-
-        {node.boundary && (
-          <div
-            className="mt-4 rounded-xl border p-3 text-xs leading-relaxed"
-            style={{
-              borderColor: AMBER_SOFT,
-              background: "oklch(0.2 0.02 60 / 0.5)",
-              color: "oklch(0.85 0.04 80)",
-            }}
-          >
-            <span className="font-hand text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-              boundary
-            </span>
-            <div className="mt-1">{node.boundary}</div>
-          </div>
-        )}
-
-        {node.children && node.children.length > 0 && (
-          <div className="mt-5">
-            <div className="font-hand text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-2">
-              under their wing
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <StatList
+                title="strengths"
+                items={strengths}
+                color={EMERALD}
+                isTemplate={!node.strengths}
+              />
+              <StatList
+                title="weaknesses"
+                items={weaknesses}
+                color={AMBER}
+                isTemplate={!node.weaknesses}
+              />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {node.children.map((c) => (
+
+            {node.boundary && (
+              <div
+                className="mt-4 rounded-xl border p-3 text-xs leading-relaxed"
+                style={{
+                  borderColor: AMBER_SOFT,
+                  background: "oklch(0.2 0.02 60 / 0.5)",
+                  color: "oklch(0.85 0.04 80)",
+                }}
+              >
                 <span
-                  key={c.id}
-                  className="rounded-full border px-2.5 py-1 text-xs"
-                  style={{ borderColor: AMBER_SOFT, color: "oklch(0.9 0.03 85)" }}
+                  className="font-hand text-[11px] uppercase tracking-[0.18em]"
+                  style={{ color: AMBER }}
                 >
-                  {c.name}
+                  boundary
                 </span>
-              ))}
-            </div>
+                <div className="mt-1">{node.boundary}</div>
+              </div>
+            )}
+
+            {node.children && node.children.length > 0 && (
+              <div className="mt-5">
+                <div className="font-hand text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80 mb-2">
+                  under their wing
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {node.children.map((c) => (
+                    <span
+                      key={c.id}
+                      className="rounded-full border px-2.5 py-1 text-xs"
+                      style={{ borderColor: AMBER_SOFT, color: "oklch(0.9 0.03 85)" }}
+                    >
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatList({
+  title,
+  items,
+  color,
+  isTemplate,
+}: {
+  title: string;
+  items: string[];
+  color: string;
+  isTemplate: boolean;
+}) {
+  return (
+    <div
+      className="rounded-2xl border p-3"
+      style={{ borderColor: AMBER_SOFT, background: "oklch(0.16 0.02 60 / 0.55)" }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span
+          className="font-hand text-[11px] uppercase tracking-[0.2em]"
+          style={{ color }}
+        >
+          {title}
+        </span>
+        {isTemplate && (
+          <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/60">
+            template
+          </span>
         )}
       </div>
+      <ul className="space-y-1.5 text-xs md:text-sm text-muted-foreground">
+        {items.map((it, i) => (
+          <li key={i} className="flex gap-2">
+            <span style={{ color }}>•</span>
+            <span className={isTemplate ? "italic opacity-70" : ""}>{it}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
