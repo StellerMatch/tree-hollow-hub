@@ -36,6 +36,12 @@ import stagehandHeadshot from "@/assets/stagehand-headshot.png";
 import stagehandMidshot from "@/assets/stagehand-midshot.png";
 import tidyHeadshot from "@/assets/tidy-headshot.png";
 import tidyMidshot from "@/assets/tidy-midshot.png";
+import raizHeadshot from "@/assets/raiz-headshot.png";
+import raizMidshot from "@/assets/raiz-midshot.png";
+import nerdHeadshot from "@/assets/nerd-headshot.png";
+import nerdMidshot from "@/assets/nerd-midshot.png";
+import saulHeadshot from "@/assets/saul-headshot.png";
+import saulMidshot from "@/assets/saul-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -143,13 +149,31 @@ export const BOT_TREE: BotNode = {
               marker: "⭐⭐💜",
               branch: "The Shadows",
               role: "Bot Tree Landscaper",
+              image: raizHeadshot,
+              portrait: raizMidshot,
               description:
                 "Raíz protects the Bot Tree structure, keeping roles clear, branches healthy, and handoffs clean.",
               boundary:
                 "Advisory only; recommends structural improvements but does not approve changes.",
             },
-            { id: "nerd", name: "Nerd", kind: "bot", branch: "The Shadows", role: "Research & reference" },
-            { id: "saul", name: "Saul", kind: "bot", branch: "The Shadows", role: "Counsel" },
+            {
+              id: "nerd",
+              name: "Nerd",
+              kind: "bot",
+              branch: "The Shadows",
+              role: "Research & reference",
+              image: nerdHeadshot,
+              portrait: nerdMidshot,
+            },
+            {
+              id: "saul",
+              name: "Saul",
+              kind: "bot",
+              branch: "The Shadows",
+              role: "Counsel",
+              image: saulHeadshot,
+              portrait: saulMidshot,
+            },
           ],
         },
         {
