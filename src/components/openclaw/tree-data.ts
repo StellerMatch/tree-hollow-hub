@@ -22,6 +22,8 @@ export type BotNode = {
 
 import bossHeadshot from "@/assets/boss-headshot.png";
 import bossFullBody from "@/assets/boss-fullbody.png";
+import chiefHeadshot from "@/assets/chief-headshot.png";
+import chiefMidshot from "@/assets/chief-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -47,6 +49,8 @@ export const BOT_TREE: BotNode = {
       kind: "bot",
       tier: "Chief",
       role: "Right hand of the Boss",
+      image: chiefHeadshot,
+      portrait: chiefMidshot,
       description: "Carries orders down the trunk and brings news back up.",
     },
     {
