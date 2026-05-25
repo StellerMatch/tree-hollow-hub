@@ -24,6 +24,8 @@ import bossHeadshot from "@/assets/boss-headshot.png";
 import bossFullBody from "@/assets/boss-fullbody.png";
 import chiefHeadshot from "@/assets/chief-headshot.png";
 import chiefMidshot from "@/assets/chief-midshot.png";
+import echoHeadshot from "@/assets/echo-headshot.png";
+import echoMidshot from "@/assets/echo-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -65,6 +67,8 @@ export const BOT_TREE: BotNode = {
           kind: "bot",
           branch: "High Council",
           role: "Voice of the Trunk",
+          image: echoHeadshot,
+          portrait: echoMidshot,
           description: "Carries decisions outward; makes sure the den hears them.",
           children: [
             {
