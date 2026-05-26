@@ -74,6 +74,12 @@ import boltHeadshot from "@/assets/bolt-headshot.png";
 import boltMidshot from "@/assets/bolt-midshot.png";
 import craftHeadshot from "@/assets/craft-headshot.png";
 import craftMidshot from "@/assets/craft-midshot.png";
+import byteHeadshot from "@/assets/byte-headshot.png";
+import byteMidshot from "@/assets/byte-midshot.png";
+import bubbaHeadshot from "@/assets/bubba-headshot.png";
+import bubbaMidshot from "@/assets/bubba-midshot.png";
+import clarityHeadshot from "@/assets/clarity-headshot.png";
+import clarityMidshot from "@/assets/clarity-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -397,8 +403,8 @@ export const BOT_TREE: BotNode = {
           name: "Grandpa Bears",
           kind: "group",
           children: [
-            { id: "byte", name: "Byte", kind: "bot", branch: "Grandpa Bears", role: "Old-school memory" },
-            { id: "bubba", name: "Bubba", kind: "bot", branch: "Grandpa Bears", role: "Big steady presence" },
+            { id: "byte", name: "Byte", kind: "bot", branch: "Grandpa Bears", role: "Old-school memory", image: byteHeadshot, portrait: byteMidshot },
+            { id: "bubba", name: "Bubba", kind: "bot", branch: "Grandpa Bears", role: "Big steady presence", image: bubbaHeadshot, portrait: bubbaMidshot },
           ],
         },
         {
@@ -414,7 +420,7 @@ export const BOT_TREE: BotNode = {
             { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder" },
           ],
         },
-        { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog" },
+        { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog", image: clarityHeadshot, portrait: clarityMidshot },
       ],
     },
   ],
