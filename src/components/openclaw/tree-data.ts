@@ -380,12 +380,10 @@ export const BOT_TREE: BotNode = {
               role: "Maker of makers",
               image: mommaHeadshot,
               portrait: mommaMidshot,
-              children: [
-                { id: "ace", name: "Ace", kind: "bot", branch: "Momma", role: "Apprentice" },
-                { id: "bolt", name: "Bolt", kind: "bot", branch: "Momma", role: "Fastener" },
-                { id: "craft", name: "Craft", kind: "bot", branch: "Momma", role: "Finisher" },
-              ],
             },
+            { id: "ace", name: "Ace", kind: "bot", branch: "Build-A-Bears", role: "Apprentice" },
+            { id: "bolt", name: "Bolt", kind: "bot", branch: "Build-A-Bears", role: "Fastener" },
+            { id: "craft", name: "Craft", kind: "bot", branch: "Build-A-Bears", role: "Finisher" },
           ],
         },
         {
