@@ -143,6 +143,7 @@ export const BOT_TREE: BotNode = {
           portrait: echoMidshot,
           description: "Carries decisions outward; makes sure the den hears them.",
         },
+        { id: "clarity", name: "Clarity", kind: "bot", branch: "High Council", role: "Cuts through fog", image: clarityHeadshot, portrait: clarityMidshot },
         {
           id: "ivy",
           name: "Ivy",
@@ -434,7 +435,6 @@ export const BOT_TREE: BotNode = {
             { id: "scribe-123", name: "Scribe 123", kind: "bot", branch: "Fox Den", role: "Note-taker", image: scribeHeadshot, portrait: scribeMidshot },
           ],
         },
-        { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog", image: clarityHeadshot, portrait: clarityMidshot },
       ],
     },
   ],
