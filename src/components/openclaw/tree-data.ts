@@ -86,6 +86,10 @@ import scribeHeadshot from "@/assets/scribe-headshot.png";
 import scribeMidshot from "@/assets/scribe-midshot.png";
 import ticketHeadshot from "@/assets/ticket-headshot.png";
 import ticketMidshot from "@/assets/ticket-midshot.png";
+import circuitHeadshot from "@/assets/circuit-headshot.png";
+import circuitMidshot from "@/assets/circuit-midshot.png";
+import skillsmithHeadshot from "@/assets/skillsmith-headshot.png";
+import skillsmithMidshot from "@/assets/skillsmith-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -408,8 +412,8 @@ export const BOT_TREE: BotNode = {
             { id: "quill", name: "Quill", kind: "bot", branch: "Squirrels", role: "Writer" },
             { id: "signal", name: "Signal", kind: "bot", branch: "Squirrels", role: "Comms" },
             { id: "trail", name: "Trail", kind: "bot", branch: "Squirrels", role: "Path-marker" },
-            { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring" },
-            { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder" },
+            { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring", image: circuitHeadshot, portrait: circuitMidshot },
+            { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder", image: skillsmithHeadshot, portrait: skillsmithMidshot },
           ],
         },
         {
