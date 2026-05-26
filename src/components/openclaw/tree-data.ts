@@ -124,20 +124,6 @@ export const BOT_TREE: BotNode = {
           image: echoHeadshot,
           portrait: echoMidshot,
           description: "Carries decisions outward; makes sure the den hears them.",
-          children: [
-            {
-              id: "fox-den",
-              name: "Fox Den",
-              kind: "group",
-              children: [
-                { id: "scout", name: "Scout", kind: "bot", branch: "Fox Den", role: "Pathfinder" },
-                { id: "ticket", name: "Ticket", kind: "bot", branch: "Fox Den", role: "Intake & triage" },
-                { id: "scribe-1", name: "Scribe 1", kind: "bot", branch: "Fox Den", role: "Note-taker" },
-                { id: "scribe-2", name: "Scribe 2", kind: "bot", branch: "Fox Den", role: "Note-taker" },
-                { id: "scribe-3", name: "Scribe 3", kind: "bot", branch: "Fox Den", role: "Note-taker" },
-              ],
-            },
-          ],
         },
         {
           id: "ivy",
@@ -418,6 +404,16 @@ export const BOT_TREE: BotNode = {
             { id: "trail", name: "Trail", kind: "bot", branch: "Squirrels", role: "Path-marker" },
             { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring" },
             { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder" },
+          ],
+        },
+        {
+          id: "fox-den",
+          name: "Fox Den",
+          kind: "group",
+          children: [
+            { id: "scout", name: "Scout", kind: "bot", branch: "Fox Den", role: "Pathfinder" },
+            { id: "ticket", name: "Ticket", kind: "bot", branch: "Fox Den", role: "Intake & triage" },
+            { id: "scribe-123", name: "Scribe 123", kind: "bot", branch: "Fox Den", role: "Note-taker" },
           ],
         },
         { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog", image: clarityHeadshot, portrait: clarityMidshot },
