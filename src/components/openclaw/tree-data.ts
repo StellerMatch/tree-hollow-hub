@@ -310,9 +310,6 @@ export const BOT_TREE: BotNode = {
               role: "Caretaker of shipped things",
               image: wardHeadshot,
               portrait: wardMidshot,
-              children: [
-                { id: "boomer", name: "Boomer", kind: "bot", branch: "Ward", role: "Launch & momentum" },
-              ],
             },
           ],
         },
@@ -410,6 +407,7 @@ export const BOT_TREE: BotNode = {
           children: [
             { id: "byte", name: "Byte", kind: "bot", branch: "Grandpa Bears", role: "Old-school memory", image: byteHeadshot, portrait: byteMidshot },
             { id: "bubba", name: "Bubba", kind: "bot", branch: "Grandpa Bears", role: "Big steady presence", image: bubbaHeadshot, portrait: bubbaMidshot },
+            { id: "boomer", name: "Boomer", kind: "bot", branch: "Grandpa Bears", role: "Launch & momentum" },
           ],
         },
         {
