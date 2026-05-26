@@ -90,6 +90,12 @@ import circuitHeadshot from "@/assets/circuit-headshot.png";
 import circuitMidshot from "@/assets/circuit-midshot.png";
 import skillsmithHeadshot from "@/assets/skillsmith-headshot.png";
 import skillsmithMidshot from "@/assets/skillsmith-midshot.png";
+import gaugeHeadshot from "@/assets/gauge-headshot.png";
+import gaugeMidshot from "@/assets/gauge-midshot.png";
+import quillHeadshot from "@/assets/quill-headshot.png";
+import quillMidshot from "@/assets/quill-midshot.png";
+import signalHeadshot from "@/assets/signal-headshot.png";
+import signalMidshot from "@/assets/signal-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -408,9 +414,9 @@ export const BOT_TREE: BotNode = {
           name: "Squirrels",
           kind: "group",
           children: [
-            { id: "gauge", name: "Gauge", kind: "bot", branch: "Squirrels", role: "Measurer" },
-            { id: "quill", name: "Quill", kind: "bot", branch: "Squirrels", role: "Writer" },
-            { id: "signal", name: "Signal", kind: "bot", branch: "Squirrels", role: "Comms" },
+            { id: "gauge", name: "Gauge", kind: "bot", branch: "Squirrels", role: "Measurer", image: gaugeHeadshot, portrait: gaugeMidshot },
+            { id: "quill", name: "Quill", kind: "bot", branch: "Squirrels", role: "Writer", image: quillHeadshot, portrait: quillMidshot },
+            { id: "signal", name: "Signal", kind: "bot", branch: "Squirrels", role: "Comms", image: signalHeadshot, portrait: signalMidshot },
             { id: "trail", name: "Trail", kind: "bot", branch: "Squirrels", role: "Path-marker" },
             { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring", image: circuitHeadshot, portrait: circuitMidshot },
             { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder", image: skillsmithHeadshot, portrait: skillsmithMidshot },
