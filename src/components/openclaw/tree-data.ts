@@ -68,6 +68,12 @@ import forgeHeadshot from "@/assets/forge-headshot.png";
 import forgeMidshot from "@/assets/forge-midshot.png";
 import mommaHeadshot from "@/assets/momma-headshot.png";
 import mommaMidshot from "@/assets/momma-midshot.png";
+import aceHeadshot from "@/assets/ace-headshot.png";
+import aceMidshot from "@/assets/ace-midshot.png";
+import boltHeadshot from "@/assets/bolt-headshot.png";
+import boltMidshot from "@/assets/bolt-midshot.png";
+import craftHeadshot from "@/assets/craft-headshot.png";
+import craftMidshot from "@/assets/craft-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -381,9 +387,9 @@ export const BOT_TREE: BotNode = {
               image: mommaHeadshot,
               portrait: mommaMidshot,
             },
-            { id: "ace", name: "Ace", kind: "bot", branch: "Build-A-Bears", role: "Apprentice" },
-            { id: "bolt", name: "Bolt", kind: "bot", branch: "Build-A-Bears", role: "Fastener" },
-            { id: "craft", name: "Craft", kind: "bot", branch: "Build-A-Bears", role: "Finisher" },
+            { id: "ace", name: "Ace", kind: "bot", branch: "Build-A-Bears", role: "Apprentice", image: aceHeadshot, portrait: aceMidshot },
+            { id: "bolt", name: "Bolt", kind: "bot", branch: "Build-A-Bears", role: "Fastener", image: boltHeadshot, portrait: boltMidshot },
+            { id: "craft", name: "Craft", kind: "bot", branch: "Build-A-Bears", role: "Finisher", image: craftHeadshot, portrait: craftMidshot },
           ],
         },
         {
