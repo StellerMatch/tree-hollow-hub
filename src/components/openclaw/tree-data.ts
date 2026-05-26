@@ -80,6 +80,12 @@ import bubbaHeadshot from "@/assets/bubba-headshot.png";
 import bubbaMidshot from "@/assets/bubba-midshot.png";
 import clarityHeadshot from "@/assets/clarity-headshot.png";
 import clarityMidshot from "@/assets/clarity-midshot.png";
+import scoutHeadshot from "@/assets/scout-headshot.png";
+import scoutMidshot from "@/assets/scout-midshot.png";
+import scribeHeadshot from "@/assets/scribe-headshot.png";
+import scribeMidshot from "@/assets/scribe-midshot.png";
+import ticketHeadshot from "@/assets/ticket-headshot.png";
+import ticketMidshot from "@/assets/ticket-midshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -411,9 +417,9 @@ export const BOT_TREE: BotNode = {
           name: "Fox Den",
           kind: "group",
           children: [
-            { id: "scout", name: "Scout", kind: "bot", branch: "Fox Den", role: "Pathfinder" },
-            { id: "ticket", name: "Ticket", kind: "bot", branch: "Fox Den", role: "Intake & triage" },
-            { id: "scribe-123", name: "Scribe 123", kind: "bot", branch: "Fox Den", role: "Note-taker" },
+            { id: "scout", name: "Scout", kind: "bot", branch: "Fox Den", role: "Pathfinder", image: scoutHeadshot, portrait: scoutMidshot },
+            { id: "ticket", name: "Ticket", kind: "bot", branch: "Fox Den", role: "Intake & triage", image: ticketHeadshot, portrait: ticketMidshot },
+            { id: "scribe-123", name: "Scribe 123", kind: "bot", branch: "Fox Den", role: "Note-taker", image: scribeHeadshot, portrait: scribeMidshot },
           ],
         },
         { id: "clarity", name: "Clarity", kind: "bot", branch: "Architects", role: "Cuts through fog", image: clarityHeadshot, portrait: clarityMidshot },
