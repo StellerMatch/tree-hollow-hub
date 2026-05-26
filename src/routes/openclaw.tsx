@@ -114,7 +114,7 @@ function OpenClawPage() {
             who lives on which level, and what they quietly do all day.
           </p>
           <div className="mt-4 flex items-center justify-center gap-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
-            <span>{counts.groups} branches</span>
+            <span>1 Tree</span>
             <span className="opacity-40">·</span>
             <span>{counts.bots} bots</span>
           </div>
