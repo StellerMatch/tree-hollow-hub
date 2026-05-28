@@ -98,6 +98,8 @@ import signalHeadshot from "@/assets/signal-headshot.png";
 import signalMidshot from "@/assets/signal-midshot.png";
 import trailHeadshot from "@/assets/trail-headshot.png";
 import trailMidshot from "@/assets/trail-midshot.png";
+import glyphHeadshot from "@/assets/glyph-headshot.png";
+import tallyHeadshot from "@/assets/tally-headshot.png";
 
 /**
  * Edit this tree to add / remove / move bots.
@@ -421,6 +423,8 @@ export const BOT_TREE: BotNode = {
             { id: "trail", name: "Trail", kind: "bot", branch: "Squirrels", role: "Path-marker", image: trailHeadshot, portrait: trailMidshot },
             { id: "circuit", name: "Circuit", kind: "bot", branch: "Squirrels", role: "Wiring", image: circuitHeadshot, portrait: circuitMidshot },
             { id: "skillsmith", name: "SkillSmith", kind: "bot", branch: "Squirrels", role: "Skill builder", image: skillsmithHeadshot, portrait: skillsmithMidshot },
+            { id: "glyph", name: "Glyph", kind: "bot", branch: "Squirrels", role: "Symbol-keeper", image: glyphHeadshot, portrait: glyphHeadshot },
+            { id: "tally", name: "Tally", kind: "bot", branch: "Squirrels", role: "Counter", image: tallyHeadshot, portrait: tallyHeadshot },
           ],
         },
         {
