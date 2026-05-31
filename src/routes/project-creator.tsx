@@ -1370,6 +1370,7 @@ function ProjectCreatorPage() {
               selectedHandoffId={selectedHandoffId}
               onSelectHandoff={setSelectedHandoffId}
               onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
+              onAddHandoff={openNewHandoff}
             />
           )}
         </div>
