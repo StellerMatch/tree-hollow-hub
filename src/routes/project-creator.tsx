@@ -417,6 +417,12 @@ function ProjectCreatorPage() {
         if (input.name !== p.name) changed.push("name");
         if (input.summary !== p.summary) changed.push("summary");
         if (input.status !== p.status) changed.push("status");
+        if (input.projectType !== p.projectType) changed.push("project type");
+        if (
+          input.projectType === "Other / Custom" &&
+          (input.projectTypeCustom.trim() || undefined) !== p.projectTypeCustom
+        )
+          changed.push("custom type");
         if (input.currentMode !== p.currentMode) changed.push("mode");
         if (input.currentBot !== p.currentBot) changed.push("owner");
         if (input.nextAction !== p.nextAction) changed.push("next action");
@@ -426,6 +432,11 @@ function ProjectCreatorPage() {
           name: input.name.trim() || p.name,
           summary: input.summary,
           status: input.status,
+          projectType: input.projectType,
+          projectTypeCustom:
+            input.projectType === "Other / Custom"
+              ? input.projectTypeCustom.trim() || undefined
+              : undefined,
           currentMode: input.currentMode,
           currentBot: input.currentBot,
           nextAction: input.nextAction,
