@@ -1385,7 +1385,15 @@ function ProjectCreatorPage() {
               onEditArtifact={(id) => setEditingArtifactId(id)}
               onRemoveArtifact={removeArtifact}
               selectedHandoffId={selectedHandoffId}
-              onSelectHandoff={setSelectedHandoffId}
+              selectedPhaseId={selectedPhaseId}
+              onSelectHandoff={(id) => {
+                setSelectedHandoffId(id);
+                setSelectedPhaseId(null);
+              }}
+              onSelectPhase={(id) => {
+                setSelectedPhaseId(id);
+                setSelectedHandoffId(null);
+              }}
               onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
             />
           ) : (
@@ -1414,7 +1422,15 @@ function ProjectCreatorPage() {
             <WorkflowRail
               project={selected}
               selectedHandoffId={selectedHandoffId}
-              onSelectHandoff={setSelectedHandoffId}
+              selectedPhaseId={selectedPhaseId}
+              onSelectHandoff={(id) => {
+                setSelectedHandoffId(id);
+                setSelectedPhaseId(null);
+              }}
+              onSelectPhase={(id) => {
+                setSelectedPhaseId(id);
+                setSelectedHandoffId(null);
+              }}
               onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
               onAddHandoff={openNewHandoff}
             />
