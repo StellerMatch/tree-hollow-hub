@@ -1137,9 +1137,11 @@ function ProjectCreatorPage() {
     const stored = loadProjects();
     const { projects: migrated, changed: migratedChanged } = migrateProjects(stored);
     const { projects: ensured, changed: ensuredChanged } = ensureRequiredStages(migrated);
-    if (migratedChanged || ensuredChanged) saveProjects(ensured);
-    setProjects(ensured);
-    setSelectedId(ensured[0]?.id ?? "");
+    const { projects: repaired, changed: repairedChanged } =
+      repairToCanonicalWorkflow(ensured);
+    if (migratedChanged || ensuredChanged || repairedChanged) saveProjects(repaired);
+    setProjects(repaired);
+    setSelectedId(repaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -1149,8 +1151,10 @@ function ProjectCreatorPage() {
   useEffect(() => {
     if (!hydrated) return;
     const { projects: ensured, changed } = ensureRequiredStages(projects);
-    if (changed) {
-      setProjects(ensured);
+    const { projects: repaired, changed: repairedChanged } =
+      repairToCanonicalWorkflow(ensured);
+    if (changed || repairedChanged) {
+      setProjects(repaired);
       return;
     }
     saveProjects(projects);
