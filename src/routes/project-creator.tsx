@@ -759,28 +759,15 @@ function HandoffChain({
   project,
   onChange,
   onPreviewArtifact,
+  onAddHandoff,
+  onEditHandoff,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
+  onAddHandoff: () => void;
+  onEditHandoff: (h: Handoff) => void;
 }) {
-  function addHandoff() {
-    onChange((p) => ({
-      ...p,
-      handoffs: [
-        ...p.handoffs,
-        {
-          id: uid(),
-          step: p.handoffs.length + 1,
-          mode: "",
-          bot: "",
-          assignment: "",
-          status: "Not Started",
-        },
-      ],
-    }));
-  }
-
   function updateHandoff(id: string, mut: (h: Handoff) => Handoff) {
     onChange((p) => ({
       ...p,
@@ -807,7 +794,7 @@ function HandoffChain({
           </div>
         </div>
         <button
-          onClick={addHandoff}
+          onClick={onAddHandoff}
           className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
           style={{ borderColor: AMBER_LINE, color: AMBER }}
         >
@@ -815,6 +802,26 @@ function HandoffChain({
         </button>
       </div>
 
+      {project.handoffs.length === 0 ? (
+        <div
+          className="rounded-xl border border-dashed p-6 text-center"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          <div className="font-display text-sm" style={{ color: AMBER }}>
+            No handoffs yet
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Add the first step — who does what next.
+          </p>
+          <button
+            onClick={onAddHandoff}
+            className="mt-3 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            + add handoff
+          </button>
+        </div>
+      ) : (
       <ol className="space-y-3">
         {project.handoffs.map((h, idx) => (
           <li key={h.id} className="relative">
@@ -828,6 +835,7 @@ function HandoffChain({
               handoff={h}
               onUpdate={(mut) => updateHandoff(h.id, mut)}
               onRemove={() => removeHandoff(h.id)}
+              onEdit={() => onEditHandoff(h)}
               onPreview={() => {
                 if (h.artifactBody || h.artifactLink) {
                   onPreviewArtifact({
@@ -845,6 +853,7 @@ function HandoffChain({
           </li>
         ))}
       </ol>
+      )}
     </section>
   );
 }
