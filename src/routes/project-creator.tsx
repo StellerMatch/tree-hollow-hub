@@ -31,7 +31,6 @@ import {
   stageForHandoff,
   STAGE_NESTED_STEPS,
   handoffMatchesNestedStep,
-  type NestedStepTemplate,
   type StageBucket,
 } from "@/components/project-board/stages";
 
