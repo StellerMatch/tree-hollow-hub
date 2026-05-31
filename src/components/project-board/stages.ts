@@ -264,6 +264,235 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   ],
 };
 
+// --- Phases 4–8: detailed hand-down checklist ----------------------------
+// Restores the full internal handoff sequence under each creator-facing
+// phase. Top counts: Modes 5 + R&D 7 + Knowledge Packet 4 + Prototype 5 +
+// Design Polish 4 + Final Package 4 + Official Record 3 + Memory 3 = 35
+// detailed steps, matching the hand-down workflow document.
+
+STAGE_NESTED_STEPS["knowledge-packet"] = [
+  {
+    mode: "Packet Intake / Knowledge Packet",
+    bot: "Rook",
+    assignment:
+      "Rook reads Clarity brief + Compass R&D highlight brief and confirms the inputs needed to assemble the knowledge packet.",
+    authorityNotes: "Rook owns intake. Flags missing inputs before synthesis.",
+    nextBot: "Rook",
+    nextStep: "Business Plan Draft / Knowledge Packet",
+  },
+  {
+    mode: "Business Plan Draft / Knowledge Packet",
+    bot: "Rook",
+    assignment:
+      "Draft the business-plan / knowledge packet: problem, audience, offer, scope, success criteria, and next-step plan.",
+    authorityNotes: "Rook owns synthesis. Pulls from Clarity + R&D only.",
+    nextBot: "Squirrels",
+    nextStep: "Risk and Sanity Check / Knowledge Packet",
+  },
+  {
+    mode: "Risk and Sanity Check / Knowledge Packet",
+    bot: "Squirrels",
+    assignment:
+      "Squirrels review the draft packet for risk, missing assumptions, and sanity issues. Flag concerns; cannot block delivery.",
+    authorityNotes: "Squirrels advise. Rook decides whether to revise.",
+    nextBot: "Rook",
+    nextStep: "Packet Finalization / Knowledge Packet",
+  },
+  {
+    mode: "Packet Finalization / Knowledge Packet",
+    bot: "Rook",
+    assignment:
+      "Finalize the knowledge packet, attach links and receipts, and prepare the handoff to Tinker for prototype work.",
+    authorityNotes: "Rook owns final packet. Handoff packet out of Phase 4.",
+    nextBot: "Tinker",
+    nextStep: "Prototype Kickoff / Prototype",
+  },
+];
+
+STAGE_NESTED_STEPS["prototype"] = [
+  {
+    mode: "Prototype Kickoff / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Tinker reads the knowledge packet, confirms scope, picks the build path (Lovable or other), and names the v1 target.",
+    authorityNotes: "Tinker may build, not ship. Scope is locked at kickoff.",
+    nextBot: "Tinker",
+    nextStep: "Build v1 / Prototype",
+  },
+  {
+    mode: "Build v1 / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Build the first working prototype. Capture the prototype URL and any setup notes needed to open it.",
+    authorityNotes: "Tinker owns the build. No scope expansion mid-build.",
+    nextBot: "Tinker",
+    nextStep: "Self-Test and Evidence / Prototype",
+  },
+  {
+    mode: "Self-Test and Evidence / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Walk through the prototype end-to-end. Log evidence, screenshots, and any failed tests or blockers.",
+    authorityNotes: "Tinker logs blockers honestly. Failed tests must be named.",
+    nextBot: "Tinker",
+    nextStep: "Demo Notes / Prototype",
+  },
+  {
+    mode: "Demo Notes / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Write a short demo note: what works, what to click, what is rough, what is intentionally out of scope.",
+    authorityNotes: "Demo note travels with the prototype to Luma.",
+    nextBot: "Tinker",
+    nextStep: "Prototype Handoff / Prototype",
+  },
+  {
+    mode: "Prototype Handoff / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Hand the prototype URL, evidence, and demo note to Luma for design polish review.",
+    authorityNotes: "Handoff packet out of Phase 5.",
+    nextBot: "Luma",
+    nextStep: "Visual Review / Design Polish",
+  },
+];
+
+STAGE_NESTED_STEPS["design-polish"] = [
+  {
+    mode: "Visual Review / Design Polish",
+    bot: "Luma",
+    assignment:
+      "Luma reviews the prototype for visual trust, hierarchy, and overall feel. Note what reads as trustworthy and what does not.",
+    authorityNotes: "Luma may reject for trust; cannot change scope.",
+    nextBot: "Luma",
+    nextStep: "Readability and Accessibility / Design Polish",
+  },
+  {
+    mode: "Readability and Accessibility / Design Polish",
+    bot: "Luma",
+    assignment:
+      "Check readability, contrast, font sizes, tap targets, and basic accessibility. Note required fixes vs. nice-to-haves.",
+    authorityNotes: "Required fixes block packaging. Nice-to-haves go to backlog.",
+    nextBot: "Luma",
+    nextStep: "UI and Packaging Polish / Design Polish",
+  },
+  {
+    mode: "UI and Packaging Polish / Design Polish",
+    bot: "Luma",
+    assignment:
+      "Apply polish to UI surfaces, packaging, and any cover/share assets so the project presents cleanly.",
+    authorityNotes: "Luma owns visual polish. No scope changes.",
+    nextBot: "Luma",
+    nextStep: "Design Polish Sign-off / Design Polish",
+  },
+  {
+    mode: "Design Polish Sign-off / Design Polish",
+    bot: "Luma",
+    assignment:
+      "Sign off on the polished prototype and write the handoff note to Weaver for final packaging.",
+    authorityNotes: "Handoff packet out of Phase 6.",
+    nextBot: "Weaver",
+    nextStep: "Package Intake / Final Package",
+  },
+];
+
+STAGE_NESTED_STEPS["final-package"] = [
+  {
+    mode: "Package Intake / Final Package",
+    bot: "Weaver",
+    assignment:
+      "Weaver gathers the polished prototype, packet, design notes, and any final assets needed for delivery.",
+    authorityNotes: "Weaver owns packaging. Cannot alter Rook or Luma decisions.",
+    nextBot: "Weaver",
+    nextStep: "Final Links and Assets / Final Package",
+  },
+  {
+    mode: "Final Links and Assets / Final Package",
+    bot: "Weaver",
+    assignment:
+      "Collect every final link and asset (prototype URL, packet doc, design files, receipts) into one place.",
+    authorityNotes: "Single source of truth for the delivery bundle.",
+    nextBot: "Weaver",
+    nextStep: "Delivery Checklist / Final Package",
+  },
+  {
+    mode: "Delivery Checklist / Final Package",
+    bot: "Weaver",
+    assignment:
+      "Run the delivery checklist: links open, scope matches brief, receipts attached, owner named, next action clear.",
+    authorityNotes: "Checklist must pass before handoff to Ledger.",
+    nextBot: "Weaver",
+    nextStep: "Final Package Handoff / Final Package",
+  },
+  {
+    mode: "Final Package Handoff / Final Package",
+    bot: "Weaver",
+    assignment:
+      "Hand the final package and delivery note to Ledger for the official record.",
+    authorityNotes: "Handoff packet out of Phase 7.",
+    nextBot: "Ledger",
+    nextStep: "Decision Record / Official Record",
+  },
+];
+
+STAGE_NESTED_STEPS["official-record"] = [
+  {
+    mode: "Decision Record / Official Record",
+    bot: "Ledger",
+    assignment:
+      "Ledger files the official decision: what shipped, what was parked, who owns next, and any outstanding risks.",
+    authorityNotes: "Ledger is the official record. No edits to past entries.",
+    nextBot: "Ledger",
+    nextStep: "Receipts and Artifacts / Official Record",
+  },
+  {
+    mode: "Receipts and Artifacts / Official Record",
+    bot: "Ledger",
+    assignment:
+      "Attach receipts, artifacts, and the final package links to the official record so the project is fully reconstructable.",
+    authorityNotes: "Ledger owns receipts. Append-only.",
+    nextBot: "Ledger",
+    nextStep: "Record Handoff / Official Record",
+  },
+  {
+    mode: "Record Handoff / Official Record",
+    bot: "Ledger",
+    assignment:
+      "Hand the filed record to Echo for memory alignment.",
+    authorityNotes: "Handoff packet out of Phase 8a.",
+    nextBot: "Echo",
+    nextStep: "Memory Decisions / Memory Alignment",
+  },
+];
+
+STAGE_NESTED_STEPS["memory-alignment"] = [
+  {
+    mode: "Memory Decisions / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Echo decides what should be remembered from this project and what should be intentionally forgotten.",
+    authorityNotes: "Echo guards memory. May request brain updates; cannot perform them silently.",
+    nextBot: "Echo",
+    nextStep: "Brain Update Requests / Memory Alignment",
+  },
+  {
+    mode: "Brain Update Requests / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Name any brain / system memory updates that should follow from this project, with reasons.",
+    authorityNotes: "Requests only. Boss approves brain changes.",
+    nextBot: "Echo",
+    nextStep: "Project Close / Memory Alignment",
+  },
+  {
+    mode: "Project Close / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Close out the project: confirm record is filed, memory is aligned, and nothing important is left dangling.",
+    authorityNotes: "Final close. Project moves to Complete after sign-off.",
+  },
+];
+
 /**
  * One-time renames so handoffs created under the previous R&D nested-step
  * names migrate cleanly into the new lantern-team names instead of being
