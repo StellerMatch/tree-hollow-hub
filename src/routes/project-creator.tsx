@@ -247,7 +247,7 @@ function ensureRequiredStages(
     const officialRecordRepair = ensureOfficialRecordHandoff(p);
     const repairedProject = officialRecordRepair.project;
     if (officialRecordRepair.changed) changed = true;
-    const present = new Set(p.handoffs.map((h) => stageForHandoff(h).id));
+    const present = new Set(repairedProject.handoffs.map((h) => stageForHandoff(h).id));
     const missing = PIPELINE_STAGES.filter(
       (s) => s.id !== "official-record" && !present.has(s.id),
     );
