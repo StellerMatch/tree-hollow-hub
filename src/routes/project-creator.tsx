@@ -34,6 +34,16 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 
+type ProjectSettingsInput = {
+  name: string;
+  summary: string;
+  status: ProjectStatus;
+  currentMode: string;
+  currentBot: string;
+  nextAction: string;
+  blocker: string;
+};
+
 function loadProjects(): Project[] {
   if (typeof window === "undefined") return SEED_PROJECTS;
   try {
