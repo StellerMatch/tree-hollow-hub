@@ -1686,6 +1686,14 @@ type WorkflowPhase = {
   id: string;
   label: string;
   blurb: string;
+  /** What this phase is for — used in the phase overview. */
+  purpose: string;
+  /** What needs to be in place before this phase starts. */
+  needsBefore: string;
+  /** What this phase produces / hands off. */
+  produces: string;
+  /** Owning team — bot names, comma separated. */
+  ownerTeam: string;
   match: (h: Handoff) => boolean;
 };
 
@@ -1695,6 +1703,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Clarity",
     blurb:
       "Boss captures the raw idea, confirms project type, and shapes the project brief.",
+    purpose:
+      "Turn a raw idea into a project Chief can actually open — clear ask, audience, done-state.",
+    needsBefore: "A creator with an idea worth opening.",
+    produces: "Project Type, Mode 1 shape, and Mode 2 project brief.",
+    ownerTeam: "Boss, Clarity",
     match: (h) =>
       /(mode 0|raw idea|project type|mode 1|\bshape\b|mode 2|project brief)/i.test(
         h.mode,
@@ -1705,6 +1718,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Chief Review",
     blurb:
       "Chief reviews the brief and prepares the project for the lantern R&D team.",
+    purpose:
+      "Chief sanity-checks the brief, names open questions, and frames what R&D needs to find.",
+    needsBefore: "A signed Mode 2 project brief from Clarity.",
+    produces: "Chief Intake Summary — known, missing, and what happens next.",
+    ownerTeam: "Chief",
     match: (h) => /chief intake|chief review/i.test(h.mode),
   },
   {
@@ -1712,6 +1730,12 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Lantern R&D",
     blurb:
       "Compass leads the lantern team through past, present, future, risks, synthesis, and the highlight brief.",
+    purpose:
+      "Research the landscape across past, present, and future so Rook can build a real plan.",
+    needsBefore: "Chief Intake Summary and a defined research question.",
+    produces:
+      "Lantern passes + Research Scope / Synthesis + Boss-facing R&D Highlight Brief.",
+    ownerTeam: "Compass, Vault, Bloom, Luma",
     match: (h) =>
       /(lantern|r&d|past landscape|present landscape|future hooks|risks and unknowns|research scope|highlight brief|\btrunk\b)/i.test(
         h.mode,
@@ -1721,18 +1745,35 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     id: "knowledge-packet",
     label: "Knowledge Packet",
     blurb: "Rook turns clarity and research into a business-plan / knowledge packet.",
-    match: (h) => /knowledge packet/i.test(h.mode) || /^rook$/i.test(h.bot ?? ""),
+    purpose:
+      "Synthesize clarity + R&D into a working business / knowledge packet Tinker can build from.",
+    needsBefore: "R&D Highlight Brief from Compass.",
+    produces: "Knowledge packet + any master prompts or generation specs.",
+    ownerTeam: "Rook, Momma Bear, Squirrels",
+    match: (h) =>
+      /(knowledge packet|master prompt|business plan)/i.test(h.mode) ||
+      /^(rook|momma bear|squirrels)$/i.test(h.bot ?? ""),
   },
   {
     id: "prototype",
     label: "Prototype",
     blurb: "Tinker builds and tests a working prototype.",
+    purpose:
+      "Build something real you can click, test, or hold — and log what works vs. what blocks.",
+    needsBefore: "Knowledge packet or master prompt ready to build from.",
+    produces: "Prototype URL / file + test notes + blockers.",
+    ownerTeam: "Tinker",
     match: (h) => /prototype/i.test(h.mode) || /^tinker$/i.test(h.bot ?? ""),
   },
   {
     id: "design-polish",
     label: "Design Polish",
     blurb: "Luma reviews visual trust, readability, accessibility, and packaging.",
+    purpose:
+      "Make sure the prototype reads as trustworthy, accessible, and on-brand before packaging.",
+    needsBefore: "A working prototype from Tinker.",
+    produces: "Design review notes + approval to package, or rework requests.",
+    ownerTeam: "Luma",
     match: (h) =>
       /(design polish|design review)/i.test(h.mode) || /^luma$/i.test(h.bot ?? ""),
   },
@@ -1740,6 +1781,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     id: "final-package",
     label: "Final Package",
     blurb: "Weaver bundles the final handoff package.",
+    purpose:
+      "Bundle the prototype, assets, and handoff notes into the final deliverable.",
+    needsBefore: "Design Polish sign-off from Luma.",
+    produces: "Final package: assets, manifest, readiness notes.",
+    ownerTeam: "Weaver",
     match: (h) => /final package/i.test(h.mode) || /^weaver$/i.test(h.bot ?? ""),
   },
   {
@@ -1747,16 +1793,25 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Official Record & Memory",
     blurb:
       "Ledger files the official record. Echo aligns what should be remembered.",
+    purpose:
+      "Keep the official record up to date and align what should be remembered (or not) going forward.",
+    needsBefore: "Final package delivered, or a milestone worth recording.",
+    produces: "Filed record entry + memory alignment notes.",
+    ownerTeam: "Ledger, Echo",
     match: (h) =>
-      /(official record|memory alignment|\bmemory\b)/i.test(h.mode) ||
+      /(official record|\brecord\b|memory alignment|\bmemory\b)/i.test(h.mode) ||
       /^(ledger|echo)$/i.test(h.bot ?? ""),
   },
 ];
 
 const OTHER_PHASE: WorkflowPhase = {
   id: "other",
-  label: "Other Steps",
-  blurb: "Custom or unclassified handoffs.",
+  label: "Custom Steps",
+  blurb: "Custom or legacy steps that don't belong to a standard phase.",
+  purpose: "Hold legacy or custom handoffs that aren't part of the standard 8-phase journey.",
+  needsBefore: "—",
+  produces: "—",
+  ownerTeam: "Custom",
   match: () => true,
 };
 
