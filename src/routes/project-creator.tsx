@@ -2157,6 +2157,7 @@ function StepResultPanel({
   const isMode0 = modeKey.startsWith("mode 0");
   const isMode1 = modeKey.startsWith("mode 1");
   const isMode2 = modeKey.startsWith("mode 2");
+  const isProjectType = modeKey.startsWith("project type confirmation");
   const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   if (isMode0) {
