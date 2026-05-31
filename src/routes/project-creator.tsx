@@ -22,7 +22,6 @@ import {
   DABOTTREE_PIPELINE,
   DABOTTREE_PIPELINE_NAME,
   createPipelineHandoffs,
-  activeHandoff,
 } from "@/components/project-board/pipeline";
 import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
 import {
@@ -453,6 +452,53 @@ function fmtTime(iso: string) {
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function activeWorkflowEntry(handoffs: Handoff[]): { handoff: Handoff; displayStep: number } | null {
+  for (const bucket of bucketHandoffs(handoffs)) {
+    const idx = bucket.items.findIndex(
+      ({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked",
+    );
+    if (idx !== -1) {
+      return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
+    }
+  }
+  return null;
+}
+
+function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
+  const mode = (handoff?.mode ?? "").trim().toLowerCase();
+  if (mode === "mode 0 / raw idea") return "Fill Mode 0 / Raw Idea";
+  if (mode === "project type confirmation / clarity") return "Confirm Project Type";
+  if (!handoff) return fallback;
+  return `Complete ${handoff.mode || "current step"}`;
+}
+
+function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
+  const handoffs: Handoff[] = [];
+  for (const stage of PIPELINE_STAGES) {
+    const templates = STAGE_NESTED_STEPS[stage.id];
+    if (templates) {
+      for (const tpl of templates) {
+        handoffs.push({
+          id: `nested-${projectId}-${stage.id}-${handoffs.length + 1}`,
+          step: handoffs.length + 1,
+          mode: tpl.mode,
+          bot: tpl.bot,
+          assignment: tpl.assignment,
+          status: "Not Started",
+          authorityNotes: tpl.authorityNotes,
+          nextBot: tpl.nextBot,
+          nextStep: tpl.nextStep,
+        });
+      }
+      continue;
+    }
+    handoffs.push(
+      createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"),
+    );
+  }
+  return handoffs;
 }
 
 // ---------- Status pill ----------
