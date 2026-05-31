@@ -716,6 +716,8 @@ function ProjectCreatorPage() {
   const [editingArtifactId, setEditingArtifactId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [selectedHandoffId, setSelectedHandoffId] = useState<string | null>(null);
+  const [commandReceiptOpen, setCommandReceiptOpen] = useState(false);
 
   // Load from localStorage after mount.
   useEffect(() => {
@@ -744,6 +746,18 @@ function ProjectCreatorPage() {
     () => projects.find((p) => p.id === selectedId) ?? projects[0] ?? null,
     [projects, selectedId],
   );
+
+  // Reset selected step when switching projects; default to active stage.
+  useEffect(() => {
+    if (!selected) {
+      setSelectedHandoffId(null);
+      return;
+    }
+    const active = currentStageEntry(selected)?.handoff;
+    setSelectedHandoffId(active?.id ?? selected.handoffs[0]?.id ?? null);
+    setCommandReceiptOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
