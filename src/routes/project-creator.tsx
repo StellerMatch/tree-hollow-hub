@@ -1758,23 +1758,6 @@ function WorkflowRail({
                       </span>
                     </span>
                   </span>
-                  <span
-                    className="shrink-0 text-[10px]"
-                    style={{ color: stageColor }}
-                    title={h.status}
-                  >
-                    {h.status === "Complete"
-                      ? "✓"
-                      : h.status === "Blocked"
-                        ? "!"
-                        : h.status === "Working"
-                          ? "●"
-                          : h.status === "Sent" || h.status === "Needs Review"
-                            ? "○"
-                            : h.status === "Parked"
-                              ? "·"
-                              : ""}
-                  </span>
                   {isActive && (
                     <span
                       className="shrink-0 rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
