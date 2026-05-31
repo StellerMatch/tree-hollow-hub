@@ -1865,6 +1865,7 @@ function WorkflowRail({
   const activePhaseId =
     phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === activeId))?.phase.id ??
     null;
+  const activePhaseIdx = phaseBuckets.findIndex((b) => b.phase.id === activePhaseId);
   const selectedHandoffPhaseId =
     phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === selectedHandoffId))
       ?.phase.id ?? null;
@@ -1913,6 +1914,7 @@ function WorkflowRail({
         <ol className="relative space-y-2">
           {phaseBuckets.map((bucket, phaseIdx) => {
             const phaseNum = phaseIdx + 1;
+            const isCustom = bucket.phase.id === OTHER_PHASE.id;
             const isPhaseActive = bucket.phase.id === activePhaseId;
             const isPhaseSelected = bucket.phase.id === selectedPhaseId;
             const expanded = isExpanded(bucket.phase.id);
@@ -1921,20 +1923,31 @@ function WorkflowRail({
             const blocked = bucket.items.some((it) => it.handoff.status === "Blocked");
             const allComplete = total > 0 && complete === total;
             const activeItem = bucket.items.find((it) => it.handoff.id === activeId);
+            // A later phase that's already fully complete while an earlier
+            // phase is still active — these are historical records, not the
+            // final delivery yet. Render them in a quieter "on file" style
+            // so the creator doesn't read the project as already done.
+            const outOfOrderComplete =
+              allComplete &&
+              !isPhaseActive &&
+              activePhaseIdx !== -1 &&
+              phaseIdx > activePhaseIdx;
             const NEUTRAL = "oklch(0.6 0.04 75)";
             const BLOCK = "oklch(0.65 0.22 25)";
-            const phaseColor = blocked
+            const phaseColor = isCustom
+              ? NEUTRAL
+              : blocked
               ? BLOCK
               : isPhaseActive
                 ? AMBER
-                : allComplete
+                : allComplete && !outOfOrderComplete
                   ? EMERALD
                   : NEUTRAL;
             const headerBg = isPhaseSelected
               ? `color-mix(in oklab, ${phaseColor} 16%, oklch(0.28 0.035 70))`
               : isPhaseActive
                 ? `color-mix(in oklab, ${AMBER} 12%, oklch(0.26 0.035 65))`
-                : allComplete
+                : allComplete && !outOfOrderComplete
                   ? `color-mix(in oklab, ${EMERALD} 6%, oklch(0.26 0.035 65))`
                   : "oklch(0.28 0.035 70 / 0.55)";
             const headerShadow = isPhaseActive
@@ -1944,9 +1957,13 @@ function WorkflowRail({
                 : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
             const summary = activeItem
               ? `Current: ${splitStepTitle(activeItem.handoff.mode).title || "—"}`
-              : allComplete
-                ? `${total} of ${total} complete`
-                : `${complete} of ${total} complete`;
+              : outOfOrderComplete
+                ? `${total} on file (filed early)`
+                : allComplete
+                  ? `${total} of ${total} complete`
+                  : isCustom
+                    ? `${total} legacy step${total === 1 ? "" : "s"}`
+                    : `${complete} of ${total} complete`;
             return (
               <li key={bucket.phase.id}>
                 <div
@@ -1959,6 +1976,7 @@ function WorkflowRail({
                         : "oklch(0.42 0.04 70 / 0.55)",
                     background: headerBg,
                     boxShadow: headerShadow,
+                    opacity: isCustom ? 0.85 : 1,
                   }}
                 >
                   {/* left accent strip — timeline cue */}
@@ -1996,7 +2014,15 @@ function WorkflowRail({
                           boxShadow: isPhaseActive ? `0 0 6px ${AMBER}88` : undefined,
                         }}
                       >
-                        {allComplete ? "✓" : blocked ? "!" : isPhaseActive ? "●" : "○"}
+                        {isCustom
+                          ? "·"
+                          : allComplete
+                            ? "✓"
+                            : blocked
+                              ? "!"
+                              : isPhaseActive
+                                ? "●"
+                                : "○"}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span
@@ -2043,7 +2069,7 @@ function WorkflowRail({
                   </div>
                   {expanded && total > 0 && (
                     <ol className="space-y-1 border-t px-2 py-1.5" style={{ borderColor: AMBER_SOFT }}>
-                      {bucket.items.map(({ handoff: h, globalIndex }) => {
+                      {bucket.items.map(({ handoff: h, globalIndex }, itemIdx) => {
                         const isActive = h.id === activeId;
                         const isSelected = h.id === selectedHandoffId;
                         const stepColor =
@@ -2067,6 +2093,7 @@ function WorkflowRail({
                                   ? "●"
                                   : "○";
                         const { title } = splitStepTitle(h.mode);
+                        const nestedNum = `${phaseNum}.${itemIdx + 1}`;
                         return (
                           <li key={h.id}>
                             <button
@@ -2083,13 +2110,13 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${globalIndex + 1}. ${h.mode} · ${h.status}`}
+                              title={`${nestedNum} ${h.mode} · ${h.status} (overall step ${globalIndex + 1})`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
-                                style={{ minWidth: "1rem", textAlign: "right" }}
+                                style={{ minWidth: "1.6rem", textAlign: "right" }}
                               >
-                                {globalIndex + 1}
+                                {nestedNum}
                               </span>
                               <span
                                 className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold"
