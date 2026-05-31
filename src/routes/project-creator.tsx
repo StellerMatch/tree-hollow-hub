@@ -525,32 +525,37 @@ function ProjectCreatorPage() {
 
       <div className="relative mx-auto max-w-[1400px] px-3 py-5 md:px-6 md:py-7">
         {/* header */}
-        <header className="mb-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
             <Link
               to="/"
-              className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+              className="group inline-flex items-center gap-2 text-xs text-muted-foreground/80 transition hover:text-foreground"
             >
               <span className="transition group-hover:-translate-x-0.5">←</span>
-              <span className="font-hand text-base">back to the lobby</span>
+              <span className="font-hand text-sm">back to the lobby</span>
             </Link>
-            <span className="opacity-30">·</span>
-            <div className="font-hand text-sm" style={{ color: AMBER }}>
-              the operations room
+            <h1
+              className="mt-1 font-display text-2xl md:text-3xl font-semibold leading-tight"
+              style={{ color: AMBER }}
+            >
+              DaBotTree Project Board
+            </h1>
+            <div className="mt-0.5 font-hand text-sm" style={{ color: AMBER }}>
+              the operations room — one source of truth per project
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={exportJSON}
-              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              className="rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_SOFT }}
               title="Export all projects as JSON"
             >
               ↓ export
             </button>
             <label
-              className="cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              className="cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_SOFT }}
               title="Import projects from JSON"
             >
               ↑ import
@@ -565,32 +570,21 @@ function ProjectCreatorPage() {
                 }}
               />
             </label>
-            <h1
-              className="ml-2 font-display text-xl md:text-2xl font-semibold"
-              style={{ color: AMBER }}
-            >
-              DaBotTree Project Board
-            </h1>
           </div>
         </header>
 
-        <div className="mb-5 flex max-w-3xl items-start justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Create and track projects from first idea through bot handoffs and finished artifacts.
-          </p>
-          {importError && (
-            <div
-              className="rounded-md border px-2 py-1 text-xs"
-              style={{
-                borderColor: "oklch(0.65 0.22 25 / 0.5)",
-                background: "oklch(0.65 0.22 25 / 0.1)",
-                color: "oklch(0.85 0.12 25)",
-              }}
-            >
-              import failed: {importError}
-            </div>
-          )}
-        </div>
+        {importError && (
+          <div
+            className="mb-4 rounded-md border px-3 py-1.5 text-xs"
+            style={{
+              borderColor: "oklch(0.65 0.22 25 / 0.5)",
+              background: "oklch(0.65 0.22 25 / 0.1)",
+              color: "oklch(0.85 0.12 25)",
+            }}
+          >
+            import failed: {importError}
+          </div>
+        )}
 
         {/* 3-column layout */}
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
@@ -761,17 +755,86 @@ function StatusPanel({
   const latestReceipt = [...project.handoffs]
     .filter((h) => h.status === "Complete")
     .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))[0];
+  const latestActivity = [...project.activity].sort((a, b) =>
+    b.at.localeCompare(a.at),
+  )[0];
+  const active = activeHandoff(project.handoffs);
+  const hasBlocker = !!project.blocker;
 
   return (
     <aside
       className="rounded-2xl border bark-texture p-4 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-        Live status
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+          Command receipt
+        </div>
+        <StatusPill status={project.status} />
       </div>
 
-      <div className="space-y-3">
+      {/* Stage callout */}
+      <div
+        className="rounded-xl border p-3"
+        style={{
+          borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
+          background: hasBlocker
+            ? "oklch(0.65 0.22 25 / 0.08)"
+            : "oklch(0.78 0.18 50 / 0.06)",
+        }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
+          Current stage
+        </div>
+        <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
+          {active ? `${active.step}. ${active.mode || "untitled"}` : project.currentMode || "—"}
+        </div>
+        <div className="mt-0.5 text-[11px] text-muted-foreground">
+          owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          {active && <> · <StatusPill status={active.status} /></>}
+        </div>
+      </div>
+
+      {/* Next action */}
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          Next required action
+        </div>
+        <textarea
+          value={project.nextAction}
+          onChange={(e) => onChange((p) => ({ ...p, nextAction: e.target.value }))}
+          rows={2}
+          placeholder="What is the very next thing?"
+          className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2 py-1.5 text-sm leading-relaxed outline-none focus:border-[oklch(0.78_0.18_50)]"
+          style={{ borderColor: AMBER_LINE }}
+        />
+      </div>
+
+      {/* Blocker */}
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
+          <span className="text-muted-foreground/70">Blocker</span>
+          {hasBlocker && <span style={{ color: "oklch(0.85 0.12 25)" }}>⚠ active</span>}
+        </div>
+        <textarea
+          value={project.blocker ?? ""}
+          placeholder="None"
+          onChange={(e) =>
+            onChange((p) => ({ ...p, blocker: e.target.value || undefined }))
+          }
+          rows={2}
+          className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2 py-1.5 text-sm outline-none focus:border-[oklch(0.78_0.18_50)]"
+          style={{
+            borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.6)" : AMBER_SOFT,
+          }}
+        />
+      </div>
+
+      {/* Editable fields collapsed */}
+      <div className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: AMBER_SOFT }}>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Quick edit
+        </div>
         <Field label="Status">
           <select
             value={project.status}
@@ -788,85 +851,66 @@ function StatusPanel({
             ))}
           </select>
         </Field>
-
-        <Field label="Current owner / bot">
-          <input
-            value={project.currentBot}
-            onChange={(e) => onChange((p) => ({ ...p, currentBot: e.target.value }))}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Current mode / step">
-          <input
-            value={project.currentMode}
-            onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Next action">
-          <textarea
-            value={project.nextAction}
-            onChange={(e) => onChange((p) => ({ ...p, nextAction: e.target.value }))}
-            rows={2}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Blocker">
-          <textarea
-            value={project.blocker ?? ""}
-            placeholder="None"
-            onChange={(e) =>
-              onChange((p) => ({ ...p, blocker: e.target.value || undefined }))
-            }
-            rows={2}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{
-              borderColor: project.blocker ? "oklch(0.65 0.22 25)" : AMBER_SOFT,
-            }}
-          />
-          {project.blocker && (
-            <div
-              className="mt-1 rounded-md border px-2 py-1 text-[11px]"
-              style={{
-                borderColor: "oklch(0.65 0.22 25 / 0.5)",
-                background: "oklch(0.65 0.22 25 / 0.1)",
-                color: "oklch(0.85 0.12 25)",
-              }}
-            >
-              ⚠ {project.blocker}
-            </div>
-          )}
-        </Field>
-
-        <div>
-          <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-            Latest receipt
-          </div>
-          {latestReceipt ? (
-            <div
-              className="rounded-md border px-2 py-2 text-xs"
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Owner">
+            <input
+              value={project.currentBot}
+              onChange={(e) => onChange((p) => ({ ...p, currentBot: e.target.value }))}
+              className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
               style={{ borderColor: AMBER_SOFT }}
-            >
-              <div className="font-medium">{latestReceipt.mode}</div>
-              <div className="text-muted-foreground">
-                by {latestReceipt.bot} · {latestReceipt.completedAt && fmtTime(latestReceipt.completedAt)}
-              </div>
-              {latestReceipt.artifactTitle && (
-                <div className="mt-1 truncate text-[11px]" style={{ color: AMBER }}>
-                  📎 {latestReceipt.artifactTitle}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">No receipts yet.</div>
-          )}
+            />
+          </Field>
+          <Field label="Mode">
+            <input
+              value={project.currentMode}
+              onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
+              className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
+              style={{ borderColor: AMBER_SOFT }}
+            />
+          </Field>
         </div>
+      </div>
+
+      {/* Latest activity */}
+      <div className="mt-4 border-t pt-3" style={{ borderColor: AMBER_SOFT }}>
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Latest activity
+        </div>
+        {latestActivity ? (
+          <div className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: AMBER_SOFT }}>
+            <div className="text-foreground/90">
+              <strong>{latestActivity.bot}</strong> {latestActivity.action}
+            </div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+              {fmtTime(latestActivity.at)}
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">Nothing logged yet.</div>
+        )}
+      </div>
+
+      {/* Latest receipt */}
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Latest receipt
+        </div>
+        {latestReceipt ? (
+          <div className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: AMBER_SOFT }}>
+            <div className="font-medium">{latestReceipt.mode}</div>
+            <div className="text-muted-foreground">
+              by {latestReceipt.bot}
+              {latestReceipt.completedAt && <> · {fmtTime(latestReceipt.completedAt)}</>}
+            </div>
+            {latestReceipt.artifactTitle && (
+              <div className="mt-1 truncate text-[11px]" style={{ color: AMBER }}>
+                📎 {latestReceipt.artifactTitle}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">No receipts yet.</div>
+        )}
       </div>
     </aside>
   );
@@ -920,34 +964,36 @@ function ProjectMain({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              <span>Project</span>
+              <span className="opacity-40">·</span>
+              <StatusPill status={project.status} />
+            </div>
             <h2
               className="font-display text-2xl font-semibold leading-tight md:text-3xl"
               style={{ color: AMBER }}
             >
               {project.name}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
               {project.summary || <span className="italic opacity-60">no summary yet</span>}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <StatusPill status={project.status} />
-            <button
-              onClick={onOpenSettings}
-              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
-              title="Edit project settings"
-            >
-              ⚙ settings
-            </button>
-          </div>
-        </div>
-        <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-          <Tag label="Mode" value={project.currentMode} />
-          <Tag label="Owner" value={project.currentBot} />
-          <Tag label="Next" value={project.nextAction} />
+          <button
+            onClick={onOpenSettings}
+            className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+            title="Edit project settings"
+          >
+            ⚙ settings
+          </button>
         </div>
         <CurrentStageIndicator project={project} />
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+          <MetaItem label="Mode" value={project.currentMode} />
+          <MetaItem label="Owner" value={project.currentBot} />
+          <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
+        </div>
       </div>
 
       {/* Mode 0 */}
@@ -1057,64 +1103,91 @@ function ProjectMain({
   );
 }
 
-function Tag({ label, value }: { label: string; value: string }) {
+function MetaItem({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
   return (
-    <div
-      className="rounded-md border px-2 py-1.5"
-      style={{ borderColor: AMBER_SOFT }}
-    >
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+    <div className="flex min-w-0 items-baseline gap-1.5">
+      <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60">
         {label}
-      </div>
-      <div className="truncate text-sm">{value || "—"}</div>
+      </span>
+      <span
+        className={
+          "truncate " + (muted ? "text-muted-foreground/80" : "text-foreground/90")
+        }
+      >
+        {value || "—"}
+      </span>
     </div>
   );
 }
 
 function CurrentStageIndicator({ project }: { project: Project }) {
   const active = activeHandoff(project.handoffs);
-  if (!active) return null;
-  const isBlocked = active.status === "Blocked" || !!project.blocker;
-  const accent = isBlocked ? "oklch(0.65 0.22 25)" : AMBER;
+  const hasBlocker = !!project.blocker || active?.status === "Blocked";
+  const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
+  const nextAction = project.nextAction?.trim();
+
+  if (!active && !nextAction && !hasBlocker) return null;
+
   return (
     <div
-      className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+      className="mt-4 rounded-xl border p-3"
       style={{
-        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
-        background: isBlocked
+        borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.55)" : AMBER_LINE,
+        background: hasBlocker
           ? "oklch(0.65 0.22 25 / 0.08)"
           : "oklch(0.78 0.18 50 / 0.06)",
       }}
     >
-      <span
-        className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-        style={{ borderColor: accent, color: accent }}
-      >
-        Current stage
-      </span>
-      <span className="font-display text-sm font-semibold" style={{ color: accent }}>
-        {active.step}. {active.mode || "untitled stage"}
-      </span>
-      <span className="text-muted-foreground">
-        owner: <strong className="text-foreground">{active.bot || "—"}</strong>
-      </span>
-      <StatusPill status={active.status} />
-      {active.nextStep && (
-        <span className="text-muted-foreground">
-          → next: <strong className="text-foreground">{active.nextStep}</strong>
-          {active.nextBot && <> by <strong className="text-foreground">{active.nextBot}</strong></>}
-        </span>
+      {active && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+            style={{ borderColor: accent, color: accent }}
+          >
+            Current stage
+          </span>
+          <span className="font-display text-base font-semibold" style={{ color: accent }}>
+            {active.step}. {active.mode || "untitled stage"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            owner <strong className="text-foreground">{active.bot || "—"}</strong>
+          </span>
+          <StatusPill status={active.status} />
+        </div>
       )}
+
+      {(nextAction || active?.nextStep) && (
+        <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm">
+          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Next required action
+          </span>
+          <span className="text-foreground">
+            {nextAction ||
+              `${active?.nextStep ?? ""}${active?.nextBot ? ` — by ${active.nextBot}` : ""}`}
+          </span>
+        </div>
+      )}
+
       {project.blocker && (
-        <span
-          className="ml-auto rounded border px-2 py-0.5 text-[11px]"
+        <div
+          className="mt-2 flex items-start gap-2 rounded-md border px-2 py-1.5 text-[12px]"
           style={{
             borderColor: "oklch(0.65 0.22 25 / 0.5)",
-            color: "oklch(0.85 0.12 25)",
+            background: "oklch(0.65 0.22 25 / 0.12)",
+            color: "oklch(0.88 0.10 25)",
           }}
         >
-          ⚠ {project.blocker}
-        </span>
+          <span className="mt-0.5">⚠</span>
+          <span><strong className="uppercase tracking-[0.14em] text-[10px] mr-1.5">Blocker</strong>{project.blocker}</span>
+        </div>
       )}
     </div>
   );
@@ -1284,24 +1357,48 @@ function HandoffCard({
 }) {
   const isComplete = handoff.status === "Complete";
   const isBlocked = handoff.status === "Blocked";
+  const isParked = handoff.status === "Parked";
+
+  const borderColor = isBlocked
+    ? "oklch(0.65 0.22 25 / 0.55)"
+    : isComplete
+      ? "oklch(0.7 0.14 160 / 0.45)"
+      : isParked
+        ? "oklch(0.6 0.03 80 / 0.4)"
+        : AMBER_LINE;
+  const accentBar = isBlocked
+    ? "oklch(0.65 0.22 25)"
+    : isComplete
+      ? EMERALD
+      : isParked
+        ? "oklch(0.6 0.03 80)"
+        : AMBER;
+
+  const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   return (
     <div
-      className="ml-0 rounded-xl border p-3"
+      className="relative ml-0 overflow-hidden rounded-xl border"
       style={{
-        borderColor: isBlocked
-          ? "oklch(0.65 0.22 25 / 0.5)"
-          : isComplete
-            ? "oklch(0.7 0.14 160 / 0.4)"
-            : AMBER_SOFT,
-        background: isComplete ? "oklch(0.7 0.14 160 / 0.06)" : "transparent",
+        borderColor,
+        background: isComplete
+          ? "oklch(0.7 0.14 160 / 0.05)"
+          : isBlocked
+            ? "oklch(0.65 0.22 25 / 0.04)"
+            : "transparent",
       }}
     >
-      <div className="flex items-start gap-3">
+      {/* left accent bar */}
+      <div
+        className="absolute inset-y-0 left-0 w-[3px]"
+        style={{ background: accentBar, opacity: 0.85 }}
+      />
+      <div className="flex items-stretch gap-3 p-3 pl-4">
+        {/* step number + reorder */}
         <div className="flex flex-col items-center gap-1">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
-            style={{ borderColor: AMBER_LINE, color: AMBER }}
+            style={{ borderColor: accentBar, color: accentBar }}
           >
             {handoff.step}
           </div>
@@ -1328,124 +1425,150 @@ function HandoffCard({
             </button>
           </div>
         </div>
+
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          {/* title row */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
               {handoff.mode || <span className="italic opacity-60">untitled step</span>}
             </div>
-            <div className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground"
-              style={{ borderColor: AMBER_SOFT }}>
-              {handoff.bot || "—"}
+            <div className="text-[11px] text-muted-foreground">
+              <span className="opacity-60">owner</span>{" "}
+              <span className="text-foreground">{handoff.bot || "—"}</span>
             </div>
-            <select
-              value={handoff.status}
-              onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
-              className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-              aria-label="status"
-            >
-              {HANDOFF_STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ))}
-            </select>
             <StatusPill status={handoff.status} />
           </div>
 
+          {/* assignment */}
           {handoff.assignment && (
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-              {handoff.assignment}
-            </p>
+            <LabelledBlock label="Assignment">
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/85">
+                {handoff.assignment}
+              </p>
+            </LabelledBlock>
           )}
 
+          {/* authority boundary */}
           {handoff.authorityNotes && (
-            <div
-              className="mt-2 rounded-md border px-2 py-1 text-[11px] italic"
-              style={{
-                borderColor: AMBER_SOFT,
-                background: "oklch(0.78 0.18 50 / 0.05)",
-                color: "oklch(0.85 0.05 80)",
-              }}
-            >
-              authority: {handoff.authorityNotes}
-            </div>
+            <LabelledBlock label="Authority boundary">
+              <p className="whitespace-pre-wrap text-[11px] italic leading-relaxed text-muted-foreground">
+                {handoff.authorityNotes}
+              </p>
+            </LabelledBlock>
           )}
 
-          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle) && (
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-              {handoff.receiptLink && (
-                <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
-                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
-                  🧾 receipt
-                </a>
-              )}
-              {handoff.artifactLink && (
-                <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
-                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
-                  🔗 artifact link
-                </a>
-              )}
-              {handoff.artifactTitle && (
-                <span className="rounded-md border px-2 py-0.5 text-muted-foreground"
-                  style={{ borderColor: AMBER_SOFT }}>
-                  📎 {handoff.artifactTitle}
-                </span>
-              )}
-            </div>
+          {/* artifact / receipt */}
+          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle || hasArtifactPreview) && (
+            <LabelledBlock label="Artifact / receipt">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                {handoff.artifactTitle && (
+                  <span className="rounded-md border px-2 py-0.5 text-foreground/80"
+                    style={{ borderColor: AMBER_SOFT }}>
+                    📎 {handoff.artifactTitle}
+                  </span>
+                )}
+                {handoff.receiptLink && (
+                  <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    🧾 receipt
+                  </a>
+                )}
+                {handoff.artifactLink && (
+                  <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    🔗 link
+                  </a>
+                )}
+                {hasArtifactPreview && (
+                  <button
+                    onClick={onPreview}
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}
+                  >
+                    preview
+                  </button>
+                )}
+              </div>
+            </LabelledBlock>
           )}
 
-          {isComplete && (handoff.nextBot || handoff.nextStep) && (
-            <div
-              className="mt-2 rounded-md border px-2 py-1.5 text-xs"
-              style={{
-                borderColor: EMERALD,
-                background: "oklch(0.7 0.14 160 / 0.08)",
-                color: EMERALD,
-              }}
-            >
-              → next: <strong>{handoff.nextStep || "—"}</strong>
-              {handoff.nextBot && (
-                <> by <strong>{handoff.nextBot}</strong></>
-              )}
-            </div>
+          {/* next step */}
+          {(handoff.nextBot || handoff.nextStep) && (
+            <LabelledBlock label="Next step">
+              <div
+                className="rounded-md border px-2 py-1 text-xs"
+                style={{
+                  borderColor: isComplete ? EMERALD : AMBER_SOFT,
+                  background: isComplete
+                    ? "oklch(0.7 0.14 160 / 0.08)"
+                    : "oklch(0.78 0.18 50 / 0.04)",
+                  color: isComplete ? EMERALD : "inherit",
+                }}
+              >
+                → <strong>{handoff.nextStep || "—"}</strong>
+                {handoff.nextBot && <> by <strong>{handoff.nextBot}</strong></>}
+              </div>
+            </LabelledBlock>
           )}
 
-          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground/80">
-            <div>
-              {handoff.completedAt
-                ? `completed ${fmtTime(handoff.completedAt)}`
-                : "in flight"}
+          {/* footer: status select + meta + actions */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground/80"
+            style={{ borderColor: AMBER_SOFT }}>
+            <div className="flex items-center gap-2">
+              <select
+                value={handoff.status}
+                onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
+                className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-[11px]"
+                style={{ borderColor: AMBER_SOFT }}
+                aria-label="change status"
+              >
+                {HANDOFF_STATUSES.map((s) => (
+                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span>
+                {handoff.completedAt
+                  ? `completed ${fmtTime(handoff.completedAt)}`
+                  : "in flight"}
+              </span>
             </div>
-            <div className="flex gap-2">
-              {(handoff.artifactBody || handoff.artifactLink) && (
-                <button
-                  onClick={onPreview}
-                  className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}
-                >
-                  preview artifact
-                </button>
-              )}
+            <div className="flex gap-1">
               <button
                 onClick={onEdit}
                 className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
+                title="Edit handoff"
               >
-                edit
+                ✎ edit
               </button>
               <button
                 onClick={onRemove}
-                className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
+                className="rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
+                style={{ borderColor: AMBER_SOFT }}
+                title="Remove handoff"
+                aria-label="remove handoff"
               >
-                remove
+                ✕
               </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LabelledBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-2.5">
+      <div className="mb-0.5 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
@@ -1704,12 +1827,14 @@ function ModalShell({
   onClose,
   children,
   footer,
+  width = "md",
 }: {
   title: string;
   subtitle?: string;
   onClose: () => void;
   children: React.ReactNode;
   footer: React.ReactNode;
+  width?: "md" | "lg";
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -1725,7 +1850,10 @@ function ModalShell({
         className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
       />
       <div
-        className="relative my-auto w-full max-w-xl rounded-2xl border bark-texture p-5 shadow-xl animate-fade-up"
+        className={
+          "relative my-auto w-full rounded-2xl border bark-texture p-5 md:p-6 shadow-xl animate-fade-up " +
+          (width === "lg" ? "max-w-2xl" : "max-w-xl")
+        }
         style={{ borderColor: AMBER, animationDuration: "0.2s" }}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -1746,8 +1874,8 @@ function ModalShell({
             ✕
           </button>
         </div>
-        <div className="space-y-3">{children}</div>
-        <div className="mt-5 flex justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
+        <div className="space-y-4">{children}</div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
           {footer}
         </div>
       </div>
@@ -2000,6 +2128,7 @@ function HandoffEditorModal({
       title={isNew ? "New handoff" : `Edit step ${initial.step}`}
       subtitle="Who's doing what, and what they're handing back."
       onClose={onClose}
+      width="lg"
       footer={
         <>
           <ModalButton variant="ghost" onClick={onClose}>
@@ -2130,6 +2259,7 @@ function ArtifactEditorModal({
       title="Edit artifact"
       subtitle="Strengthen the metadata so it's findable later."
       onClose={onClose}
+      width="lg"
       footer={
         <>
           <ModalButton variant="ghost" onClick={onClose}>cancel</ModalButton>
