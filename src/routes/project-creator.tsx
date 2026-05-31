@@ -1448,7 +1448,7 @@ function HandoffCard({
           >
             {handoff.step}
           </div>
-          <BotAvatar name={handoff.bot} size={36} ring={accentBar + " / 0.55"} />
+          <BotAvatar name={handoff.bot} size={36} ring={accentBar} />
           <div className="flex flex-col gap-0.5">
             <button
               onClick={onMoveUp}
