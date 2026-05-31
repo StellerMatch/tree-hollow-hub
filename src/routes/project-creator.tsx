@@ -1098,7 +1098,11 @@ function ProjectMain({
       </Section>
 
       {/* Mode 2 */}
-      <Section title="Mode 2 · Plan" subtitle="Deeper project planning.">
+      <Section
+        title="Mode 2 · Plan"
+        subtitle="Deeper project planning."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <Field label="Planning notes">
           <textarea
             value={project.planNotes}
