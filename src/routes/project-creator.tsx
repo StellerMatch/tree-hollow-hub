@@ -669,7 +669,8 @@ function ProjectCreatorPage() {
   function createProject(input: ProjectSettingsInput, fromPipeline = false) {
     const id = uid();
     const ts = new Date().toISOString();
-    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : [];
+    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : createInitialWorkflowHandoffs(id);
+    const initialWorkflow = activeWorkflowEntry(pipelineHandoffs)?.handoff ?? null;
     const fresh: Project = {
       id,
       name: input.name.trim() || "Untitled Project",
@@ -682,11 +683,11 @@ function ProjectCreatorPage() {
           : undefined,
       currentMode: fromPipeline
         ? DABOTTREE_PIPELINE[0].stage
-        : input.currentMode || "Mode 0 / Clarity",
+        : initialWorkflow?.mode || input.currentMode || "Mode 0 / Raw Idea",
       currentBot: fromPipeline
         ? DABOTTREE_PIPELINE[0].bot
-        : input.currentBot || "Boss",
-      nextAction: input.nextAction,
+        : initialWorkflow?.bot || input.currentBot || "Boss",
+      nextAction: fromPipeline ? input.nextAction : requiredActionForHandoff(initialWorkflow, input.nextAction),
       blocker: input.blocker.trim() || undefined,
       updatedAt: ts,
       clarity: "",
@@ -1085,6 +1086,9 @@ function ProjectCreatorPage() {
             <ul className="space-y-1.5">
               {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
+                const workflow = activeWorkflowEntry(p.handoffs)?.handoff;
+                const displayMode = workflow?.mode || p.currentMode;
+                const displayBot = workflow?.bot || p.currentBot;
                 return (
                   <li key={p.id}>
                     <button
@@ -1104,7 +1108,7 @@ function ProjectCreatorPage() {
                       <div className="mt-1 truncate text-[11px] text-muted-foreground">
                         {p.projectType === "Other / Custom"
                           ? p.projectTypeCustom || "Other / Custom"
-                          : p.projectType || "Unclassified"} · {p.currentMode} · {p.currentBot}
+                          : p.projectType || "Unclassified"} · {displayMode} · {displayBot}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                         updated {fmtTime(p.updatedAt)}
