@@ -27,7 +27,7 @@ export const PIPELINE_STAGES: StageDef[] = [
   {
     id: "rd",
     label: "R&D",
-    blurb: "Compass research — past, present, future notes.",
+    blurb: "Compass leads product R&D with Vault, Bloom, and Luma lantern passes.",
     match: ["r&d", "rd", "research", "compass", "trunk"],
     bot: "Compass",
   },
@@ -249,6 +249,13 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   "present landscape / r&d": "Present Landscape Pass / R&D",
   "future hooks / r&d": "Future Hooks Pass / R&D",
   "risks and unknowns / r&d": "Risks and Unknowns Pass / R&D",
+  // Legacy single broad handoffs migrate into the first new default step
+  // for their stage so they stop appearing as duplicate cards above the
+  // new defaults. User-saved data (status, artifact, receipt, output) is
+  // preserved because only the `mode` text is renamed.
+  "mode 0 / clarity intake": "Mode 0 / Raw Idea",
+  "clarity / mode 0": "Mode 0 / Raw Idea",
+  "trunk / r&d": "Lantern Team Kickoff / R&D",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
