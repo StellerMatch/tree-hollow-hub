@@ -1448,6 +1448,7 @@ function HandoffCard({
           >
             {handoff.step}
           </div>
+          <BotAvatar name={handoff.bot} size={36} ring={accentBar + " / 0.55"} />
           <div className="flex flex-col gap-0.5">
             <button
               onClick={onMoveUp}
@@ -1478,8 +1479,8 @@ function HandoffCard({
             <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
               {handoff.mode || <span className="italic opacity-60">untitled step</span>}
             </div>
-            <div className="text-[11px] text-muted-foreground">
-              <span className="opacity-60">owner</span>{" "}
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="opacity-60">owner</span>
               <span className="text-foreground">{handoff.bot || "—"}</span>
             </div>
             <StatusPill status={handoff.status} />
