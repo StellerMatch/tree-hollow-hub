@@ -376,7 +376,7 @@ function ProjectCreatorPage() {
       [p.name, p.status, p.currentBot, p.currentMode, p.summary,
         p.projectType === "Other / Custom"
           ? p.projectTypeCustom || "Other / Custom"
-          : p.projectType,
+          : p.projectType || "Unclassified",
       ]
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(q)),
