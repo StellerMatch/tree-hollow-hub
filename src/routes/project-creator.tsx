@@ -3137,6 +3137,56 @@ function StepOutputField({
   );
 }
 
+function CompletedReceiptBanner({
+  project,
+  handoff,
+  onChangeStatus,
+}: {
+  project: Project;
+  handoff: Handoff;
+  onChangeStatus: (s: HandoffStatus) => void;
+}) {
+  if (handoff.status !== "Complete") return null;
+  const nextEntry = nextOpenWorkflowEntryAfter(project.handoffs, handoff.id);
+  const nextTitle = nextEntry ? splitStepTitle(nextEntry.handoff.mode).title : null;
+  const nextOwner = nextEntry?.handoff.bot;
+  return (
+    <div
+      className="mb-3 rounded-md border px-3 py-2 text-[11px]"
+      style={{
+        borderColor: EMERALD,
+        background: "oklch(0.7 0.14 160 / 0.08)",
+        color: EMERALD,
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="font-semibold uppercase tracking-[0.16em]">✓ Saved receipt</span>
+        {handoff.completedAt && (
+          <span className="text-foreground/80">completed {fmtTime(handoff.completedAt)}</span>
+        )}
+        <span className="ml-auto">
+          <button
+            onClick={() => onChangeStatus("Working")}
+            className="rounded-md border px-2 py-0.5 text-[11px] text-foreground/80"
+            style={{ borderColor: AMBER_SOFT, background: "transparent" }}
+          >
+            ↺ Reopen
+          </button>
+        </span>
+      </div>
+      {nextEntry && (
+        <div className="mt-1 text-foreground/85">
+          Next up: <span className="font-medium">{nextTitle || "next step"}</span>
+          {nextOwner && <> · owner <span className="font-medium">{nextOwner}</span></>}
+        </div>
+      )}
+      {!nextEntry && (
+        <div className="mt-1 text-foreground/70">No further open steps in this workflow.</div>
+      )}
+    </div>
+  );
+}
+
 function StepResultPanel({
   project,
   handoff,
