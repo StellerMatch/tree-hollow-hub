@@ -2694,7 +2694,10 @@ function SelectedStepDetail({
       </div>
 
       {tab === "output" && (
-        <StepResultPanel project={project} handoff={handoff} onChange={onChange} onPreview={onPreview} />
+        <>
+          <CompletedReceiptBanner project={project} handoff={handoff} onChangeStatus={onChangeStatus} />
+          <StepResultPanel project={project} handoff={handoff} onChange={onChange} onPreview={onPreview} />
+        </>
       )}
       {tab === "details" && (
         <StepSummaryPanel handoff={handoff} />
