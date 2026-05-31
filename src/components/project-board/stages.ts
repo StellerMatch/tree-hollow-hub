@@ -590,11 +590,17 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   // checkpoint of their phase so the rail does not show summary-style
   // duplicates next to the freshly-backfilled nested steps.
   "rook / knowledge packet": "Business Plan Draft / Knowledge Packet",
+  "knowledge packet": "Business Plan Draft / Knowledge Packet",
   "tinker / prototype": "Build v1 / Prototype",
+  "prototype": "Build v1 / Prototype",
   "luma / design polish": "Visual Review / Design Polish",
+  "design polish": "Visual Review / Design Polish",
   "weaver / final package": "Package Intake / Final Package",
+  "final package": "Package Intake / Final Package",
   "ledger / official record": "Decision Record / Official Record",
+  "official record": "Decision Record / Official Record",
   "echo / memory alignment": "Memory Decisions / Memory Alignment",
+  "memory alignment": "Memory Decisions / Memory Alignment",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
