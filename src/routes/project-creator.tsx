@@ -1825,16 +1825,27 @@ function CreatorGuidance({
 
   return (
     <section
-      className="rounded-xl border bark-texture px-3 py-2"
+      className="rounded-xl border bark-texture px-3 py-3 md:px-4 md:py-3.5"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-          style={{ borderColor: AMBER_LINE, color: AMBER }}
-        >
-          Creator Guidance
-        </span>
+      <div className="flex items-start gap-3">
+        <div className="flex shrink-0 flex-col items-center gap-1">
+          <BotAvatar name="Boss" size={44} ring={AMBER} />
+          <span
+            className="rounded border px-1.5 py-0.5 text-[9px] uppercase tracking-[0.16em]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            Creator
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <span
+              className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+            >
+              Creator Control
+            </span>
         <div
           className="inline-flex overflow-hidden rounded-md border text-[11px]"
           style={{ borderColor: AMBER_SOFT }}
@@ -1865,17 +1876,19 @@ function CreatorGuidance({
             );
           })}
         </div>
-        <span className="text-[11px] text-muted-foreground">{activeBlurb}</span>
-      </div>
-      <input
+            <span className="text-[11px] text-muted-foreground">{activeBlurb}</span>
+          </div>
+          <input
         value={guidance}
         onChange={(e) =>
           onChange((p) => ({ ...p, creatorGuidance: e.target.value || undefined }))
         }
-        placeholder="Notes, warnings, or snags for the creator…"
-        className="mt-1.5 w-full rounded-md border bg-transparent px-2 py-1 text-[12px] outline-none focus:border-[oklch(0.78_0.18_50)]"
+            placeholder="Creator notes, warnings, or snags…"
+            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-[12px] outline-none focus:border-[oklch(0.78_0.18_50)]"
         style={{ borderColor: AMBER_SOFT }}
-      />
+          />
+        </div>
+      </div>
     </section>
   );
 }
