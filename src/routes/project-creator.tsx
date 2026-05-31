@@ -539,6 +539,25 @@ function workflowTextKey(value?: string | null) {
   return (value ?? "").trim().toLowerCase();
 }
 
+/**
+ * Strip the bot/team name from a workflow step's `mode` string so the
+ * workflow rail and selected-step header read as creator-facing labels
+ * (e.g. "Prototype / Tinker" → "Prototype"). The bot name is kept as
+ * separate metadata ("Owner: Tinker") in the UI.
+ */
+function stepTitleOnly(mode?: string | null, bot?: string | null): string {
+  const m = (mode ?? "").trim();
+  const b = (bot ?? "").trim();
+  if (!m) return "";
+  if (!b) return m;
+  const esc = b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const stripped = m
+    .replace(new RegExp(`^${esc}\\s*/\\s*`, "i"), "")
+    .replace(new RegExp(`\\s*/\\s*${esc}$`, "i"), "")
+    .trim();
+  return stripped || m;
+}
+
 type WorkflowEntry = { handoff: Handoff; displayStep: number };
 
 function workflowEntries(handoffs: Handoff[]): WorkflowEntry[] {
