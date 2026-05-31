@@ -3250,6 +3250,7 @@ function StepResultPanel({
   const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   if (isMode0) {
+    const rawIdeaVal = project.clarity || (handoff.stepOutput?.rawIdea ?? "");
     return (
       <div className="space-y-3">
         <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
@@ -3269,7 +3270,7 @@ function StepResultPanel({
           }
         >
           <textarea
-            value={project.clarity}
+            value={rawIdeaVal}
             onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
             rows={6}
             placeholder="What are we building? Who is it for? What does done look like?"
