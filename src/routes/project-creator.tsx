@@ -545,17 +545,25 @@ function workflowTextKey(value?: string | null) {
  * (e.g. "Prototype / Tinker" → "Prototype"). The bot name is kept as
  * separate metadata ("Owner: Tinker") in the UI.
  */
-function stepTitleOnly(mode?: string | null, bot?: string | null): string {
+function stepTitleOnly(mode?: string | null, _bot?: string | null): string {
+  return splitStepTitle(mode).title;
+}
+
+/**
+ * Creator-facing split of a workflow step's `mode` string.
+ * Convention: "<Step title> / <Phase>" (e.g. "Project Type Confirmation / Clarity"
+ * → title "Project Type Confirmation", phase "Clarity"). The phase is rendered
+ * underneath the title as metadata, never as part of the primary label.
+ * Strings without a slash return the whole text as the title and an empty phase.
+ */
+function splitStepTitle(mode?: string | null): { title: string; phase: string } {
   const m = (mode ?? "").trim();
-  const b = (bot ?? "").trim();
-  if (!m) return "";
-  if (!b) return m;
-  const esc = b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const stripped = m
-    .replace(new RegExp(`^${esc}\\s*/\\s*`, "i"), "")
-    .replace(new RegExp(`\\s*/\\s*${esc}$`, "i"), "")
-    .trim();
-  return stripped || m;
+  if (!m) return { title: "", phase: "" };
+  const idx = m.indexOf("/");
+  if (idx === -1) return { title: m, phase: "" };
+  const title = m.slice(0, idx).trim();
+  const phase = m.slice(idx + 1).trim();
+  return { title: title || m, phase };
 }
 
 type WorkflowEntry = { handoff: Handoff; displayStep: number };
