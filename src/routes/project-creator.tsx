@@ -678,7 +678,7 @@ function ProjectCreatorPage() {
         <ProjectSettingsModal
           mode="create"
           onClose={() => setShowNewProject(false)}
-          onSave={createProject}
+          onSave={(input, fromPipeline) => createProject(input, fromPipeline)}
         />
       )}
 
@@ -687,7 +687,7 @@ function ProjectCreatorPage() {
           mode="edit"
           initial={editingProject}
           onClose={() => setEditingProjectId(null)}
-          onSave={saveProjectSettings}
+          onSave={(input) => saveProjectSettings(input)}
         />
       )}
 
