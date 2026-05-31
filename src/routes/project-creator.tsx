@@ -56,12 +56,16 @@ function saveProjects(projects: Project[]) {
 function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    // Deterministic UTC format to avoid SSR/client hydration mismatches.
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const m = months[d.getUTCMonth()];
+    const day = d.getUTCDate();
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mm = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${m} ${day}, ${hh}:${mm} UTC`;
   } catch {
     return iso;
   }
@@ -101,6 +105,12 @@ function ProjectCreatorPage() {
     () => loadProjects()[0]?.id ?? "",
   );
   const [previewArtifact, setPreviewArtifact] = useState<Artifact | null>(null);
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [editingHandoff, setEditingHandoff] = useState<{
+    handoff: Handoff;
+    isNew: boolean;
+  } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     saveProjects(projects);
@@ -118,39 +128,104 @@ function ProjectCreatorPage() {
     );
   }
 
-  function createProject() {
+  function createProject(input: {
+    name: string;
+    summary: string;
+    status: ProjectStatus;
+    currentMode: string;
+    currentBot: string;
+    nextAction: string;
+    blocker: string;
+  }) {
     const id = uid();
+    const now = new Date().toISOString();
     const fresh: Project = {
       id,
-      name: "New Project",
-      summary: "",
-      status: "Draft",
-      currentMode: "Mode 0 / Clarity",
-      currentBot: "Boss",
-      nextAction: "Boss writes the clarity brief",
-      updatedAt: new Date().toISOString(),
+      name: input.name.trim() || "Untitled Project",
+      summary: input.summary,
+      status: input.status,
+      currentMode: input.currentMode || "Mode 0 / Clarity",
+      currentBot: input.currentBot || "Boss",
+      nextAction: input.nextAction,
+      blocker: input.blocker.trim() || undefined,
+      updatedAt: now,
       clarity: "",
       shapeNotes: "",
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [
-        {
-          id: uid(),
-          step: 1,
-          mode: "Mode 0 / Clarity Intake",
-          bot: "Boss",
-          assignment: "Write the plain-language ask.",
-          status: "Not Started",
-        },
-      ],
+      handoffs: [],
       artifacts: [],
       activity: [
-        { id: uid(), at: new Date().toISOString(), bot: "Boss", action: "opened project", status: "Draft" },
+        { id: uid(), at: now, bot: input.currentBot || "Boss", action: "opened project", status: input.status },
       ],
     };
     setProjects((prev) => [fresh, ...prev]);
     setSelectedId(id);
+    setShowNewProject(false);
+  }
+
+  function exportJSON() {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([JSON.stringify(projects, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dabottree-projects-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
+        // Basic shape check
+        for (const p of parsed) {
+          if (typeof p?.id !== "string" || typeof p?.name !== "string") {
+            throw new Error("Project entries missing id/name");
+          }
+        }
+        setProjects(parsed as Project[]);
+        setSelectedId((parsed[0] as Project)?.id ?? "");
+        setImportError(null);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : "Invalid JSON");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function openNewHandoff() {
+    if (!selected) return;
+    setEditingHandoff({
+      isNew: true,
+      handoff: {
+        id: uid(),
+        step: selected.handoffs.length + 1,
+        mode: "",
+        bot: "",
+        assignment: "",
+        status: "Not Started",
+      },
+    });
+  }
+
+  function saveHandoff(h: Handoff, isNew: boolean) {
+    if (!selected) return;
+    updateSelected((p) => ({
+      ...p,
+      handoffs: isNew
+        ? [...p.handoffs, h]
+        : p.handoffs.map((x) => (x.id === h.id ? h : x)),
+    }));
+    setEditingHandoff(null);
   }
 
   return (
@@ -187,17 +262,58 @@ function ProjectCreatorPage() {
               the operations room
             </div>
           </div>
-          <h1
-            className="font-display text-xl md:text-2xl font-semibold"
-            style={{ color: AMBER }}
-          >
-            DaBotTree Project Board
-          </h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportJSON}
+              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Export all projects as JSON"
+            >
+              ↓ export
+            </button>
+            <label
+              className="cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Import projects from JSON"
+            >
+              ↑ import
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importJSON(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <h1
+              className="ml-2 font-display text-xl md:text-2xl font-semibold"
+              style={{ color: AMBER }}
+            >
+              DaBotTree Project Board
+            </h1>
+          </div>
         </header>
 
-        <p className="mb-5 max-w-2xl text-sm text-muted-foreground">
-          Create and track projects from first idea through bot handoffs and finished artifacts.
-        </p>
+        <div className="mb-5 flex max-w-3xl items-start justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Create and track projects from first idea through bot handoffs and finished artifacts.
+          </p>
+          {importError && (
+            <div
+              className="rounded-md border px-2 py-1 text-xs"
+              style={{
+                borderColor: "oklch(0.65 0.22 25 / 0.5)",
+                background: "oklch(0.65 0.22 25 / 0.1)",
+                color: "oklch(0.85 0.12 25)",
+              }}
+            >
+              import failed: {importError}
+            </div>
+          )}
+        </div>
 
         {/* 3-column layout */}
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
@@ -211,7 +327,7 @@ function ProjectCreatorPage() {
                 Projects
               </div>
               <button
-                onClick={createProject}
+                onClick={() => setShowNewProject(true)}
                 className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
               >
@@ -256,13 +372,27 @@ function ProjectCreatorPage() {
               project={selected}
               onChange={updateSelected}
               onPreviewArtifact={setPreviewArtifact}
+              onAddHandoff={openNewHandoff}
+              onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
             />
           ) : (
             <div
-              className="rounded-2xl border bark-texture p-8 text-center text-muted-foreground"
+              className="rounded-2xl border bark-texture p-8 text-center"
               style={{ borderColor: AMBER_SOFT }}
             >
-              No project selected. Create one in the sidebar.
+              <div className="font-display text-lg" style={{ color: AMBER }}>
+                No projects yet
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Open your first project in the operations room.
+              </p>
+              <button
+                onClick={() => setShowNewProject(true)}
+                className="mt-4 rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                + new project
+              </button>
             </div>
           )}
 
@@ -273,6 +403,22 @@ function ProjectCreatorPage() {
 
       {previewArtifact && (
         <ArtifactPreview artifact={previewArtifact} onClose={() => setPreviewArtifact(null)} />
+      )}
+
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreate={createProject}
+        />
+      )}
+
+      {editingHandoff && (
+        <HandoffEditorModal
+          initial={editingHandoff.handoff}
+          isNew={editingHandoff.isNew}
+          onClose={() => setEditingHandoff(null)}
+          onSave={(h) => saveHandoff(h, editingHandoff.isNew)}
+        />
       )}
     </div>
   );
@@ -418,10 +564,14 @@ function ProjectMain({
   project,
   onChange,
   onPreviewArtifact,
+  onAddHandoff,
+  onEditHandoff,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
+  onAddHandoff: () => void;
+  onEditHandoff: (h: Handoff) => void;
 }) {
   return (
     <div className="space-y-4 min-w-0">
@@ -536,7 +686,13 @@ function ProjectMain({
       </Section>
 
       {/* Handoffs */}
-      <HandoffChain project={project} onChange={onChange} onPreviewArtifact={onPreviewArtifact} />
+      <HandoffChain
+        project={project}
+        onChange={onChange}
+        onPreviewArtifact={onPreviewArtifact}
+        onAddHandoff={onAddHandoff}
+        onEditHandoff={onEditHandoff}
+      />
 
       {/* Artifacts */}
       <ArtifactGrid project={project} onChange={onChange} onPreview={onPreviewArtifact} />
@@ -603,28 +759,15 @@ function HandoffChain({
   project,
   onChange,
   onPreviewArtifact,
+  onAddHandoff,
+  onEditHandoff,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
+  onAddHandoff: () => void;
+  onEditHandoff: (h: Handoff) => void;
 }) {
-  function addHandoff() {
-    onChange((p) => ({
-      ...p,
-      handoffs: [
-        ...p.handoffs,
-        {
-          id: uid(),
-          step: p.handoffs.length + 1,
-          mode: "",
-          bot: "",
-          assignment: "",
-          status: "Not Started",
-        },
-      ],
-    }));
-  }
-
   function updateHandoff(id: string, mut: (h: Handoff) => Handoff) {
     onChange((p) => ({
       ...p,
@@ -651,7 +794,7 @@ function HandoffChain({
           </div>
         </div>
         <button
-          onClick={addHandoff}
+          onClick={onAddHandoff}
           className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
           style={{ borderColor: AMBER_LINE, color: AMBER }}
         >
@@ -659,6 +802,26 @@ function HandoffChain({
         </button>
       </div>
 
+      {project.handoffs.length === 0 ? (
+        <div
+          className="rounded-xl border border-dashed p-6 text-center"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          <div className="font-display text-sm" style={{ color: AMBER }}>
+            No handoffs yet
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Add the first step — who does what next.
+          </p>
+          <button
+            onClick={onAddHandoff}
+            className="mt-3 rounded-md border px-3 py-1.5 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            + add handoff
+          </button>
+        </div>
+      ) : (
       <ol className="space-y-3">
         {project.handoffs.map((h, idx) => (
           <li key={h.id} className="relative">
@@ -672,6 +835,7 @@ function HandoffChain({
               handoff={h}
               onUpdate={(mut) => updateHandoff(h.id, mut)}
               onRemove={() => removeHandoff(h.id)}
+              onEdit={() => onEditHandoff(h)}
               onPreview={() => {
                 if (h.artifactBody || h.artifactLink) {
                   onPreviewArtifact({
@@ -689,6 +853,7 @@ function HandoffChain({
           </li>
         ))}
       </ol>
+      )}
     </section>
   );
 }
@@ -697,11 +862,13 @@ function HandoffCard({
   handoff,
   onUpdate,
   onRemove,
+  onEdit,
   onPreview,
 }: {
   handoff: Handoff;
   onUpdate: (mut: (h: Handoff) => Handoff) => void;
   onRemove: () => void;
+  onEdit: () => void;
   onPreview: () => void;
 }) {
   const isComplete = handoff.status === "Complete";
@@ -871,6 +1038,13 @@ function HandoffCard({
                 </button>
               )}
               <button
+                onClick={onEdit}
+                className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                edit
+              </button>
+              <button
                 onClick={onRemove}
                 className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
               >
@@ -949,7 +1123,17 @@ function ArtifactGrid({
         </button>
       </div>
       {all.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No artifacts yet.</div>
+        <div
+          className="rounded-xl border border-dashed p-6 text-center"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          <div className="font-display text-sm" style={{ color: AMBER }}>
+            No artifacts yet
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Artifacts appear here when bots return work. Add one manually with the button above.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {all.map((a) => (
@@ -1087,5 +1271,391 @@ function ArtifactPreview({ artifact, onClose }: { artifact: Artifact; onClose: (
         )}
       </div>
     </div>
+  );
+}
+
+// ---------- Modal shell ----------
+function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 md:items-center md:p-6">
+      <button
+        aria-label="close"
+        onClick={onClose}
+        className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
+      />
+      <div
+        className="relative my-auto w-full max-w-xl rounded-2xl border bark-texture p-5 shadow-xl animate-fade-up"
+        style={{ borderColor: AMBER, animationDuration: "0.2s" }}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-display text-xl font-semibold" style={{ color: AMBER }}>
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+            aria-label="close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="space-y-3">{children}</div>
+        <div className="mt-5 flex justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, style, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-3 py-2 text-sm outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    />
+  );
+}
+
+function ModalTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const { className, style, ...rest } = props;
+  return (
+    <textarea
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-3 py-2 text-sm leading-relaxed outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    />
+  );
+}
+
+function ModalSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const { className, style, children, ...rest } = props;
+  return (
+    <select
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.6)] px-3 py-2 text-sm outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    >
+      {children}
+    </select>
+  );
+}
+
+function ModalLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+      {children}
+    </div>
+  );
+}
+
+function ModalButton({
+  variant = "primary",
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost";
+}) {
+  const isPrimary = variant === "primary";
+  return (
+    <button
+      {...props}
+      className={
+        "rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)] disabled:opacity-50"
+      }
+      style={{
+        borderColor: isPrimary ? AMBER : AMBER_SOFT,
+        color: isPrimary ? AMBER : "inherit",
+        background: isPrimary ? "oklch(0.78 0.18 50 / 0.12)" : "transparent",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ---------- New project modal ----------
+function NewProjectModal({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (input: {
+    name: string;
+    summary: string;
+    status: ProjectStatus;
+    currentMode: string;
+    currentBot: string;
+    nextAction: string;
+    blocker: string;
+  }) => void;
+}) {
+  const [name, setName] = useState("");
+  const [summary, setSummary] = useState("");
+  const [status, setStatus] = useState<ProjectStatus>("Draft");
+  const [currentMode, setCurrentMode] = useState("Mode 0 / Clarity");
+  const [currentBot, setCurrentBot] = useState("Boss");
+  const [nextAction, setNextAction] = useState("Boss writes the clarity brief");
+  const [blocker, setBlocker] = useState("");
+
+  const canSave = name.trim().length > 0;
+
+  return (
+    <ModalShell
+      title="New project"
+      subtitle="Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>
+            cancel
+          </ModalButton>
+          <ModalButton
+            disabled={!canSave}
+            onClick={() =>
+              onCreate({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+            }
+          >
+            create project
+          </ModalButton>
+        </>
+      }
+    >
+      <div>
+        <ModalLabel>Project name</ModalLabel>
+        <ModalInput
+          value={name}
+          autoFocus
+          placeholder="Bot Card Studio"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div>
+        <ModalLabel>Short summary</ModalLabel>
+        <ModalTextarea
+          value={summary}
+          rows={2}
+          placeholder="One sentence — what is this and who is it for?"
+          onChange={(e) => setSummary(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Status</ModalLabel>
+          <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
+            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Current mode</ModalLabel>
+          <ModalInput value={currentMode} onChange={(e) => setCurrentMode(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Current owner / bot</ModalLabel>
+          <ModalInput value={currentBot} onChange={(e) => setCurrentBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Next action</ModalLabel>
+          <ModalInput value={nextAction} onChange={(e) => setNextAction(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Blocker (optional)</ModalLabel>
+        <ModalTextarea
+          value={blocker}
+          rows={2}
+          placeholder="What's in the way? Leave blank if nothing."
+          onChange={(e) => setBlocker(e.target.value)}
+        />
+      </div>
+    </ModalShell>
+  );
+}
+
+// ---------- Handoff editor modal ----------
+function HandoffEditorModal({
+  initial,
+  isNew,
+  onClose,
+  onSave,
+}: {
+  initial: Handoff;
+  isNew: boolean;
+  onClose: () => void;
+  onSave: (h: Handoff) => void;
+}) {
+  const [mode, setMode] = useState(initial.mode);
+  const [bot, setBot] = useState(initial.bot);
+  const [assignment, setAssignment] = useState(initial.assignment);
+  const [status, setStatus] = useState<HandoffStatus>(initial.status);
+  const [receiptLink, setReceiptLink] = useState(initial.receiptLink ?? "");
+  const [artifactLink, setArtifactLink] = useState(initial.artifactLink ?? "");
+  const [artifactTitle, setArtifactTitle] = useState(initial.artifactTitle ?? "");
+  const [artifactBody, setArtifactBody] = useState(initial.artifactBody ?? "");
+  const [nextBot, setNextBot] = useState(initial.nextBot ?? "");
+  const [nextStep, setNextStep] = useState(initial.nextStep ?? "");
+
+  function save() {
+    const completedAt =
+      status === "Complete"
+        ? initial.completedAt ?? new Date().toISOString()
+        : initial.completedAt;
+    onSave({
+      ...initial,
+      mode: mode.trim(),
+      bot: bot.trim(),
+      assignment,
+      status,
+      receiptLink: receiptLink.trim() || undefined,
+      artifactLink: artifactLink.trim() || undefined,
+      artifactTitle: artifactTitle.trim() || undefined,
+      artifactBody: artifactBody.trim() || undefined,
+      nextBot: nextBot.trim() || undefined,
+      nextStep: nextStep.trim() || undefined,
+      completedAt,
+    });
+  }
+
+  return (
+    <ModalShell
+      title={isNew ? "New handoff" : `Edit step ${initial.step}`}
+      subtitle="Who's doing what, and what they're handing back."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>
+            cancel
+          </ModalButton>
+          <ModalButton onClick={save}>{isNew ? "add handoff" : "save changes"}</ModalButton>
+        </>
+      }
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <ModalLabel>Step name / mode</ModalLabel>
+          <ModalInput
+            value={mode}
+            autoFocus
+            placeholder="e.g. Memory alignment"
+            onChange={(e) => setMode(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Assigned bot</ModalLabel>
+          <ModalInput value={bot} placeholder="Echo" onChange={(e) => setBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Status</ModalLabel>
+          <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as HandoffStatus)}>
+            {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
+              (s) => (
+                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                  {s}
+                </option>
+              ),
+            )}
+          </ModalSelect>
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Assignment</ModalLabel>
+        <ModalTextarea
+          value={assignment}
+          rows={3}
+          placeholder="What is this bot expected to do?"
+          onChange={(e) => setAssignment(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Receipt / report link</ModalLabel>
+          <ModalInput
+            value={receiptLink}
+            placeholder="https://…"
+            onChange={(e) => setReceiptLink(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Artifact link</ModalLabel>
+          <ModalInput
+            value={artifactLink}
+            placeholder="https://…"
+            onChange={(e) => setArtifactLink(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Artifact title</ModalLabel>
+          <ModalInput
+            value={artifactTitle}
+            placeholder="e.g. Master prompt v1"
+            onChange={(e) => setArtifactTitle(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Artifact text</ModalLabel>
+          <ModalTextarea
+            value={artifactBody}
+            rows={5}
+            placeholder="Paste the bot's output here…"
+            onChange={(e) => setArtifactBody(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Next bot</ModalLabel>
+          <ModalInput
+            value={nextBot}
+            placeholder="Tinker"
+            onChange={(e) => setNextBot(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Next step</ModalLabel>
+          <ModalInput
+            value={nextStep}
+            placeholder="Prototype"
+            onChange={(e) => setNextStep(e.target.value)}
+          />
+        </div>
+      </div>
+    </ModalShell>
   );
 }
