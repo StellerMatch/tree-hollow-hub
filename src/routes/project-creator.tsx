@@ -541,7 +541,7 @@ function ProjectCreatorPage() {
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-                Projects
+                Projects · {filteredProjects.length}/{projects.length}
               </div>
               <button
                 onClick={() => setShowNewProject(true)}
@@ -551,8 +551,32 @@ function ProjectCreatorPage() {
                 + new
               </button>
             </div>
+            <div className="relative mb-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search name, status, bot, mode…"
+                className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
+                style={{ borderColor: AMBER_SOFT }}
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="clear search"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded px-1.5 text-xs text-muted-foreground/70 hover:text-foreground"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {filteredProjects.length === 0 && (
+              <div className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+                style={{ borderColor: AMBER_LINE }}>
+                no projects match
+              </div>
+            )}
             <ul className="space-y-1.5">
-              {projects.map((p) => {
+              {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
                 return (
                   <li key={p.id}>
@@ -591,6 +615,13 @@ function ProjectCreatorPage() {
               onPreviewArtifact={setPreviewArtifact}
               onAddHandoff={openNewHandoff}
               onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
+              onOpenSettings={() => setEditingProjectId(selected.id)}
+              onMoveHandoff={moveHandoff}
+              onRemoveHandoff={removeHandoff}
+              onChangeHandoffStatus={changeHandoffStatus}
+              onAddArtifact={addArtifact}
+              onEditArtifact={(id) => setEditingArtifactId(id)}
+              onRemoveArtifact={removeArtifact}
             />
           ) : (
             <div
@@ -623,9 +654,19 @@ function ProjectCreatorPage() {
       )}
 
       {showNewProject && (
-        <NewProjectModal
+        <ProjectSettingsModal
+          mode="create"
           onClose={() => setShowNewProject(false)}
-          onCreate={createProject}
+          onSave={createProject}
+        />
+      )}
+
+      {editingProject && (
+        <ProjectSettingsModal
+          mode="edit"
+          initial={editingProject}
+          onClose={() => setEditingProjectId(null)}
+          onSave={saveProjectSettings}
         />
       )}
 
@@ -635,6 +676,14 @@ function ProjectCreatorPage() {
           isNew={editingHandoff.isNew}
           onClose={() => setEditingHandoff(null)}
           onSave={(h) => saveHandoff(h, editingHandoff.isNew)}
+        />
+      )}
+
+      {editingArtifact && (
+        <ArtifactEditorModal
+          initial={editingArtifact}
+          onClose={() => setEditingArtifactId(null)}
+          onSave={saveArtifact}
         />
       )}
     </div>
