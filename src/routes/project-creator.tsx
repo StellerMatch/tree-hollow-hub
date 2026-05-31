@@ -317,8 +317,9 @@ function ProjectCreatorPage() {
   useEffect(() => {
     const stored = loadProjects();
     const { projects: migrated } = migrateProjects(stored);
-    setProjects(migrated);
-    setSelectedId(migrated[0]?.id ?? "");
+    const { projects: ensured } = ensureRequiredStages(migrated);
+    setProjects(ensured);
+    setSelectedId(ensured[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
