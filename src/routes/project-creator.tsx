@@ -9,8 +9,19 @@ import type {
   ArtifactType,
   ArtifactSource,
 } from "@/components/project-board/types";
-import { ARTIFACT_TYPES, ARTIFACT_SOURCES } from "@/components/project-board/types";
+import {
+  ARTIFACT_TYPES,
+  ARTIFACT_SOURCES,
+  PROJECT_STATUSES,
+  HANDOFF_STATUSES,
+} from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
+import {
+  DABOTTREE_PIPELINE,
+  DABOTTREE_PIPELINE_NAME,
+  createPipelineHandoffs,
+  activeHandoff,
+} from "@/components/project-board/pipeline";
 
 export const Route = createFileRoute("/project-creator")({
   component: ProjectCreatorPage,
@@ -95,10 +106,13 @@ function StatusPill({ status }: { status: ProjectStatus | HandoffStatus }) {
     Active: EMERALD,
     Waiting: "oklch(0.78 0.16 75)",
     Blocked: "oklch(0.65 0.22 25)",
+    Review: "oklch(0.72 0.13 290)",
     Complete: "oklch(0.7 0.14 160)",
+    Parked: "oklch(0.6 0.03 80)",
     "Not Started": "oklch(0.65 0.04 80)",
     Sent: "oklch(0.72 0.13 230)",
     Working: AMBER,
+    "Needs Review": "oklch(0.72 0.13 290)",
   };
   const c = color[status] ?? AMBER;
   return (
@@ -221,16 +235,21 @@ function ProjectCreatorPage() {
     setEditingProjectId(null);
   }
 
-  function createProject(input: ProjectSettingsInput) {
+  function createProject(input: ProjectSettingsInput, fromPipeline = false) {
     const id = uid();
     const ts = new Date().toISOString();
+    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : [];
     const fresh: Project = {
       id,
       name: input.name.trim() || "Untitled Project",
       summary: input.summary,
       status: input.status,
-      currentMode: input.currentMode || "Mode 0 / Clarity",
-      currentBot: input.currentBot || "Boss",
+      currentMode: fromPipeline
+        ? DABOTTREE_PIPELINE[0].stage
+        : input.currentMode || "Mode 0 / Clarity",
+      currentBot: fromPipeline
+        ? DABOTTREE_PIPELINE[0].bot
+        : input.currentBot || "Boss",
       nextAction: input.nextAction,
       blocker: input.blocker.trim() || undefined,
       updatedAt: ts,
@@ -239,14 +258,16 @@ function ProjectCreatorPage() {
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [],
+      handoffs: pipelineHandoffs,
       artifacts: [],
       activity: [
         {
           id: uid(),
           at: ts,
           bot: input.currentBot || "Boss",
-          action: "created project",
+          action: fromPipeline
+            ? `created project from ${DABOTTREE_PIPELINE_NAME}`
+            : "created project",
           status: input.status,
         },
       ],
@@ -657,7 +678,7 @@ function ProjectCreatorPage() {
         <ProjectSettingsModal
           mode="create"
           onClose={() => setShowNewProject(false)}
-          onSave={createProject}
+          onSave={(input, fromPipeline) => createProject(input, fromPipeline)}
         />
       )}
 
@@ -666,7 +687,7 @@ function ProjectCreatorPage() {
           mode="edit"
           initial={editingProject}
           onClose={() => setEditingProjectId(null)}
-          onSave={saveProjectSettings}
+          onSave={(input) => saveProjectSettings(input)}
         />
       )}
 
@@ -721,13 +742,11 @@ function StatusPanel({
             className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
             style={{ borderColor: AMBER_SOFT }}
           >
-            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map(
-              (s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ),
-            )}
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
           </select>
         </Field>
 
@@ -889,6 +908,7 @@ function ProjectMain({
           <Tag label="Owner" value={project.currentBot} />
           <Tag label="Next" value={project.nextAction} />
         </div>
+        <CurrentStageIndicator project={project} />
       </div>
 
       {/* Mode 0 */}
@@ -1008,6 +1028,55 @@ function Tag({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div className="truncate text-sm">{value || "—"}</div>
+    </div>
+  );
+}
+
+function CurrentStageIndicator({ project }: { project: Project }) {
+  const active = activeHandoff(project.handoffs);
+  if (!active) return null;
+  const isBlocked = active.status === "Blocked" || !!project.blocker;
+  const accent = isBlocked ? "oklch(0.65 0.22 25)" : AMBER;
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+      style={{
+        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
+        background: isBlocked
+          ? "oklch(0.65 0.22 25 / 0.08)"
+          : "oklch(0.78 0.18 50 / 0.06)",
+      }}
+    >
+      <span
+        className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+        style={{ borderColor: accent, color: accent }}
+      >
+        Current stage
+      </span>
+      <span className="font-display text-sm font-semibold" style={{ color: accent }}>
+        {active.step}. {active.mode || "untitled stage"}
+      </span>
+      <span className="text-muted-foreground">
+        owner: <strong className="text-foreground">{active.bot || "—"}</strong>
+      </span>
+      <StatusPill status={active.status} />
+      {active.nextStep && (
+        <span className="text-muted-foreground">
+          → next: <strong className="text-foreground">{active.nextStep}</strong>
+          {active.nextBot && <> by <strong className="text-foreground">{active.nextBot}</strong></>}
+        </span>
+      )}
+      {project.blocker && (
+        <span
+          className="ml-auto rounded border px-2 py-0.5 text-[11px]"
+          style={{
+            borderColor: "oklch(0.65 0.22 25 / 0.5)",
+            color: "oklch(0.85 0.12 25)",
+          }}
+        >
+          ⚠ {project.blocker}
+        </span>
+      )}
     </div>
   );
 }
@@ -1236,13 +1305,11 @@ function HandoffCard({
               style={{ borderColor: AMBER_SOFT }}
               aria-label="status"
             >
-              {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
-                (s) => (
-                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                    {s}
-                  </option>
-                ),
-              )}
+              {HANDOFF_STATUSES.map((s) => (
+                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                  {s}
+                </option>
+              ))}
             </select>
             <StatusPill status={handoff.status} />
           </div>
@@ -1251,6 +1318,19 @@ function HandoffCard({
             <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
               {handoff.assignment}
             </p>
+          )}
+
+          {handoff.authorityNotes && (
+            <div
+              className="mt-2 rounded-md border px-2 py-1 text-[11px] italic"
+              style={{
+                borderColor: AMBER_SOFT,
+                background: "oklch(0.78 0.18 50 / 0.05)",
+                color: "oklch(0.85 0.05 80)",
+              }}
+            >
+              authority: {handoff.authorityNotes}
+            </div>
           )}
 
           {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle) && (
@@ -1723,7 +1803,7 @@ function ProjectSettingsModal({
   mode: "create" | "edit";
   initial?: Project;
   onClose: () => void;
-  onSave: (input: ProjectSettingsInput) => void;
+  onSave: (input: ProjectSettingsInput, fromPipeline?: boolean) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
@@ -1742,7 +1822,7 @@ function ProjectSettingsModal({
       title={mode === "create" ? "New project" : "Project settings"}
       subtitle={
         mode === "create"
-          ? "Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+          ? "Start blank, or use the DaBotTree Project Pipeline to seed the full Boss → Echo stage chain."
           : "Edit project name, summary, status, mode, owner, next action, and blocker."
       }
       onClose={onClose}
@@ -1751,13 +1831,26 @@ function ProjectSettingsModal({
           <ModalButton variant="ghost" onClick={onClose}>
             cancel
           </ModalButton>
+          {mode === "create" && (
+            <ModalButton
+              disabled={!canSave}
+              onClick={() =>
+                onSave(
+                  { name, summary, status, currentMode, currentBot, nextAction, blocker },
+                  true,
+                )
+              }
+            >
+              create from DaBotTree Pipeline
+            </ModalButton>
+          )}
           <ModalButton
             disabled={!canSave}
             onClick={() =>
               onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
             }
           >
-            {mode === "create" ? "create project" : "save changes"}
+            {mode === "create" ? "create blank" : "save changes"}
           </ModalButton>
         </>
       }
@@ -1784,7 +1877,7 @@ function ProjectSettingsModal({
         <div>
           <ModalLabel>Status</ModalLabel>
           <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
-            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map((s) => (
+            {PROJECT_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
                 {s}
               </option>
@@ -1839,6 +1932,7 @@ function HandoffEditorModal({
   const [artifactBody, setArtifactBody] = useState(initial.artifactBody ?? "");
   const [nextBot, setNextBot] = useState(initial.nextBot ?? "");
   const [nextStep, setNextStep] = useState(initial.nextStep ?? "");
+  const [authorityNotes, setAuthorityNotes] = useState(initial.authorityNotes ?? "");
 
   function save() {
     const completedAt =
@@ -1857,6 +1951,7 @@ function HandoffEditorModal({
       artifactBody: artifactBody.trim() || undefined,
       nextBot: nextBot.trim() || undefined,
       nextStep: nextStep.trim() || undefined,
+      authorityNotes: authorityNotes.trim() || undefined,
       completedAt,
     });
   }
@@ -1892,13 +1987,11 @@ function HandoffEditorModal({
         <div>
           <ModalLabel>Status</ModalLabel>
           <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as HandoffStatus)}>
-            {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
-              (s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ),
-            )}
+            {HANDOFF_STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
           </ModalSelect>
         </div>
       </div>
@@ -1959,6 +2052,15 @@ function HandoffEditorModal({
             value={nextStep}
             placeholder="Prototype"
             onChange={(e) => setNextStep(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Authority boundary notes</ModalLabel>
+          <ModalTextarea
+            value={authorityNotes}
+            rows={2}
+            placeholder="What can this bot decide / not decide at this stage?"
+            onChange={(e) => setAuthorityNotes(e.target.value)}
           />
         </div>
       </div>

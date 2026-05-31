@@ -1,9 +1,17 @@
 import type { Project } from "./types";
+import { DABOTTREE_PIPELINE } from "./pipeline";
 
 // Fixed timestamp so SSR and client first render produce identical markup.
 // Real activity uses live timestamps.
 const SEED_TS = "2026-05-31T00:00:00.000Z";
 const now = () => SEED_TS;
+
+// Deterministic ID generator for seed only (real handoffs use random uid()).
+function seedId(prefix: string) {
+  let n = 0;
+  return () => `${prefix}-${++n}`;
+}
+const dbtId = seedId("dbt");
 
 export const SEED_PROJECTS: Project[] = [
   {
@@ -226,6 +234,39 @@ export const SEED_PROJECTS: Project[] = [
     activity: [
       { id: "wv1", at: now(), bot: "Boss", action: "opened project", status: "Draft" },
       { id: "wv2", at: now(), bot: "Tinker", action: "blocked", status: "Blocked", blocker: "parts catalog credentials" },
+    ],
+  },
+  {
+    id: "dabottree-project-board",
+    name: "DaBotTree Project Board",
+    summary:
+      "The operations room itself — built from the DaBotTree Project Pipeline template.",
+    status: "Active",
+    currentMode: DABOTTREE_PIPELINE[0].stage,
+    currentBot: DABOTTREE_PIPELINE[0].bot,
+    nextAction: "Boss signs Clarity brief so Compass can begin R&D.",
+    updatedAt: now(),
+    clarity:
+      "Goal: one place where I can see the real state of any DaBotTree project — Clarity, R&D, Knowledge Packet, Prototype, Polish, Final Package, Record, Memory. Audience: me, then trusted operators. Done: I can open one page and trust what I see without searching chats or files.",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs: DABOTTREE_PIPELINE.map((s, i) => ({
+      id: dbtId(),
+      step: i + 1,
+      mode: s.stage,
+      bot: s.bot,
+      assignment: s.assignment,
+      status: i === 0 ? "Working" : "Not Started",
+      authorityNotes: s.authorityNotes,
+      nextBot: s.nextBot,
+      nextStep: s.nextStep,
+    })),
+    artifacts: [],
+    activity: [
+      { id: dbtId(), at: now(), bot: "Boss", action: "opened project from DaBotTree Project Pipeline", status: "Draft" },
+      { id: dbtId(), at: now(), bot: "Boss", action: "drafting Clarity brief", status: "Working" },
     ],
   },
 ];
