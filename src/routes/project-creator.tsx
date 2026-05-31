@@ -1273,14 +1273,15 @@ function ProjectCreatorPage() {
         )}
 
         {/* 3-column layout */}
-        {!hydrated ? (
+        {!hydrated && (
           <div
             className="rounded-2xl border bark-texture p-8 text-center text-sm text-muted-foreground"
             style={{ borderColor: AMBER_SOFT }}
           >
             loading projects…
           </div>
-        ) : (
+        )}
+        {hydrated && (
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
           {/* LEFT — project list */}
           <aside
