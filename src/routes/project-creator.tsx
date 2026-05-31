@@ -1242,10 +1242,12 @@ function CurrentStageIndicator({ project }: { project: Project }) {
 function Section({
   title,
   subtitle,
+  headerRight,
   children,
 }: {
   title: string;
   subtitle?: string;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -1253,7 +1255,7 @@ function Section({
       className="rounded-2xl border bark-texture p-4 md:p-5"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-3 flex items-baseline justify-between gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold" style={{ color: AMBER }}>
             {title}
@@ -1262,6 +1264,7 @@ function Section({
             <div className="text-xs text-muted-foreground">{subtitle}</div>
           )}
         </div>
+        {headerRight}
       </div>
       <div className="space-y-3">{children}</div>
     </section>
