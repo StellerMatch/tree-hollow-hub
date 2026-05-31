@@ -63,6 +63,13 @@ export type Handoff = {
   nextBot?: string;
   nextStep?: string;
   authorityNotes?: string;
+  /**
+   * Structured per-step output values keyed by template field key. Lets
+   * each workflow step capture meaningful, named outputs (e.g. prototype
+   * URL, lantern lane notes) without losing them. Preserved alongside
+   * legacy artifactBody/artifactLink so existing data keeps working.
+   */
+  stepOutput?: Record<string, string>;
 };
 
 export type Artifact = {

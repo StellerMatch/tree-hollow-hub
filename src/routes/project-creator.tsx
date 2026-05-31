@@ -1666,7 +1666,7 @@ function StatusPanel({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
@@ -2721,6 +2721,337 @@ function StepSummaryPanel({ handoff }: { handoff: Handoff }) {
   );
 }
 
+// ---------- Per-step output templates ----------
+
+type StepField = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  hint?: string;
+  multiline?: boolean;
+  rows?: number;
+  primary?: boolean; // shown first / emphasized as the headline result
+};
+
+type StepTemplate = {
+  id: string;
+  /** Short creator-facing description of what this step delivers. */
+  blurb: string;
+  fields: StepField[];
+};
+
+/**
+ * Match templates by lowercased substring of the handoff `mode`. First
+ * match wins. Mode 0 / 1 / 2 / Project Type Confirmation are handled
+ * separately above because they map to project-level fields.
+ */
+const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => boolean; template: StepTemplate }> = [
+  // ----- Chief Review -----
+  {
+    match: (m) => m.includes("chief intake"),
+    template: {
+      id: "chief-intake",
+      blurb: "Chief's readiness check before Lantern R&D kicks off.",
+      fields: [
+        { key: "summary", label: "Intake summary", primary: true, multiline: true, rows: 4,
+          placeholder: "What is known, what is missing, what should happen next." },
+        { key: "readiness", label: "Readiness notes", multiline: true, rows: 3,
+          placeholder: "Is this ready for R&D? Anything blocking?" },
+        { key: "nextOwner", label: "Next owner",
+          placeholder: "e.g. Compass" },
+        { key: "nextAction", label: "Next required action",
+          placeholder: "e.g. Open Lantern Team Kickoff." },
+        { key: "concerns", label: "Concerns before Lantern R&D", multiline: true, rows: 3,
+          placeholder: "Risks, ambiguities, or unresolved questions." },
+      ],
+    },
+  },
+  // ----- Lantern R&D: Kickoff -----
+  {
+    match: (m) => m.includes("lantern team kickoff"),
+    template: {
+      id: "lantern-kickoff",
+      blurb: "Compass orchestrates the lantern team and names the research question.",
+      fields: [
+        { key: "researchQuestion", label: "Research question", primary: true, multiline: true, rows: 3,
+          placeholder: "What are we trying to learn?" },
+        { key: "compassAssignment", label: "Compass lane", multiline: true, rows: 2 },
+        { key: "vaultAssignment", label: "Vault lane (money)", multiline: true, rows: 2 },
+        { key: "bloomAssignment", label: "Bloom lane (audience)", multiline: true, rows: 2 },
+        { key: "lumaAssignment", label: "Luma lane (design)", multiline: true, rows: 2 },
+      ],
+    },
+  },
+  // ----- Lantern R&D: Past / Present / Future / Risks (4 lanes each) -----
+  ...(["past landscape", "present landscape", "future hooks", "risks and unknowns"].map((kw) => ({
+    match: (m: string) => m.includes(kw),
+    template: {
+      id: `lantern-${kw.replace(/\s+/g, "-")}`,
+      blurb: "Each lantern reports its lane. Research-only — cite sources where possible.",
+      fields: [
+        { key: "compass", label: "Compass — research lane", primary: true, multiline: true, rows: 3 },
+        { key: "vault", label: "Vault — money lane", multiline: true, rows: 3 },
+        { key: "bloom", label: "Bloom — audience lane", multiline: true, rows: 3 },
+        { key: "luma", label: "Luma — design lane", multiline: true, rows: 3 },
+        { key: "sources", label: "Sources / citations", multiline: true, rows: 2,
+          placeholder: "Links or references for these findings." },
+      ],
+    } as StepTemplate,
+  }))),
+  // ----- Lantern R&D: Synthesis -----
+  {
+    match: (m) => m.includes("research scope") || m.includes("synthesis"),
+    template: {
+      id: "rd-synthesis",
+      blurb: "Compass narrows the lantern passes into the final research direction.",
+      fields: [
+        { key: "scope", label: "In-scope research direction", primary: true, multiline: true, rows: 4 },
+        { key: "futureHooks", label: "Parked for the future", multiline: true, rows: 3,
+          placeholder: "Ideas worth remembering but out of current scope." },
+        { key: "keyFindings", label: "Key findings", multiline: true, rows: 3 },
+        { key: "openQuestions", label: "Open questions", multiline: true, rows: 2 },
+      ],
+    },
+  },
+  // ----- Lantern R&D: Highlight Brief -----
+  {
+    match: (m) => m.includes("r&d highlight") || m.includes("highlight brief"),
+    template: {
+      id: "rd-highlight",
+      blurb: "Boss-facing R&D summary that hands off to Knowledge Packet.",
+      fields: [
+        { key: "keyFindings", label: "Most important findings", primary: true, multiline: true, rows: 4 },
+        { key: "risks", label: "Risks", multiline: true, rows: 3 },
+        { key: "recommendations", label: "Recommendations", multiline: true, rows: 3 },
+        { key: "nextStepImplications", label: "Implications for next step", multiline: true, rows: 3 },
+      ],
+    },
+  },
+  // ----- Knowledge Packet (Rook) -----
+  {
+    match: (m, b) => m.includes("knowledge packet") || m.includes("rook") || b.toLowerCase() === "rook",
+    template: {
+      id: "knowledge-packet",
+      blurb: "Rook's build-ready packet. This is what Tinker will pick up.",
+      fields: [
+        { key: "packetSummary", label: "Packet summary", primary: true, multiline: true, rows: 4,
+          placeholder: "One-paragraph description of what's being built." },
+        { key: "requirements", label: "Requirements", multiline: true, rows: 4 },
+        { key: "constraints", label: "Constraints", multiline: true, rows: 3 },
+        { key: "audience", label: "Audience / use case notes", multiline: true, rows: 3 },
+        { key: "tinkerHandoff", label: "Tinker-ready handoff", multiline: true, rows: 3,
+          placeholder: "What Tinker needs to start building." },
+      ],
+    },
+  },
+  // ----- Prototype (Tinker) -----
+  {
+    match: (m, b) => m.includes("prototype") || m.includes("tinker") || b.toLowerCase() === "tinker",
+    template: {
+      id: "prototype",
+      blurb: "Tinker delivers v1 prototype URL.",
+      fields: [
+        { key: "prototypeUrl", label: "Prototype URL", primary: true,
+          placeholder: "https://…" },
+        { key: "status", label: "Build status",
+          placeholder: "e.g. v1 ready / blocked / in progress" },
+        { key: "buildNotes", label: "Build notes", multiline: true, rows: 4 },
+        { key: "screenshots", label: "Screenshots / artifact links", multiline: true, rows: 2,
+          placeholder: "One URL per line." },
+        { key: "nextAction", label: "Next action",
+          placeholder: "e.g. Hand off to Luma for design polish." },
+      ],
+    },
+  },
+  // ----- Design Polish (Luma) -----
+  {
+    match: (m, b) => m.includes("design polish") || m.includes("luma") || b.toLowerCase() === "luma",
+    template: {
+      id: "design-polish",
+      blurb: "Luma reviews visual trust, readability, and accessibility.",
+      fields: [
+        { key: "reviewNotes", label: "Luma review notes", primary: true, multiline: true, rows: 4 },
+        { key: "polishFindings", label: "Visual polish findings", multiline: true, rows: 3 },
+        { key: "accessibility", label: "Readability / accessibility / trust checks", multiline: true, rows: 3 },
+        { key: "recommendedFixes", label: "Recommended fixes", multiline: true, rows: 3 },
+      ],
+    },
+  },
+  // ----- Final Package (Weaver) -----
+  {
+    match: (m, b) => m.includes("final package") || m.includes("weaver") || b.toLowerCase() === "weaver",
+    template: {
+      id: "final-package",
+      blurb: "Weaver bundles the final handoff package.",
+      fields: [
+        { key: "finalLinks", label: "Final links", primary: true, multiline: true, rows: 3,
+          placeholder: "One URL per line." },
+        { key: "files", label: "Files", multiline: true, rows: 3 },
+        { key: "deliveryNotes", label: "Delivery notes", multiline: true, rows: 3 },
+        { key: "checklist", label: "Launch / package checklist", multiline: true, rows: 4,
+          placeholder: "One item per line." },
+      ],
+    },
+  },
+  // ----- Official Record (Ledger) -----
+  {
+    match: (m, b) => m.includes("official record") || m.includes("ledger") || b.toLowerCase() === "ledger",
+    template: {
+      id: "official-record",
+      blurb: "Ledger files the immutable decision record.",
+      fields: [
+        { key: "officialRecord", label: "Official record", primary: true, multiline: true, rows: 5,
+          placeholder: "Final decision, scope, owners, and date." },
+        { key: "filedDecisions", label: "Filed decisions", multiline: true, rows: 3 },
+        { key: "receipts", label: "Receipts", multiline: true, rows: 3,
+          placeholder: "One receipt link per line." },
+      ],
+    },
+  },
+  // ----- Memory Alignment (Echo) -----
+  {
+    match: (m, b) => m.includes("memory alignment") || m.includes("echo") || b.toLowerCase() === "echo",
+    template: {
+      id: "memory-alignment",
+      blurb: "Echo decides what gets remembered, and what does not.",
+      fields: [
+        { key: "remember", label: "Worth remembering", primary: true, multiline: true, rows: 4 },
+        { key: "forget", label: "Should not be remembered", multiline: true, rows: 3 },
+        { key: "brainUpdate", label: "Brain / memory update needed?",
+          placeholder: "yes / no — and what to update" },
+        { key: "notes", label: "Notes", multiline: true, rows: 3 },
+      ],
+    },
+  },
+];
+
+function stepTemplateFor(handoff: Handoff): StepTemplate | null {
+  const mode = (handoff.mode ?? "").toLowerCase();
+  const bot = (handoff.bot ?? "").toLowerCase();
+  for (const entry of STEP_TEMPLATE_MATCHERS) {
+    if (entry.match(mode, bot)) return entry.template;
+  }
+  return null;
+}
+
+function StepTemplateForm({
+  handoff,
+  template,
+  onChange,
+  onPreview,
+}: {
+  handoff: Handoff;
+  template: StepTemplate;
+  onChange: (mut: (p: Project) => Project) => void;
+  onPreview: (a: Artifact) => void;
+}) {
+  const values = handoff.stepOutput ?? {};
+  const setField = (key: string, value: string) => {
+    onChange((p) => ({
+      ...p,
+      handoffs: p.handoffs.map((h) => {
+        if (h.id !== handoff.id) return h;
+        const nextOutput = { ...(h.stepOutput ?? {}) };
+        if (value.trim() === "") delete nextOutput[key];
+        else nextOutput[key] = value;
+        return { ...h, stepOutput: nextOutput };
+      }),
+    }));
+  };
+
+  // Order: primary fields first, then the rest in declared order.
+  const ordered = [...template.fields].sort((a, b) => Number(!!b.primary) - Number(!!a.primary));
+
+  return (
+    <div className="space-y-3">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+        {template.blurb}
+      </div>
+      {ordered.map((f) => (
+        <Field
+          key={f.key}
+          label={
+            f.primary ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span>{f.label}</span>
+                <span
+                  className="rounded-sm border px-1 text-[9px] uppercase tracking-[0.14em]"
+                  style={{ borderColor: AMBER_LINE, color: AMBER }}
+                >
+                  primary
+                </span>
+              </span>
+            ) : (
+              f.label
+            )
+          }
+        >
+          {f.multiline === false || (!f.multiline && !f.rows) ? (
+            <input
+              value={values[f.key] ?? ""}
+              placeholder={f.placeholder}
+              onChange={(e) => setField(f.key, e.target.value)}
+              className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+              style={{ borderColor: AMBER_SOFT }}
+            />
+          ) : (
+            <textarea
+              value={values[f.key] ?? ""}
+              rows={f.rows ?? 3}
+              placeholder={f.placeholder}
+              onChange={(e) => setField(f.key, e.target.value)}
+              className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+              style={{ borderColor: AMBER_SOFT }}
+            />
+          )}
+          {f.hint && (
+            <div className="mt-1 text-[10px] text-muted-foreground/70">{f.hint}</div>
+          )}
+        </Field>
+      ))}
+      {(handoff.receiptLink || handoff.artifactLink || handoff.artifactBody) && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+          {handoff.receiptLink && (
+            <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+              className="rounded-md border px-2 py-0.5"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}>
+              🧾 receipt
+            </a>
+          )}
+          {handoff.artifactLink && (
+            <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+              className="rounded-md border px-2 py-0.5"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}>
+              🔗 artifact link
+            </a>
+          )}
+          {(handoff.artifactBody || handoff.artifactLink) && (
+            <button
+              onClick={() =>
+                onPreview({
+                  id: handoff.id,
+                  title: handoff.artifactTitle || `${handoff.mode} artifact`,
+                  kind: handoff.mode,
+                  type: "other",
+                  source: "Handoff",
+                  body: handoff.artifactBody,
+                  link: handoff.artifactLink,
+                  bot: handoff.bot,
+                  createdAt: handoff.completedAt ?? new Date().toISOString(),
+                })
+              }
+              className="rounded-md border px-2 py-0.5"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+            >
+              preview legacy artifact
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StepResultPanel({
   project,
   handoff,
@@ -2865,6 +3196,22 @@ function StepResultPanel({
           />
         </Field>
       </div>
+    );
+  }
+
+  // Per-step structured output template (Chief Review, Lantern R&D,
+  // Knowledge Packet, Prototype, Design Polish, Final Package, Official
+  // Record & Memory). Falls back to free-form artifact body if no
+  // template matches.
+  const template = stepTemplateFor(handoff);
+  if (template) {
+    return (
+      <StepTemplateForm
+        handoff={handoff}
+        template={template}
+        onChange={onChange}
+        onPreview={onPreview}
+      />
     );
   }
 
