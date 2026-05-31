@@ -1932,6 +1932,7 @@ function HandoffEditorModal({
   const [artifactBody, setArtifactBody] = useState(initial.artifactBody ?? "");
   const [nextBot, setNextBot] = useState(initial.nextBot ?? "");
   const [nextStep, setNextStep] = useState(initial.nextStep ?? "");
+  const [authorityNotes, setAuthorityNotes] = useState(initial.authorityNotes ?? "");
 
   function save() {
     const completedAt =
@@ -1950,6 +1951,7 @@ function HandoffEditorModal({
       artifactBody: artifactBody.trim() || undefined,
       nextBot: nextBot.trim() || undefined,
       nextStep: nextStep.trim() || undefined,
+      authorityNotes: authorityNotes.trim() || undefined,
       completedAt,
     });
   }
@@ -2050,6 +2052,15 @@ function HandoffEditorModal({
             value={nextStep}
             placeholder="Prototype"
             onChange={(e) => setNextStep(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Authority boundary notes</ModalLabel>
+          <ModalTextarea
+            value={authorityNotes}
+            rows={2}
+            placeholder="What can this bot decide / not decide at this stage?"
+            onChange={(e) => setAuthorityNotes(e.target.value)}
           />
         </div>
       </div>
