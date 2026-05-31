@@ -1273,3 +1273,389 @@ function ArtifactPreview({ artifact, onClose }: { artifact: Artifact; onClose: (
     </div>
   );
 }
+
+// ---------- Modal shell ----------
+function ModalShell({
+  title,
+  subtitle,
+  onClose,
+  children,
+  footer,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-3 md:items-center md:p-6">
+      <button
+        aria-label="close"
+        onClick={onClose}
+        className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
+      />
+      <div
+        className="relative my-auto w-full max-w-xl rounded-2xl border bark-texture p-5 shadow-xl animate-fade-up"
+        style={{ borderColor: AMBER, animationDuration: "0.2s" }}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-display text-xl font-semibold" style={{ color: AMBER }}>
+              {title}
+            </h3>
+            {subtitle && (
+              <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-muted-foreground transition hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+            aria-label="close"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="space-y-3">{children}</div>
+        <div className="mt-5 flex justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
+          {footer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, style, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-3 py-2 text-sm outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    />
+  );
+}
+
+function ModalTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const { className, style, ...rest } = props;
+  return (
+    <textarea
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-3 py-2 text-sm leading-relaxed outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    />
+  );
+}
+
+function ModalSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  const { className, style, children, ...rest } = props;
+  return (
+    <select
+      {...rest}
+      className={
+        "w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.6)] px-3 py-2 text-sm outline-none focus:border-[oklch(0.78_0.18_50)] " +
+        (className ?? "")
+      }
+      style={{ borderColor: AMBER_SOFT, ...style }}
+    >
+      {children}
+    </select>
+  );
+}
+
+function ModalLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+      {children}
+    </div>
+  );
+}
+
+function ModalButton({
+  variant = "primary",
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost";
+}) {
+  const isPrimary = variant === "primary";
+  return (
+    <button
+      {...props}
+      className={
+        "rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)] disabled:opacity-50"
+      }
+      style={{
+        borderColor: isPrimary ? AMBER : AMBER_SOFT,
+        color: isPrimary ? AMBER : "inherit",
+        background: isPrimary ? "oklch(0.78 0.18 50 / 0.12)" : "transparent",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ---------- New project modal ----------
+function NewProjectModal({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (input: {
+    name: string;
+    summary: string;
+    status: ProjectStatus;
+    currentMode: string;
+    currentBot: string;
+    nextAction: string;
+    blocker: string;
+  }) => void;
+}) {
+  const [name, setName] = useState("");
+  const [summary, setSummary] = useState("");
+  const [status, setStatus] = useState<ProjectStatus>("Draft");
+  const [currentMode, setCurrentMode] = useState("Mode 0 / Clarity");
+  const [currentBot, setCurrentBot] = useState("Boss");
+  const [nextAction, setNextAction] = useState("Boss writes the clarity brief");
+  const [blocker, setBlocker] = useState("");
+
+  const canSave = name.trim().length > 0;
+
+  return (
+    <ModalShell
+      title="New project"
+      subtitle="Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>
+            cancel
+          </ModalButton>
+          <ModalButton
+            disabled={!canSave}
+            onClick={() =>
+              onCreate({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+            }
+          >
+            create project
+          </ModalButton>
+        </>
+      }
+    >
+      <div>
+        <ModalLabel>Project name</ModalLabel>
+        <ModalInput
+          value={name}
+          autoFocus
+          placeholder="Bot Card Studio"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div>
+        <ModalLabel>Short summary</ModalLabel>
+        <ModalTextarea
+          value={summary}
+          rows={2}
+          placeholder="One sentence — what is this and who is it for?"
+          onChange={(e) => setSummary(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Status</ModalLabel>
+          <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
+            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Current mode</ModalLabel>
+          <ModalInput value={currentMode} onChange={(e) => setCurrentMode(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Current owner / bot</ModalLabel>
+          <ModalInput value={currentBot} onChange={(e) => setCurrentBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Next action</ModalLabel>
+          <ModalInput value={nextAction} onChange={(e) => setNextAction(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Blocker (optional)</ModalLabel>
+        <ModalTextarea
+          value={blocker}
+          rows={2}
+          placeholder="What's in the way? Leave blank if nothing."
+          onChange={(e) => setBlocker(e.target.value)}
+        />
+      </div>
+    </ModalShell>
+  );
+}
+
+// ---------- Handoff editor modal ----------
+function HandoffEditorModal({
+  initial,
+  isNew,
+  onClose,
+  onSave,
+}: {
+  initial: Handoff;
+  isNew: boolean;
+  onClose: () => void;
+  onSave: (h: Handoff) => void;
+}) {
+  const [mode, setMode] = useState(initial.mode);
+  const [bot, setBot] = useState(initial.bot);
+  const [assignment, setAssignment] = useState(initial.assignment);
+  const [status, setStatus] = useState<HandoffStatus>(initial.status);
+  const [receiptLink, setReceiptLink] = useState(initial.receiptLink ?? "");
+  const [artifactLink, setArtifactLink] = useState(initial.artifactLink ?? "");
+  const [artifactTitle, setArtifactTitle] = useState(initial.artifactTitle ?? "");
+  const [artifactBody, setArtifactBody] = useState(initial.artifactBody ?? "");
+  const [nextBot, setNextBot] = useState(initial.nextBot ?? "");
+  const [nextStep, setNextStep] = useState(initial.nextStep ?? "");
+
+  function save() {
+    const completedAt =
+      status === "Complete"
+        ? initial.completedAt ?? new Date().toISOString()
+        : initial.completedAt;
+    onSave({
+      ...initial,
+      mode: mode.trim(),
+      bot: bot.trim(),
+      assignment,
+      status,
+      receiptLink: receiptLink.trim() || undefined,
+      artifactLink: artifactLink.trim() || undefined,
+      artifactTitle: artifactTitle.trim() || undefined,
+      artifactBody: artifactBody.trim() || undefined,
+      nextBot: nextBot.trim() || undefined,
+      nextStep: nextStep.trim() || undefined,
+      completedAt,
+    });
+  }
+
+  return (
+    <ModalShell
+      title={isNew ? "New handoff" : `Edit step ${initial.step}`}
+      subtitle="Who's doing what, and what they're handing back."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>
+            cancel
+          </ModalButton>
+          <ModalButton onClick={save}>{isNew ? "add handoff" : "save changes"}</ModalButton>
+        </>
+      }
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <ModalLabel>Step name / mode</ModalLabel>
+          <ModalInput
+            value={mode}
+            autoFocus
+            placeholder="e.g. Memory alignment"
+            onChange={(e) => setMode(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Assigned bot</ModalLabel>
+          <ModalInput value={bot} placeholder="Echo" onChange={(e) => setBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Status</ModalLabel>
+          <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as HandoffStatus)}>
+            {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
+              (s) => (
+                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                  {s}
+                </option>
+              ),
+            )}
+          </ModalSelect>
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Assignment</ModalLabel>
+        <ModalTextarea
+          value={assignment}
+          rows={3}
+          placeholder="What is this bot expected to do?"
+          onChange={(e) => setAssignment(e.target.value)}
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Receipt / report link</ModalLabel>
+          <ModalInput
+            value={receiptLink}
+            placeholder="https://…"
+            onChange={(e) => setReceiptLink(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Artifact link</ModalLabel>
+          <ModalInput
+            value={artifactLink}
+            placeholder="https://…"
+            onChange={(e) => setArtifactLink(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Artifact title</ModalLabel>
+          <ModalInput
+            value={artifactTitle}
+            placeholder="e.g. Master prompt v1"
+            onChange={(e) => setArtifactTitle(e.target.value)}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <ModalLabel>Artifact text</ModalLabel>
+          <ModalTextarea
+            value={artifactBody}
+            rows={5}
+            placeholder="Paste the bot's output here…"
+            onChange={(e) => setArtifactBody(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Next bot</ModalLabel>
+          <ModalInput
+            value={nextBot}
+            placeholder="Tinker"
+            onChange={(e) => setNextBot(e.target.value)}
+          />
+        </div>
+        <div>
+          <ModalLabel>Next step</ModalLabel>
+          <ModalInput
+            value={nextStep}
+            placeholder="Prototype"
+            onChange={(e) => setNextStep(e.target.value)}
+          />
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
