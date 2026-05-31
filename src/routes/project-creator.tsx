@@ -1965,7 +1965,12 @@ function SelectedStepDetail({
   const [tab, setTab] = useState<"output" | "details" | "artifacts" | "activity">(
     "output",
   );
-  const title = stepTitleOnly(handoff.mode, handoff.bot) || "Untitled step";
+  // Reset to Step Result whenever the selected step or project changes.
+  useEffect(() => {
+    setTab("output");
+  }, [handoff.id, project.id]);
+  const { title: parsedTitle, phase } = splitStepTitle(handoff.mode);
+  const title = parsedTitle || "Untitled step";
   const stageColor =
     handoff.status === "Complete"
       ? EMERALD
@@ -1991,6 +1996,7 @@ function SelectedStepDetail({
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span><span className="opacity-60">Owner:</span> {handoff.bot || "—"}</span>
+            {phase && <span><span className="opacity-60">Phase:</span> {phase}</span>}
             <StatusPill status={handoff.status} />
             <span>
               {handoff.completedAt
