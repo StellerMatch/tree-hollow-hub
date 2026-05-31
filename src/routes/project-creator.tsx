@@ -883,20 +883,14 @@ function ProjectCreatorPage() {
       };
       const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
       // Advance the project's current stage/owner/next-action to the next
-      // incomplete handoff in actual order. Use the same definition as
-      // activeHandoff (anything not Complete and not Parked).
-      const nextActive =
-        nextHandoffs.find(
-          (x) => x.status !== "Complete" && x.status !== "Parked",
-        ) ?? null;
+      // incomplete workflow step in displayed stage/template order.
+      const nextActive = activeWorkflowEntry(nextHandoffs)?.handoff ?? null;
       const next: Project = {
         ...p,
         handoffs: nextHandoffs,
         currentMode: nextActive ? nextActive.mode : p.currentMode,
         currentBot: nextActive ? nextActive.bot || p.currentBot : p.currentBot,
-        nextAction: nextActive
-          ? `${nextActive.mode}${nextActive.bot ? ` — ${nextActive.bot}` : ""}`
-          : p.nextAction,
+        nextAction: requiredActionForHandoff(nextActive, p.nextAction),
       };
       return logActivity(next, {
         bot: h.bot,
@@ -1219,7 +1213,8 @@ function StatusPanel({
   const latestActivity = [...project.activity].sort((a, b) =>
     b.at.localeCompare(a.at),
   )[0];
-  const active = activeHandoff(project.handoffs);
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker;
 
   return (
@@ -1248,7 +1243,9 @@ function StatusPanel({
           Current stage
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
-          {active ? `${active.step}. ${active.mode || "untitled"}` : project.currentMode || "—"}
+          {active
+            ? `${activeEntry?.displayStep ?? active.step}. ${active.mode || "untitled"}`
+            : project.currentMode || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
@@ -1610,7 +1607,8 @@ function MetaItem({
 }
 
 function CurrentStageIndicator({ project }: { project: Project }) {
-  const active = activeHandoff(project.handoffs);
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker || active?.status === "Blocked";
   const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
   const nextAction = project.nextAction?.trim();
@@ -1636,7 +1634,7 @@ function CurrentStageIndicator({ project }: { project: Project }) {
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {active.step}. {active.mode || "untitled stage"}
+            {activeEntry?.displayStep ?? active.step}. {active.mode || "untitled stage"}
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
