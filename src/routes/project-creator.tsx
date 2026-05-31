@@ -1666,7 +1666,7 @@ function WorkflowRail({
           No handoffs yet.
         </div>
       ) : (
-        <ol className="relative space-y-1.5">
+        <ol className="relative space-y-0.5">
           {project.handoffs.map((h, idx) => {
             const isActive = h.id === activeId;
             const isSelected = h.id === selectedHandoffId;
@@ -1690,12 +1690,13 @@ function WorkflowRail({
                     : isActive
                       ? "●"
                       : String(idx + 1);
+            const { title, phase } = splitStepTitle(h.mode);
             return (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => onSelectHandoff(h.id)}
-                  className="flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
+                  className="flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
                   style={{
                     borderColor: isSelected ? AMBER : AMBER_SOFT,
                     background: isSelected
@@ -1704,34 +1705,59 @@ function WorkflowRail({
                         ? "oklch(0.78 0.18 50 / 0.04)"
                         : "transparent",
                   }}
-                  title={`${h.mode} · ${h.status}`}
+                  title={`${idx + 1}. ${h.mode} · ${h.status}`}
                 >
                   <span
-                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                    className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/70"
+                    style={{ minWidth: "1.25rem", textAlign: "right" }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
                     style={{ borderColor: stageColor, color: stageColor }}
                   >
                     {dotChar}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] font-medium leading-snug">
-                      {stepTitleOnly(h.mode, h.bot) || <span className="italic opacity-60">untitled</span>}
+                    <span
+                      className="block truncate text-[12px] leading-tight"
+                      style={{ fontWeight: isActive || isSelected ? 600 : 400 }}
+                    >
+                      {title || <span className="italic opacity-60">untitled</span>}
                     </span>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-[10px] leading-tight text-muted-foreground">
                       <span className="truncate">
-                        <span className="opacity-60">Owner:</span> {h.bot || "—"}
+                        {h.bot || "—"}
+                        {phase && <span className="opacity-60"> · {phase}</span>}
                       </span>
-                      <span className="opacity-50">·</span>
-                      <span style={{ color: stageColor }}>{h.status}</span>
-                      {isActive && (
-                        <span
-                          className="ml-auto rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
-                          style={{ borderColor: AMBER, color: AMBER }}
-                        >
-                          now
-                        </span>
-                      )}
                     </span>
                   </span>
+                  <span
+                    className="shrink-0 text-[10px]"
+                    style={{ color: stageColor }}
+                    title={h.status}
+                  >
+                    {h.status === "Complete"
+                      ? "✓"
+                      : h.status === "Blocked"
+                        ? "!"
+                        : h.status === "Working"
+                          ? "●"
+                          : h.status === "Sent" || h.status === "Needs Review"
+                            ? "○"
+                            : h.status === "Parked"
+                              ? "·"
+                              : ""}
+                  </span>
+                  {isActive && (
+                    <span
+                      className="shrink-0 rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
+                      style={{ borderColor: AMBER, color: AMBER }}
+                    >
+                      now
+                    </span>
+                  )}
                 </button>
               </li>
             );
