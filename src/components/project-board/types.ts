@@ -20,12 +20,37 @@ export type Handoff = {
 export type Artifact = {
   id: string;
   title: string;
-  kind: string; // e.g. "master prompt", "prototype link"
+  kind: string; // legacy free-text label (kept for compatibility)
+  type?: ArtifactType;
+  source?: ArtifactSource;
   body?: string;
   link?: string;
   bot: string;
   createdAt: string;
+  updatedAt?: string;
 };
+
+export const ARTIFACT_TYPES = [
+  "prompt",
+  "report",
+  "prototype",
+  "design note",
+  "receipt",
+  "link",
+  "final package",
+  "other",
+] as const;
+export type ArtifactType = (typeof ARTIFACT_TYPES)[number];
+
+export const ARTIFACT_SOURCES = [
+  "Mode 0",
+  "Mode 1",
+  "Mode 2",
+  "Handoff",
+  "Activity",
+  "Manual",
+] as const;
+export type ArtifactSource = (typeof ARTIFACT_SOURCES)[number];
 
 export type ActivityEntry = {
   id: string;
