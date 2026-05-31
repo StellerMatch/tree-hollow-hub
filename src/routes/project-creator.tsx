@@ -56,12 +56,16 @@ function saveProjects(projects: Project[]) {
 function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    // Deterministic UTC format to avoid SSR/client hydration mismatches.
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    const m = months[d.getUTCMonth()];
+    const day = d.getUTCDate();
+    const hh = String(d.getUTCHours()).padStart(2, "0");
+    const mm = String(d.getUTCMinutes()).padStart(2, "0");
+    return `${m} ${day}, ${hh}:${mm} UTC`;
   } catch {
     return iso;
   }
