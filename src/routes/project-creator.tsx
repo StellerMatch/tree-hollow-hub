@@ -2515,8 +2515,14 @@ function ProjectMain({
             const split = splitStepTitle(project.currentMode);
             return (
               <>
-                <MetaItem label="Current Step" value={split.title || project.currentMode} />
-                {split.phase && <MetaItem label="Phase" value={split.phase} />}
+                <MetaItem
+                  label="Project Mode"
+                  value={
+                    split.phase
+                      ? `${split.title || project.currentMode} · ${split.phase}`
+                      : split.title || project.currentMode
+                  }
+                />
                 <MetaItem label="Owner" value={displayBot} />
               </>
             );
