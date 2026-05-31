@@ -1417,6 +1417,11 @@ function ProjectMain({
   onEditArtifact: (id: string) => void;
   onRemoveArtifact: (id: string) => void;
 }) {
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
+  const displayMode = active?.mode || project.currentMode;
+  const displayBot = active?.bot || project.currentBot;
+
   return (
     <div className="space-y-4 min-w-0">
       {/* header */}
@@ -1460,8 +1465,8 @@ function ProjectMain({
                 : project.projectType || "—"
             }
           />
-          <MetaItem label="Mode" value={project.currentMode} />
-          <MetaItem label="Owner" value={project.currentBot} />
+          <MetaItem label="Mode" value={displayMode} />
+          <MetaItem label="Owner" value={displayBot} />
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
       </div>
