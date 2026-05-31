@@ -2178,8 +2178,46 @@ function StepResultPanel({
     );
   }
 
+  if (isProjectType) {
+    const typeLabel =
+      project.projectType === "Other / Custom"
+        ? project.projectTypeCustom?.trim() || "Other / Custom"
+        : project.projectType || "Unclassified";
+    return (
+      <div className="space-y-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Selected project type — confirmed by Chief
+          </div>
+          <div
+            className="mt-1 inline-flex items-center rounded-md border px-2 py-1 font-display text-sm font-semibold"
+            style={{ borderColor: AMBER_LINE, color: AMBER, background: "oklch(0.78 0.18 50 / 0.06)" }}
+          >
+            {typeLabel}
+          </div>
+        </div>
+        <Field label="Reasoning / classification notes">
+          <textarea
+            value={handoff.artifactBody ?? ""}
+            onChange={(e) =>
+              onChange((p) => ({
+                ...p,
+                handoffs: p.handoffs.map((x) =>
+                  x.id === handoff.id ? { ...x, artifactBody: e.target.value } : x,
+                ),
+              }))
+            }
+            rows={4}
+            placeholder="Why this project type? Flag any ambiguity or likely re-classification."
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+      </div>
+    );
+  }
+
   if (isMode1) {
-    // placeholder anchor (no change)
     return (
       <div className="space-y-3">
         <Field label="Structured shape notes">
