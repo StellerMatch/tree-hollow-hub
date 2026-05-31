@@ -1827,12 +1827,14 @@ function ModalShell({
   onClose,
   children,
   footer,
+  width = "md",
 }: {
   title: string;
   subtitle?: string;
   onClose: () => void;
   children: React.ReactNode;
   footer: React.ReactNode;
+  width?: "md" | "lg";
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -1848,7 +1850,10 @@ function ModalShell({
         className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
       />
       <div
-        className="relative my-auto w-full max-w-xl rounded-2xl border bark-texture p-5 shadow-xl animate-fade-up"
+        className={
+          "relative my-auto w-full rounded-2xl border bark-texture p-5 md:p-6 shadow-xl animate-fade-up " +
+          (width === "lg" ? "max-w-2xl" : "max-w-xl")
+        }
         style={{ borderColor: AMBER, animationDuration: "0.2s" }}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -1869,8 +1874,8 @@ function ModalShell({
             ✕
           </button>
         </div>
-        <div className="space-y-3">{children}</div>
-        <div className="mt-5 flex justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
+        <div className="space-y-4">{children}</div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
           {footer}
         </div>
       </div>
