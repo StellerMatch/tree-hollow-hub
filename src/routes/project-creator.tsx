@@ -208,6 +208,33 @@ function createRequiredStageHandoff(
   };
 }
 
+function officialRecordHandoffCount(handoffs: Handoff[]): number {
+  return bucketHandoffs(handoffs).find(
+    (bucket) => bucket.stage.id === "official-record",
+  )?.items.length ?? 0;
+}
+
+function ensureOfficialRecordHandoff(project: Project): { project: Project; changed: boolean } {
+  if (officialRecordHandoffCount(project.handoffs) > 0) {
+    return { project, changed: false };
+  }
+  return {
+    project: {
+      ...project,
+      handoffs: [
+        ...project.handoffs,
+        createRequiredStageHandoff(
+          project.id,
+          "official-record",
+          project.handoffs.length + 1,
+          "official-record-repair",
+        ),
+      ],
+    },
+    changed: true,
+  };
+}
+
 // Version-independent safety net: every project must have at least one
 // handoff bucketing into each pipeline stage. Runs on every load regardless
 // of SCHEMA_VERSION so projects saved before a stage was required still get
@@ -217,15 +244,20 @@ function ensureRequiredStages(
 ): { projects: Project[]; changed: boolean } {
   let changed = false;
   const next = projects.map((p) => {
+    const officialRecordRepair = ensureOfficialRecordHandoff(p);
+    const repairedProject = officialRecordRepair.project;
+    if (officialRecordRepair.changed) changed = true;
     const present = new Set(p.handoffs.map((h) => stageForHandoff(h).id));
-    const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
-    if (missing.length === 0) return p;
-    const baseStep = p.handoffs.length;
+    const missing = PIPELINE_STAGES.filter(
+      (s) => s.id !== "official-record" && !present.has(s.id),
+    );
+    if (missing.length === 0) return repairedProject;
+    const baseStep = repairedProject.handoffs.length;
     const appended: Handoff[] = missing.map((stage, idx) =>
-      createRequiredStageHandoff(p.id, stage.id, baseStep + idx + 1, "ensure"),
+      createRequiredStageHandoff(repairedProject.id, stage.id, baseStep + idx + 1, "ensure"),
     );
     changed = true;
-    return { ...p, handoffs: [...p.handoffs, ...appended] };
+    return { ...repairedProject, handoffs: [...repairedProject.handoffs, ...appended] };
   });
   return { projects: next, changed };
 }
