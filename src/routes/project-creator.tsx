@@ -2366,8 +2366,10 @@ function ProjectMain({
 
       <CreatorGuidance project={project} onChange={onChange} />
 
-      {selectedHandoff && (
+      {selectedHandoff ? (
         <SelectedStepDetail
+          project={project}
+          onChange={onChange}
           handoff={selectedHandoff}
           globalIndex={selectedGlobalIndex}
           total={project.handoffs.length}
@@ -2377,124 +2379,18 @@ function ProjectMain({
           onRemove={() => onRemoveHandoff(selectedHandoff.id)}
           onChangeStatus={(s) => onChangeHandoffStatus(selectedHandoff.id, s)}
           onPreview={onPreviewArtifact}
+          onAddArtifact={onAddArtifact}
+          onEditArtifact={onEditArtifact}
+          onRemoveArtifact={onRemoveArtifact}
         />
-      )}
-
-      {/* Mode 0 */}
-      <Section
-        title="Mode 0 · Clarity"
-        subtitle="Boss writes what they want in plain language."
-        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
-      >
-        <textarea
-          value={project.clarity}
-          onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
-          rows={6}
-          placeholder="What are we building? Who is it for? What does done look like?"
-          className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+      ) : (
+        <div
+          className="rounded-2xl border border-dashed bark-texture p-6 text-center text-sm text-muted-foreground"
           style={{ borderColor: AMBER_SOFT }}
-        />
-        <SectionMeta updatedAt={project.updatedAt} who="Boss" />
-      </Section>
-
-      {/* Mode 1 */}
-      <Section
-        title="Mode 1 · Shape"
-        subtitle="First refinement step."
-        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
-      >
-        <Field label="Structured notes">
-          <textarea
-            value={project.shapeNotes}
-            onChange={(e) => onChange((p) => ({ ...p, shapeNotes: e.target.value }))}
-            rows={4}
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-        <Field label="Bot output">
-          <textarea
-            value={project.shapeBotOutput}
-            onChange={(e) => onChange((p) => ({ ...p, shapeBotOutput: e.target.value }))}
-            rows={3}
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-        <Field label="Artifact link">
-          <input
-            value={project.shapeArtifact ?? ""}
-            placeholder="https://…"
-            onChange={(e) =>
-              onChange((p) => ({ ...p, shapeArtifact: e.target.value || undefined }))
-            }
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-        <SectionMeta updatedAt={project.updatedAt} />
-      </Section>
-
-      {/* Mode 2 */}
-      <Section
-        title="Mode 2 · Plan"
-        subtitle="Deeper project planning."
-        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
-      >
-        <Field label="Planning notes">
-          <textarea
-            value={project.planNotes}
-            onChange={(e) => onChange((p) => ({ ...p, planNotes: e.target.value }))}
-            rows={4}
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-        <Field label="Bot output">
-          <textarea
-            value={project.planBotOutput}
-            onChange={(e) => onChange((p) => ({ ...p, planBotOutput: e.target.value }))}
-            rows={3}
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-        <Field label="Artifact link">
-          <input
-            value={project.planArtifact ?? ""}
-            placeholder="https://…"
-            onChange={(e) =>
-              onChange((p) => ({ ...p, planArtifact: e.target.value || undefined }))
-            }
-            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-      </Section>
-
-      {/* Handoffs */}
-      <HandoffChain
-        project={project}
-        onChange={onChange}
-        onPreviewArtifact={onPreviewArtifact}
-        onAddHandoff={onAddHandoff}
-        onEditHandoff={onEditHandoff}
-        onMoveHandoff={onMoveHandoff}
-        onRemoveHandoff={onRemoveHandoff}
-        onChangeHandoffStatus={onChangeHandoffStatus}
-      />
-
-      {/* Artifacts */}
-      <ArtifactGrid
-        project={project}
-        onPreview={onPreviewArtifact}
-        onAdd={onAddArtifact}
-        onEdit={onEditArtifact}
-        onRemove={onRemoveArtifact}
-      />
-
-      {/* Activity */}
-      <ActivityLog project={project} />
+        >
+          Select a step in the workflow rail to see its summary, output, artifacts, and activity.
+        </div>
+      )}
     </div>
   );
 }
