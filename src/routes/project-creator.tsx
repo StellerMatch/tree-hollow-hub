@@ -1666,7 +1666,7 @@ function StatusPanel({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
