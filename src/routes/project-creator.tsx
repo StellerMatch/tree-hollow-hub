@@ -1686,6 +1686,14 @@ type WorkflowPhase = {
   id: string;
   label: string;
   blurb: string;
+  /** What this phase is for — used in the phase overview. */
+  purpose: string;
+  /** What needs to be in place before this phase starts. */
+  needsBefore: string;
+  /** What this phase produces / hands off. */
+  produces: string;
+  /** Owning team — bot names, comma separated. */
+  ownerTeam: string;
   match: (h: Handoff) => boolean;
 };
 
@@ -1695,6 +1703,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Clarity",
     blurb:
       "Boss captures the raw idea, confirms project type, and shapes the project brief.",
+    purpose:
+      "Turn a raw idea into a project Chief can actually open — clear ask, audience, done-state.",
+    needsBefore: "A creator with an idea worth opening.",
+    produces: "Project Type, Mode 1 shape, and Mode 2 project brief.",
+    ownerTeam: "Boss, Clarity",
     match: (h) =>
       /(mode 0|raw idea|project type|mode 1|\bshape\b|mode 2|project brief)/i.test(
         h.mode,
@@ -1705,6 +1718,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Chief Review",
     blurb:
       "Chief reviews the brief and prepares the project for the lantern R&D team.",
+    purpose:
+      "Chief sanity-checks the brief, names open questions, and frames what R&D needs to find.",
+    needsBefore: "A signed Mode 2 project brief from Clarity.",
+    produces: "Chief Intake Summary — known, missing, and what happens next.",
+    ownerTeam: "Chief",
     match: (h) => /chief intake|chief review/i.test(h.mode),
   },
   {
@@ -1712,6 +1730,12 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Lantern R&D",
     blurb:
       "Compass leads the lantern team through past, present, future, risks, synthesis, and the highlight brief.",
+    purpose:
+      "Research the landscape across past, present, and future so Rook can build a real plan.",
+    needsBefore: "Chief Intake Summary and a defined research question.",
+    produces:
+      "Lantern passes + Research Scope / Synthesis + Boss-facing R&D Highlight Brief.",
+    ownerTeam: "Compass, Vault, Bloom, Luma",
     match: (h) =>
       /(lantern|r&d|past landscape|present landscape|future hooks|risks and unknowns|research scope|highlight brief|\btrunk\b)/i.test(
         h.mode,
@@ -1721,18 +1745,35 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     id: "knowledge-packet",
     label: "Knowledge Packet",
     blurb: "Rook turns clarity and research into a business-plan / knowledge packet.",
-    match: (h) => /knowledge packet/i.test(h.mode) || /^rook$/i.test(h.bot ?? ""),
+    purpose:
+      "Synthesize clarity + R&D into a working business / knowledge packet Tinker can build from.",
+    needsBefore: "R&D Highlight Brief from Compass.",
+    produces: "Knowledge packet + any master prompts or generation specs.",
+    ownerTeam: "Rook, Momma Bear, Squirrels",
+    match: (h) =>
+      /(knowledge packet|master prompt|business plan)/i.test(h.mode) ||
+      /^(rook|momma bear|squirrels)$/i.test(h.bot ?? ""),
   },
   {
     id: "prototype",
     label: "Prototype",
     blurb: "Tinker builds and tests a working prototype.",
+    purpose:
+      "Build something real you can click, test, or hold — and log what works vs. what blocks.",
+    needsBefore: "Knowledge packet or master prompt ready to build from.",
+    produces: "Prototype URL / file + test notes + blockers.",
+    ownerTeam: "Tinker",
     match: (h) => /prototype/i.test(h.mode) || /^tinker$/i.test(h.bot ?? ""),
   },
   {
     id: "design-polish",
     label: "Design Polish",
     blurb: "Luma reviews visual trust, readability, accessibility, and packaging.",
+    purpose:
+      "Make sure the prototype reads as trustworthy, accessible, and on-brand before packaging.",
+    needsBefore: "A working prototype from Tinker.",
+    produces: "Design review notes + approval to package, or rework requests.",
+    ownerTeam: "Luma",
     match: (h) =>
       /(design polish|design review)/i.test(h.mode) || /^luma$/i.test(h.bot ?? ""),
   },
@@ -1740,6 +1781,11 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     id: "final-package",
     label: "Final Package",
     blurb: "Weaver bundles the final handoff package.",
+    purpose:
+      "Bundle the prototype, assets, and handoff notes into the final deliverable.",
+    needsBefore: "Design Polish sign-off from Luma.",
+    produces: "Final package: assets, manifest, readiness notes.",
+    ownerTeam: "Weaver",
     match: (h) => /final package/i.test(h.mode) || /^weaver$/i.test(h.bot ?? ""),
   },
   {
@@ -1747,16 +1793,25 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     label: "Official Record & Memory",
     blurb:
       "Ledger files the official record. Echo aligns what should be remembered.",
+    purpose:
+      "Keep the official record up to date and align what should be remembered (or not) going forward.",
+    needsBefore: "Final package delivered, or a milestone worth recording.",
+    produces: "Filed record entry + memory alignment notes.",
+    ownerTeam: "Ledger, Echo",
     match: (h) =>
-      /(official record|memory alignment|\bmemory\b)/i.test(h.mode) ||
+      /(official record|\brecord\b|memory alignment|\bmemory\b)/i.test(h.mode) ||
       /^(ledger|echo)$/i.test(h.bot ?? ""),
   },
 ];
 
 const OTHER_PHASE: WorkflowPhase = {
   id: "other",
-  label: "Other Steps",
-  blurb: "Custom or unclassified handoffs.",
+  label: "Custom Steps",
+  blurb: "Custom or legacy steps that don't belong to a standard phase.",
+  purpose: "Hold legacy or custom handoffs that aren't part of the standard 8-phase journey.",
+  needsBefore: "—",
+  produces: "—",
+  ownerTeam: "Custom",
   match: () => true,
 };
 
@@ -1810,6 +1865,7 @@ function WorkflowRail({
   const activePhaseId =
     phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === activeId))?.phase.id ??
     null;
+  const activePhaseIdx = phaseBuckets.findIndex((b) => b.phase.id === activePhaseId);
   const selectedHandoffPhaseId =
     phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === selectedHandoffId))
       ?.phase.id ?? null;
@@ -1858,6 +1914,7 @@ function WorkflowRail({
         <ol className="relative space-y-2">
           {phaseBuckets.map((bucket, phaseIdx) => {
             const phaseNum = phaseIdx + 1;
+            const isCustom = bucket.phase.id === OTHER_PHASE.id;
             const isPhaseActive = bucket.phase.id === activePhaseId;
             const isPhaseSelected = bucket.phase.id === selectedPhaseId;
             const expanded = isExpanded(bucket.phase.id);
@@ -1866,20 +1923,31 @@ function WorkflowRail({
             const blocked = bucket.items.some((it) => it.handoff.status === "Blocked");
             const allComplete = total > 0 && complete === total;
             const activeItem = bucket.items.find((it) => it.handoff.id === activeId);
+            // A later phase that's already fully complete while an earlier
+            // phase is still active — these are historical records, not the
+            // final delivery yet. Render them in a quieter "on file" style
+            // so the creator doesn't read the project as already done.
+            const outOfOrderComplete =
+              allComplete &&
+              !isPhaseActive &&
+              activePhaseIdx !== -1 &&
+              phaseIdx > activePhaseIdx;
             const NEUTRAL = "oklch(0.6 0.04 75)";
             const BLOCK = "oklch(0.65 0.22 25)";
-            const phaseColor = blocked
+            const phaseColor = isCustom
+              ? NEUTRAL
+              : blocked
               ? BLOCK
               : isPhaseActive
                 ? AMBER
-                : allComplete
+                : allComplete && !outOfOrderComplete
                   ? EMERALD
                   : NEUTRAL;
             const headerBg = isPhaseSelected
               ? `color-mix(in oklab, ${phaseColor} 16%, oklch(0.28 0.035 70))`
               : isPhaseActive
                 ? `color-mix(in oklab, ${AMBER} 12%, oklch(0.26 0.035 65))`
-                : allComplete
+                : allComplete && !outOfOrderComplete
                   ? `color-mix(in oklab, ${EMERALD} 6%, oklch(0.26 0.035 65))`
                   : "oklch(0.28 0.035 70 / 0.55)";
             const headerShadow = isPhaseActive
@@ -1889,9 +1957,13 @@ function WorkflowRail({
                 : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
             const summary = activeItem
               ? `Current: ${splitStepTitle(activeItem.handoff.mode).title || "—"}`
-              : allComplete
-                ? `${total} of ${total} complete`
-                : `${complete} of ${total} complete`;
+              : outOfOrderComplete
+                ? `${total} on file (filed early)`
+                : allComplete
+                  ? `${total} of ${total} complete`
+                  : isCustom
+                    ? `${total} legacy step${total === 1 ? "" : "s"}`
+                    : `${complete} of ${total} complete`;
             return (
               <li key={bucket.phase.id}>
                 <div
@@ -1904,6 +1976,7 @@ function WorkflowRail({
                         : "oklch(0.42 0.04 70 / 0.55)",
                     background: headerBg,
                     boxShadow: headerShadow,
+                    opacity: isCustom ? 0.85 : 1,
                   }}
                 >
                   {/* left accent strip — timeline cue */}
@@ -1941,7 +2014,15 @@ function WorkflowRail({
                           boxShadow: isPhaseActive ? `0 0 6px ${AMBER}88` : undefined,
                         }}
                       >
-                        {allComplete ? "✓" : blocked ? "!" : isPhaseActive ? "●" : "○"}
+                        {isCustom
+                          ? "·"
+                          : allComplete
+                            ? "✓"
+                            : blocked
+                              ? "!"
+                              : isPhaseActive
+                                ? "●"
+                                : "○"}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span
@@ -1988,7 +2069,7 @@ function WorkflowRail({
                   </div>
                   {expanded && total > 0 && (
                     <ol className="space-y-1 border-t px-2 py-1.5" style={{ borderColor: AMBER_SOFT }}>
-                      {bucket.items.map(({ handoff: h, globalIndex }) => {
+                      {bucket.items.map(({ handoff: h, globalIndex }, itemIdx) => {
                         const isActive = h.id === activeId;
                         const isSelected = h.id === selectedHandoffId;
                         const stepColor =
@@ -2012,6 +2093,7 @@ function WorkflowRail({
                                   ? "●"
                                   : "○";
                         const { title } = splitStepTitle(h.mode);
+                        const nestedNum = `${phaseNum}.${itemIdx + 1}`;
                         return (
                           <li key={h.id}>
                             <button
@@ -2028,13 +2110,13 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${globalIndex + 1}. ${h.mode} · ${h.status}`}
+                              title={`${nestedNum} ${h.mode} · ${h.status} (overall step ${globalIndex + 1})`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
-                                style={{ minWidth: "1rem", textAlign: "right" }}
+                                style={{ minWidth: "1.6rem", textAlign: "right" }}
                               >
-                                {globalIndex + 1}
+                                {nestedNum}
                               </span>
                               <span
                                 className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold"
@@ -2099,11 +2181,19 @@ function WorkflowRail({
 
 // ---------- Phase overview (shown when a top-level phase is selected) ----------
 function PhaseOverview({
+  project,
   bucket,
+  phaseNumber,
+  isActivePhase,
+  isHistoricalComplete,
   activeId,
   onSelectHandoff,
 }: {
+  project: Project;
   bucket: PhaseBucket;
+  phaseNumber: number;
+  isActivePhase: boolean;
+  isHistoricalComplete: boolean;
   activeId: string | null;
   onSelectHandoff: (id: string) => void;
 }) {
@@ -2119,15 +2209,44 @@ function PhaseOverview({
       style={{ borderColor: AMBER_SOFT }}
     >
       <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-        Phase overview
+        Phase {phaseNumber} overview
       </div>
-      <h3
-        className="mt-1 font-display text-xl font-semibold leading-tight"
-        style={{ color: AMBER }}
-      >
-        {bucket.phase.label}
-      </h3>
+      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+        <h3
+          className="font-display text-xl font-semibold leading-tight"
+          style={{ color: AMBER }}
+        >
+          {bucket.phase.label}
+        </h3>
+        {isActivePhase && (
+          <span
+            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
+            style={{ borderColor: AMBER, color: "oklch(0.2 0.04 60)", background: AMBER }}
+          >
+            now
+          </span>
+        )}
+        {isHistoricalComplete && (
+          <span
+            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+            title="These steps were completed earlier — not the project's final delivery."
+          >
+            on file
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
+
+      {/* Phase facts */}
+      <div className="mt-3 grid gap-2 rounded-lg border p-3 text-[11.5px] sm:grid-cols-2" style={{ borderColor: AMBER_SOFT }}>
+        <PhaseFact label="Purpose" value={bucket.phase.purpose} />
+        <PhaseFact label="Owner team" value={bucket.phase.ownerTeam} />
+        <PhaseFact label="Needs before" value={bucket.phase.needsBefore} />
+        <PhaseFact label="Produces" value={bucket.phase.produces} />
+      </div>
+
+      {/* Live status */}
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
         <span>
           <span className="opacity-60">Progress: </span>
@@ -2143,12 +2262,27 @@ function PhaseOverview({
             </span>
           </span>
         )}
-        {allComplete && !activeItem && (
+        {isActivePhase && project.nextAction && (
+          <span>
+            <span className="opacity-60">Next action: </span>
+            <span className="text-foreground">{project.nextAction}</span>
+          </span>
+        )}
+        {isHistoricalComplete && (
+          <span className="text-muted-foreground">
+            Completed earlier — not the project's final delivery.
+          </span>
+        )}
+        {allComplete && !activeItem && !isHistoricalComplete && (
           <span style={{ color: EMERALD }}>All steps complete in this phase.</span>
         )}
       </div>
+
+      <div className="mt-4 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+        Nested steps
+      </div>
       <ol className="mt-4 space-y-1.5">
-        {bucket.items.map(({ handoff: h, globalIndex }) => {
+        {bucket.items.map(({ handoff: h, globalIndex }, itemIdx) => {
           const isActive = h.id === activeId;
           const stepColor =
             h.status === "Complete"
@@ -2161,6 +2295,7 @@ function PhaseOverview({
                     ? AMBER
                     : NEUTRAL;
           const { title } = splitStepTitle(h.mode);
+          const nestedNum = `${phaseNumber}.${itemIdx + 1}`;
           return (
             <li key={h.id}>
               <button
@@ -2173,12 +2308,13 @@ function PhaseOverview({
                     ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
                     : "oklch(0.28 0.035 70 / 0.4)",
                 }}
+                title={`overall step ${globalIndex + 1}`}
               >
                 <span
                   className="shrink-0 text-[11px] font-mono tabular-nums text-muted-foreground"
-                  style={{ minWidth: "1.5rem", textAlign: "right" }}
+                  style={{ minWidth: "2rem", textAlign: "right" }}
                 >
-                  {globalIndex + 1}
+                  {nestedNum}
                 </span>
                 <span
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
@@ -2213,6 +2349,17 @@ function PhaseOverview({
           </li>
         )}
       </ol>
+    </div>
+  );
+}
+
+function PhaseFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+        {label}
+      </div>
+      <div className="text-foreground/90">{value || "—"}</div>
     </div>
   );
 }
@@ -2837,9 +2984,23 @@ function ProjectMain({
   const selectedGlobalIndex = selectedHandoff
     ? project.handoffs.findIndex((h) => h.id === selectedHandoff.id)
     : -1;
-  const selectedPhase = selectedPhaseId
-    ? bucketHandoffsByPhase(project.handoffs).find((b) => b.phase.id === selectedPhaseId) ?? null
-    : null;
+  const phaseBucketsForDetail = bucketHandoffsByPhase(project.handoffs);
+  const selectedPhaseIdx = selectedPhaseId
+    ? phaseBucketsForDetail.findIndex((b) => b.phase.id === selectedPhaseId)
+    : -1;
+  const selectedPhase = selectedPhaseIdx >= 0 ? phaseBucketsForDetail[selectedPhaseIdx] : null;
+  const activePhaseIdxForDetail = active
+    ? phaseBucketsForDetail.findIndex((b) => b.items.some((it) => it.handoff.id === active.id))
+    : -1;
+  const selectedPhaseIsActive =
+    !!selectedPhase && selectedPhaseIdx === activePhaseIdxForDetail;
+  const selectedPhaseHistoricalComplete =
+    !!selectedPhase &&
+    !selectedPhaseIsActive &&
+    activePhaseIdxForDetail !== -1 &&
+    selectedPhaseIdx > activePhaseIdxForDetail &&
+    selectedPhase.items.length > 0 &&
+    selectedPhase.items.every((it) => it.handoff.status === "Complete");
 
   return (
     <div className="space-y-4 min-w-0">
@@ -2925,7 +3086,11 @@ function ProjectMain({
         />
       ) : selectedPhase ? (
         <PhaseOverview
+          project={project}
           bucket={selectedPhase}
+          phaseNumber={selectedPhaseIdx + 1}
+          isActivePhase={selectedPhaseIsActive}
+          isHistoricalComplete={selectedPhaseHistoricalComplete}
           activeId={active?.id ?? null}
           onSelectHandoff={(id: string) => onSelectHandoff(id)}
         />
