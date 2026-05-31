@@ -2730,7 +2730,7 @@ function HandoffEditorModal({
     const completedAt =
       status === "Complete"
         ? initial.completedAt ?? new Date().toISOString()
-        : initial.completedAt;
+        : undefined;
     onSave({
       ...initial,
       mode: mode.trim(),
