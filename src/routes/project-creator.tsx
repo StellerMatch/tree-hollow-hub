@@ -31,6 +31,7 @@ import {
   stageForHandoff,
   STAGE_NESTED_STEPS,
   handoffMatchesNestedStep,
+  NESTED_STEP_RENAMES,
   type StageBucket,
 } from "@/components/project-board/stages";
 
@@ -249,8 +250,19 @@ function ensureOfficialRecordHandoff(project: Project): { project: Project; chan
  * `mode` text.
  */
 function ensureNestedSteps(project: Project): { project: Project; changed: boolean } {
-  let handoffs = project.handoffs;
   let changed = false;
+  // First, migrate any old nested-step names to their new names so the
+  // existing handoff (with all user edits) becomes the canonical step
+  // instead of being left as a legacy duplicate.
+  let handoffs = project.handoffs.map((h) => {
+    const key = (h.mode ?? "").trim().toLowerCase();
+    const renamed = NESTED_STEP_RENAMES[key];
+    if (renamed && renamed !== h.mode) {
+      changed = true;
+      return { ...h, mode: renamed };
+    }
+    return h;
+  });
   for (const [stageId, templates] of Object.entries(STAGE_NESTED_STEPS)) {
     const stage = PIPELINE_STAGES.find((s) => s.id === stageId);
     if (!stage) continue;
