@@ -1320,6 +1320,19 @@ function HandoffCard({
             </p>
           )}
 
+          {handoff.authorityNotes && (
+            <div
+              className="mt-2 rounded-md border px-2 py-1 text-[11px] italic"
+              style={{
+                borderColor: AMBER_SOFT,
+                background: "oklch(0.78 0.18 50 / 0.05)",
+                color: "oklch(0.85 0.05 80)",
+              }}
+            >
+              authority: {handoff.authorityNotes}
+            </div>
+          )}
+
           {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle) && (
             <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
               {handoff.receiptLink && (
