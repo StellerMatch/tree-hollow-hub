@@ -336,12 +336,30 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
         assignment: tpl.assignment,
         status: "Not Started",
         authorityNotes: tpl.authorityNotes,
+        nextBot: tpl.nextBot,
+        nextStep: tpl.nextStep,
       });
     });
     if (toAppend.length > 0) {
       handoffs = [...handoffs, ...toAppend];
       changed = true;
     }
+    // Backfill default next-step chain hints onto existing handoffs that
+    // match a template but have no nextBot/nextStep saved yet. Never
+    // overwrite user-edited values.
+    handoffs = handoffs.map((h) => {
+      const tpl = templates.find((t) => handoffMatchesNestedStep(h, t));
+      if (!tpl) return h;
+      const wantNextBot = tpl.nextBot && !h.nextBot;
+      const wantNextStep = tpl.nextStep && !h.nextStep;
+      if (!wantNextBot && !wantNextStep) return h;
+      changed = true;
+      return {
+        ...h,
+        nextBot: wantNextBot ? tpl.nextBot : h.nextBot,
+        nextStep: wantNextStep ? tpl.nextStep : h.nextStep,
+      };
+    });
   }
   // Reorder handoffs within each templated stage to match the template
   // order. Templated steps come first in template order; any unmatched
