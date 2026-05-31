@@ -3250,6 +3250,7 @@ function StepResultPanel({
   const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   if (isMode0) {
+    const rawIdeaVal = project.clarity || (handoff.stepOutput?.rawIdea ?? "");
     return (
       <div className="space-y-3">
         <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
@@ -3269,7 +3270,7 @@ function StepResultPanel({
           }
         >
           <textarea
-            value={project.clarity}
+            value={rawIdeaVal}
             onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
             rows={6}
             placeholder="What are we building? Who is it for? What does done look like?"
@@ -3353,6 +3354,15 @@ function StepResultPanel({
   }
 
   if (isMode1) {
+    // When this step is Complete, the captured snapshot in handoff.stepOutput
+    // is the receipt of record — fall back to it so legacy / cross-edited
+    // project-level fields can't make the receipt look empty.
+    const snapDirection = handoff.stepOutput?.shapedDirection ?? "";
+    const snapDecisions = handoff.stepOutput?.keyDecisions ?? "";
+    const snapArtifact = handoff.stepOutput?.shapeArtifactLink ?? "";
+    const directionVal = project.shapeNotes || snapDirection;
+    const decisionsVal = project.shapeBotOutput || snapDecisions;
+    const artifactVal = project.shapeArtifact ?? snapArtifact ?? "";
     return (
       <div className="space-y-3">
         <Field
@@ -3369,7 +3379,7 @@ function StepResultPanel({
           }
         >
           <textarea
-            value={project.shapeNotes}
+            value={directionVal}
             onChange={(e) => onChange((p) => ({ ...p, shapeNotes: e.target.value }))}
             rows={5}
             placeholder="Clear one-paragraph direction: audience, goal, rough boundaries."
@@ -3379,7 +3389,7 @@ function StepResultPanel({
         </Field>
         <Field label="Key decisions made while shaping">
           <textarea
-            value={project.shapeBotOutput}
+            value={decisionsVal}
             onChange={(e) => onChange((p) => ({ ...p, shapeBotOutput: e.target.value }))}
             rows={4}
             placeholder="One decision per line — what was chosen and why."
@@ -3407,7 +3417,7 @@ function StepResultPanel({
         />
         <Field label="Shape artifact link">
           <input
-            value={project.shapeArtifact ?? ""}
+            value={artifactVal}
             placeholder="https://…"
             onChange={(e) =>
               onChange((p) => ({ ...p, shapeArtifact: e.target.value || undefined }))
@@ -3421,6 +3431,12 @@ function StepResultPanel({
   }
 
   if (isMode2) {
+    const snapBrief = handoff.stepOutput?.projectBrief ?? "";
+    const snapScope = handoff.stepOutput?.scope ?? "";
+    const snapArtifact = handoff.stepOutput?.briefArtifactLink ?? "";
+    const briefVal = project.planNotes || snapBrief;
+    const scopeVal = project.planBotOutput || snapScope;
+    const artifactVal = project.planArtifact ?? snapArtifact ?? "";
     return (
       <div className="space-y-3">
         <Field
@@ -3437,7 +3453,7 @@ function StepResultPanel({
           }
         >
           <textarea
-            value={project.planNotes}
+            value={briefVal}
             onChange={(e) => onChange((p) => ({ ...p, planNotes: e.target.value }))}
             rows={5}
             placeholder="The brief Chief can act on — what is being built and why."
@@ -3447,7 +3463,7 @@ function StepResultPanel({
         </Field>
         <Field label="Scope (in scope vs. out of scope)">
           <textarea
-            value={project.planBotOutput}
+            value={scopeVal}
             onChange={(e) => onChange((p) => ({ ...p, planBotOutput: e.target.value }))}
             rows={4}
             placeholder="What is included in v1, and what is explicitly not."
@@ -3482,7 +3498,7 @@ function StepResultPanel({
         />
         <Field label="Brief artifact link">
           <input
-            value={project.planArtifact ?? ""}
+            value={artifactVal}
             placeholder="https://…"
             onChange={(e) =>
               onChange((p) => ({ ...p, planArtifact: e.target.value || undefined }))
