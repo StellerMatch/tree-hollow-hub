@@ -9,8 +9,19 @@ import type {
   ArtifactType,
   ArtifactSource,
 } from "@/components/project-board/types";
-import { ARTIFACT_TYPES, ARTIFACT_SOURCES } from "@/components/project-board/types";
+import {
+  ARTIFACT_TYPES,
+  ARTIFACT_SOURCES,
+  PROJECT_STATUSES,
+  HANDOFF_STATUSES,
+} from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
+import {
+  DABOTTREE_PIPELINE,
+  DABOTTREE_PIPELINE_NAME,
+  createPipelineHandoffs,
+  activeHandoff,
+} from "@/components/project-board/pipeline";
 
 export const Route = createFileRoute("/project-creator")({
   component: ProjectCreatorPage,
@@ -95,10 +106,13 @@ function StatusPill({ status }: { status: ProjectStatus | HandoffStatus }) {
     Active: EMERALD,
     Waiting: "oklch(0.78 0.16 75)",
     Blocked: "oklch(0.65 0.22 25)",
+    Review: "oklch(0.72 0.13 290)",
     Complete: "oklch(0.7 0.14 160)",
+    Parked: "oklch(0.6 0.03 80)",
     "Not Started": "oklch(0.65 0.04 80)",
     Sent: "oklch(0.72 0.13 230)",
     Working: AMBER,
+    "Needs Review": "oklch(0.72 0.13 290)",
   };
   const c = color[status] ?? AMBER;
   return (
