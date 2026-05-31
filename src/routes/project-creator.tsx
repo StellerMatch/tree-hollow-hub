@@ -3148,6 +3148,9 @@ function StepResultPanel({
   onChange: (mut: (p: Project) => Project) => void;
   onPreview: (a: Artifact) => void;
 }) {
+  void project;
+  void onPreview;
+  // (no-op refs above are kept so future readers see all four props in scope)
   const modeKey = (handoff.mode ?? "").trim().toLowerCase();
   const isMode0 = modeKey.startsWith("mode 0");
   const isMode1 = modeKey.startsWith("mode 1");
