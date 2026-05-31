@@ -914,34 +914,36 @@ function ProjectMain({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              <span>Project</span>
+              <span className="opacity-40">·</span>
+              <StatusPill status={project.status} />
+            </div>
             <h2
               className="font-display text-2xl font-semibold leading-tight md:text-3xl"
               style={{ color: AMBER }}
             >
               {project.name}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
               {project.summary || <span className="italic opacity-60">no summary yet</span>}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <StatusPill status={project.status} />
-            <button
-              onClick={onOpenSettings}
-              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
-              title="Edit project settings"
-            >
-              ⚙ settings
-            </button>
-          </div>
-        </div>
-        <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-          <Tag label="Mode" value={project.currentMode} />
-          <Tag label="Owner" value={project.currentBot} />
-          <Tag label="Next" value={project.nextAction} />
+          <button
+            onClick={onOpenSettings}
+            className="shrink-0 rounded-md border px-2.5 py-1.5 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+            title="Edit project settings"
+          >
+            ⚙ settings
+          </button>
         </div>
         <CurrentStageIndicator project={project} />
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+          <MetaItem label="Mode" value={project.currentMode} />
+          <MetaItem label="Owner" value={project.currentBot} />
+          <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
+        </div>
       </div>
 
       {/* Mode 0 */}
