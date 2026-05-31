@@ -86,7 +86,10 @@ export const OTHER_STAGE: StageDef = {
 export function stageForHandoff(h: Handoff): StageDef {
   const hay = `${h.mode ?? ""} ${h.bot ?? ""}`.toLowerCase();
   for (const stage of PIPELINE_STAGES) {
-    if (stage.match.some((kw) => hay.includes(kw))) return stage;
+    if (stage.match.some((kw) => {
+      if (kw === "rd") return /(^|[^a-z0-9])rd([^a-z0-9]|$)/.test(hay);
+      return hay.includes(kw);
+    })) return stage;
   }
   return OTHER_STAGE;
 }
