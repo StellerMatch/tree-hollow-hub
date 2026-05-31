@@ -1111,6 +1111,27 @@ function ProjectCreatorPage() {
     updateSelected((p) => {
       const h = p.handoffs.find((x) => x.id === id);
       if (!h || h.status === status) return p;
+      // Snapshot project-level Step Result fields onto the handoff record
+      // at completion so the receipt captures every field shown in the UI,
+      // not just the handoff-scoped stepOutput keys. Without this, Mode 1
+      // (Shaped direction, Key decisions, Shape artifact link) and Mode 2
+      // (Project brief, Scope, Brief artifact link) would not survive in
+      // the completed handoff record / export.
+      const modeKey = (h.mode ?? "").trim().toLowerCase();
+      const snapshot: Record<string, string> = {};
+      if (status === "Complete") {
+        if (modeKey.startsWith("mode 0")) {
+          if (p.clarity) snapshot.rawIdea = p.clarity;
+        } else if (modeKey.startsWith("mode 1")) {
+          if (p.shapeNotes) snapshot.shapedDirection = p.shapeNotes;
+          if (p.shapeBotOutput) snapshot.keyDecisions = p.shapeBotOutput;
+          if (p.shapeArtifact) snapshot.shapeArtifactLink = p.shapeArtifact;
+        } else if (modeKey.startsWith("mode 2")) {
+          if (p.planNotes) snapshot.projectBrief = p.planNotes;
+          if (p.planBotOutput) snapshot.scope = p.planBotOutput;
+          if (p.planArtifact) snapshot.briefArtifactLink = p.planArtifact;
+        }
+      }
       const updated: Handoff = {
         ...h,
         status,
@@ -1121,6 +1142,10 @@ function ProjectCreatorPage() {
           status === "Complete"
             ? h.completedAt ?? new Date().toISOString()
             : undefined,
+        stepOutput:
+          status === "Complete" && Object.keys(snapshot).length > 0
+            ? { ...snapshot, ...(h.stepOutput ?? {}) }
+            : h.stepOutput,
       };
       const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
       const next = advanceProjectAfterHandoffStatusChange(
