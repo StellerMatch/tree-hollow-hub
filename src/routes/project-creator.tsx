@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 6; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 7; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -139,7 +139,6 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   } catch {
     stored = 1;
   }
-  if (stored >= SCHEMA_VERSION) return { projects: existing, changed: false };
 
   let next = existing;
   let changed = false;
@@ -320,8 +319,21 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v7 / defensive: normalize by the same rendered workflow identity the rail
+  // displays, even if an earlier browser state already marked v6 complete.
+  // This repairs persisted duplicate handoffs such as two "Business Plan Draft"
+  // cards in Knowledge Packet or two "Memory Decisions" cards in the combined
+  // Official Record & Memory phase.
+  const normalized = normalizePersistedWorkflowRecords(next);
+  if (normalized.changed) {
+    next = normalized.projects;
+    changed = true;
+  }
+
   try {
-    localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+    if (stored < SCHEMA_VERSION) {
+      localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+    }
   } catch {
     /* ignore */
   }
