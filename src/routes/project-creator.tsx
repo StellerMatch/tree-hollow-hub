@@ -545,17 +545,25 @@ function workflowTextKey(value?: string | null) {
  * (e.g. "Prototype / Tinker" → "Prototype"). The bot name is kept as
  * separate metadata ("Owner: Tinker") in the UI.
  */
-function stepTitleOnly(mode?: string | null, bot?: string | null): string {
+function stepTitleOnly(mode?: string | null, _bot?: string | null): string {
+  return splitStepTitle(mode).title;
+}
+
+/**
+ * Creator-facing split of a workflow step's `mode` string.
+ * Convention: "<Step title> / <Phase>" (e.g. "Project Type Confirmation / Clarity"
+ * → title "Project Type Confirmation", phase "Clarity"). The phase is rendered
+ * underneath the title as metadata, never as part of the primary label.
+ * Strings without a slash return the whole text as the title and an empty phase.
+ */
+function splitStepTitle(mode?: string | null): { title: string; phase: string } {
   const m = (mode ?? "").trim();
-  const b = (bot ?? "").trim();
-  if (!m) return "";
-  if (!b) return m;
-  const esc = b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const stripped = m
-    .replace(new RegExp(`^${esc}\\s*/\\s*`, "i"), "")
-    .replace(new RegExp(`\\s*/\\s*${esc}$`, "i"), "")
-    .trim();
-  return stripped || m;
+  if (!m) return { title: "", phase: "" };
+  const idx = m.indexOf("/");
+  if (idx === -1) return { title: m, phase: "" };
+  const title = m.slice(0, idx).trim();
+  const phase = m.slice(idx + 1).trim();
+  return { title: title || m, phase };
 }
 
 type WorkflowEntry = { handoff: Handoff; displayStep: number };
@@ -1470,11 +1478,14 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
           {active
-            ? `${activeEntry?.displayStep ?? active.step}. ${active.mode || "untitled"}`
+            ? `${project.handoffs.indexOf(active) + 1}. ${splitStepTitle(active.mode).title || "untitled"}`
             : project.currentMode || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          {active && splitStepTitle(active.mode).phase && (
+            <> · phase <span className="text-foreground">{splitStepTitle(active.mode).phase}</span></>
+          )}
           {active && <> · <StatusPill status={active.status} /></>}
         </div>
       </div>
@@ -1658,7 +1669,7 @@ function WorkflowRail({
           No handoffs yet.
         </div>
       ) : (
-        <ol className="relative space-y-1.5">
+        <ol className="relative space-y-0.5">
           {project.handoffs.map((h, idx) => {
             const isActive = h.id === activeId;
             const isSelected = h.id === selectedHandoffId;
@@ -1682,12 +1693,13 @@ function WorkflowRail({
                     : isActive
                       ? "●"
                       : String(idx + 1);
+            const { title, phase } = splitStepTitle(h.mode);
             return (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => onSelectHandoff(h.id)}
-                  className="flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
+                  className="flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
                   style={{
                     borderColor: isSelected ? AMBER : AMBER_SOFT,
                     background: isSelected
@@ -1696,34 +1708,59 @@ function WorkflowRail({
                         ? "oklch(0.78 0.18 50 / 0.04)"
                         : "transparent",
                   }}
-                  title={`${h.mode} · ${h.status}`}
+                  title={`${idx + 1}. ${h.mode} · ${h.status}`}
                 >
                   <span
-                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                    className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/70"
+                    style={{ minWidth: "1.25rem", textAlign: "right" }}
+                  >
+                    {idx + 1}
+                  </span>
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
                     style={{ borderColor: stageColor, color: stageColor }}
                   >
                     {dotChar}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] font-medium leading-snug">
-                      {stepTitleOnly(h.mode, h.bot) || <span className="italic opacity-60">untitled</span>}
+                    <span
+                      className="block truncate text-[12px] leading-tight"
+                      style={{ fontWeight: isActive || isSelected ? 600 : 400 }}
+                    >
+                      {title || <span className="italic opacity-60">untitled</span>}
                     </span>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1 text-[10px] leading-tight text-muted-foreground">
                       <span className="truncate">
-                        <span className="opacity-60">Owner:</span> {h.bot || "—"}
+                        {h.bot || "—"}
+                        {phase && <span className="opacity-60"> · {phase}</span>}
                       </span>
-                      <span className="opacity-50">·</span>
-                      <span style={{ color: stageColor }}>{h.status}</span>
-                      {isActive && (
-                        <span
-                          className="ml-auto rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
-                          style={{ borderColor: AMBER, color: AMBER }}
-                        >
-                          now
-                        </span>
-                      )}
                     </span>
                   </span>
+                  <span
+                    className="shrink-0 text-[10px]"
+                    style={{ color: stageColor }}
+                    title={h.status}
+                  >
+                    {h.status === "Complete"
+                      ? "✓"
+                      : h.status === "Blocked"
+                        ? "!"
+                        : h.status === "Working"
+                          ? "●"
+                          : h.status === "Sent" || h.status === "Needs Review"
+                            ? "○"
+                            : h.status === "Parked"
+                              ? "·"
+                              : ""}
+                  </span>
+                  {isActive && (
+                    <span
+                      className="shrink-0 rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
+                      style={{ borderColor: AMBER, color: AMBER }}
+                    >
+                      now
+                    </span>
+                  )}
                 </button>
               </li>
             );
@@ -1928,7 +1965,12 @@ function SelectedStepDetail({
   const [tab, setTab] = useState<"output" | "details" | "artifacts" | "activity">(
     "output",
   );
-  const title = stepTitleOnly(handoff.mode, handoff.bot) || "Untitled step";
+  // Reset to Step Result whenever the selected step or project changes.
+  useEffect(() => {
+    setTab("output");
+  }, [handoff.id, project.id]);
+  const { title: parsedTitle, phase } = splitStepTitle(handoff.mode);
+  const title = parsedTitle || "Untitled step";
   const stageColor =
     handoff.status === "Complete"
       ? EMERALD
@@ -1954,6 +1996,7 @@ function SelectedStepDetail({
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span><span className="opacity-60">Owner:</span> {handoff.bot || "—"}</span>
+            {phase && <span><span className="opacity-60">Phase:</span> {phase}</span>}
             <StatusPill status={handoff.status} />
             <span>
               {handoff.completedAt
@@ -2114,6 +2157,7 @@ function StepResultPanel({
   const isMode0 = modeKey.startsWith("mode 0");
   const isMode1 = modeKey.startsWith("mode 1");
   const isMode2 = modeKey.startsWith("mode 2");
+  const isProjectType = modeKey.startsWith("project type confirmation");
   const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   if (isMode0) {
@@ -2130,6 +2174,45 @@ function StepResultPanel({
           className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
           style={{ borderColor: AMBER_SOFT }}
         />
+      </div>
+    );
+  }
+
+  if (isProjectType) {
+    const typeLabel =
+      project.projectType === "Other / Custom"
+        ? project.projectTypeCustom?.trim() || "Other / Custom"
+        : project.projectType || "Unclassified";
+    return (
+      <div className="space-y-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Selected project type — confirmed by Chief
+          </div>
+          <div
+            className="mt-1 inline-flex items-center rounded-md border px-2 py-1 font-display text-sm font-semibold"
+            style={{ borderColor: AMBER_LINE, color: AMBER, background: "oklch(0.78 0.18 50 / 0.06)" }}
+          >
+            {typeLabel}
+          </div>
+        </div>
+        <Field label="Reasoning / classification notes">
+          <textarea
+            value={handoff.artifactBody ?? ""}
+            onChange={(e) =>
+              onChange((p) => ({
+                ...p,
+                handoffs: p.handoffs.map((x) =>
+                  x.id === handoff.id ? { ...x, artifactBody: e.target.value } : x,
+                ),
+              }))
+            }
+            rows={4}
+            placeholder="Why this project type? Flag any ambiguity or likely re-classification."
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
       </div>
     );
   }
@@ -2458,10 +2541,13 @@ function CurrentStageIndicator({
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {activeEntry?.displayStep ?? active.step}. {active.mode || "untitled stage"}
+            {project.handoffs.indexOf(active) + 1}. {splitStepTitle(active.mode).title || "untitled stage"}
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
+            {splitStepTitle(active.mode).phase && (
+              <> · phase <strong className="text-foreground">{splitStepTitle(active.mode).phase}</strong></>
+            )}
           </span>
           <StatusPill status={active.status} />
           <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
