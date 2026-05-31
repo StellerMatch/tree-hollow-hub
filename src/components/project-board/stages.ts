@@ -132,6 +132,9 @@ export type NestedStepTemplate = {
   bot: string;
   assignment: string;
   authorityNotes?: string;
+  /** Default next-step chain hint for this nested step. */
+  nextBot?: string;
+  nextStep?: string;
 };
 
 export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
@@ -143,6 +146,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Capture the plain-language idea exactly enough that it does not get lost. Voice, context, and any constraints Boss already has in mind.",
       authorityNotes:
         "Boss + Clarity. Raw intake only — no shaping or filtering yet.",
+      nextBot: "Chief",
+      nextStep: "Project Type Confirmation / Clarity",
     },
     {
       mode: "Project Type Confirmation / Clarity",
@@ -151,6 +156,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Confirm the Project Type field and make sure the project is classified before deeper planning. Flag if the type is unclear or likely to change.",
       authorityNotes:
         "Chief + Clarity. Classification gate before Mode 1 work begins.",
+      nextBot: "Clarity",
+      nextStep: "Mode 1 / Shape",
     },
     {
       mode: "Mode 1 / Shape",
@@ -159,6 +166,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Turn the raw idea into a clearer direction, audience, goal, and rough boundaries.",
       authorityNotes:
         "Clarity owns shaping. May ask Boss for clarifications; cannot lock the brief yet.",
+      nextBot: "Clarity",
+      nextStep: "Mode 2 / Project Brief",
     },
     {
       mode: "Mode 2 / Project Brief",
@@ -167,6 +176,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Create a project-ready brief that Chief can use to open or continue the project.",
       authorityNotes:
         "Clarity owns the brief. Brief is the handoff packet to Chief.",
+      nextBot: "Chief",
+      nextStep: "Chief Intake Summary / Clarity",
     },
     {
       mode: "Chief Intake Summary / Clarity",
@@ -175,6 +186,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Summarize what is known, what is missing, and what should happen next.",
       authorityNotes:
         "Chief owns intake summary. Names open questions before R&D begins.",
+      nextBot: "Compass",
+      nextStep: "Lantern Team Kickoff / R&D",
     },
   ],
   rd: [
@@ -185,6 +198,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Name the research question, assign the lantern passes, and clarify what each lane (Compass, Vault, Bloom, Luma) should look for.",
       authorityNotes:
         "Compass leads the lantern team. Each lantern owns its own pass; Compass orchestrates.",
+      nextBot: "Compass",
+      nextStep: "Past Landscape Pass / R&D",
     },
     {
       mode: "Past Landscape Pass / R&D",
@@ -193,6 +208,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Each lantern captures the past in its lane — Compass: prior examples and lessons; Vault: money history and prior pricing; Bloom: audience history and prior launches; Luma: design history and prior visual patterns.",
       authorityNotes:
         "Lanterns: Compass / Vault / Bloom / Luma. Research-only. Cite sources where possible.",
+      nextBot: "Compass",
+      nextStep: "Present Landscape Pass / R&D",
     },
     {
       mode: "Present Landscape Pass / R&D",
@@ -201,6 +218,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Each lantern captures the present — Compass: current market and tools; Vault: current money realities and pricing; Bloom: current audience expectations and channels; Luma: current design expectations and active constraints.",
       authorityNotes:
         "Lanterns: Compass / Vault / Bloom / Luma. Research-only. Cite sources where possible.",
+      nextBot: "Compass",
+      nextStep: "Future Hooks Pass / R&D",
     },
     {
       mode: "Future Hooks Pass / R&D",
@@ -209,6 +228,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Each lantern captures future possibilities — Compass: future framing; Vault: future money paths and revenue models; Bloom: future growth and distribution paths; Luma: future design and product opportunities. Park forward-looking ideas without expanding current scope.",
       authorityNotes:
         "Lanterns: Compass / Vault / Bloom / Luma. Park futures here; do not let them expand current scope.",
+      nextBot: "Compass",
+      nextStep: "Risks and Unknowns Pass / R&D",
     },
     {
       mode: "Risks and Unknowns Pass / R&D",
@@ -217,6 +238,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Each lantern names missing information, risks, blockers, and assumptions — Compass: research gaps; Vault: financial concerns; Bloom: audience concerns; Luma: design concerns.",
       authorityNotes:
         "Lanterns: Compass / Vault / Bloom / Luma. Surface risk; Boss decides whether to proceed.",
+      nextBot: "Compass",
+      nextStep: "Research Scope and Synthesis / R&D",
     },
     {
       mode: "Research Scope and Synthesis / R&D",
@@ -225,6 +248,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Compass reviews the lantern passes, narrows what matters, separates current scope from future hooks, and prepares the final research direction.",
       authorityNotes:
         "Compass synthesizes. Decisions about scope vs. future hooks happen here.",
+      nextBot: "Compass",
+      nextStep: "R&D Highlight Brief",
     },
     {
       mode: "R&D Highlight Brief",
@@ -233,6 +258,8 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
         "Create a short Boss-facing summary of the most important findings, risks, recommendations, and next-step implications.",
       authorityNotes:
         "Highlight brief is the handoff packet out of R&D into Knowledge Packet.",
+      nextBot: "Rook",
+      nextStep: "Rook / Knowledge Packet",
     },
   ],
 };

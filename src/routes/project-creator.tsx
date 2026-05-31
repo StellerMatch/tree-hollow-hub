@@ -109,7 +109,7 @@ type ProjectSettingsInput = {
   name: string;
   summary: string;
   status: ProjectStatus;
-  projectType: ProjectType;
+  projectType?: ProjectType;
   projectTypeCustom: string;
   currentMode: string;
   currentBot: string;
@@ -336,12 +336,30 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
         assignment: tpl.assignment,
         status: "Not Started",
         authorityNotes: tpl.authorityNotes,
+        nextBot: tpl.nextBot,
+        nextStep: tpl.nextStep,
       });
     });
     if (toAppend.length > 0) {
       handoffs = [...handoffs, ...toAppend];
       changed = true;
     }
+    // Backfill default next-step chain hints onto existing handoffs that
+    // match a template but have no nextBot/nextStep saved yet. Never
+    // overwrite user-edited values.
+    handoffs = handoffs.map((h) => {
+      const tpl = templates.find((t) => handoffMatchesNestedStep(h, t));
+      if (!tpl) return h;
+      const wantNextBot = tpl.nextBot && !h.nextBot;
+      const wantNextStep = tpl.nextStep && !h.nextStep;
+      if (!wantNextBot && !wantNextStep) return h;
+      changed = true;
+      return {
+        ...h,
+        nextBot: wantNextBot ? tpl.nextBot : h.nextBot,
+        nextStep: wantNextStep ? tpl.nextStep : h.nextStep,
+      };
+    });
   }
   // Reorder handoffs within each templated stage to match the template
   // order. Templated steps come first in template order; any unmatched
@@ -645,6 +663,45 @@ function ProjectCreatorPage() {
     setShowNewProject(false);
   }
 
+  // One-click "+ new" project. Creates an editable project seeded with
+  // the canonical Mode 0 defaults; nested Modes + R&D steps are appended
+  // automatically by ensureRequiredStages on the next render tick.
+  function quickCreateProject() {
+    const id = uid();
+    const ts = new Date().toISOString();
+    const fresh: Project = {
+      id,
+      name: "Untitled Project",
+      summary: "",
+      status: "Draft",
+      projectType: undefined, // displayed as "Unclassified" until set
+      projectTypeCustom: undefined,
+      currentMode: "Mode 0 / Raw Idea",
+      currentBot: "Boss",
+      nextAction: "Fill Mode 0 / Raw Idea",
+      blocker: undefined,
+      updatedAt: ts,
+      clarity: "",
+      shapeNotes: "",
+      shapeBotOutput: "",
+      planNotes: "",
+      planBotOutput: "",
+      handoffs: [],
+      artifacts: [],
+      activity: [
+        {
+          id: uid(),
+          at: ts,
+          bot: "Boss",
+          action: "created project",
+          status: "Draft",
+        },
+      ],
+    };
+    setProjects((prev) => [fresh, ...prev]);
+    setSelectedId(id);
+  }
+
   function exportJSON() {
     if (typeof window === "undefined") return;
     const blob = new Blob([JSON.stringify(projects, null, 2)], {
@@ -765,10 +822,31 @@ function ProjectCreatorPage() {
       const updated: Handoff = {
         ...h,
         status,
+        // Stamp completion when newly Complete; clear stamp when the step
+        // moves away from Complete so the card no longer shows a stale
+        // "completed …" line under a Working / Blocked / etc. status.
         completedAt:
-          status === "Complete" ? h.completedAt ?? new Date().toISOString() : h.completedAt,
+          status === "Complete"
+            ? h.completedAt ?? new Date().toISOString()
+            : undefined,
       };
-      const next = { ...p, handoffs: p.handoffs.map((x) => (x.id === id ? updated : x)) };
+      const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
+      // Advance the project's current stage/owner/next-action to the next
+      // incomplete handoff in actual order. Use the same definition as
+      // activeHandoff (anything not Complete and not Parked).
+      const nextActive =
+        nextHandoffs.find(
+          (x) => x.status !== "Complete" && x.status !== "Parked",
+        ) ?? null;
+      const next: Project = {
+        ...p,
+        handoffs: nextHandoffs,
+        currentMode: nextActive ? nextActive.mode : p.currentMode,
+        currentBot: nextActive ? nextActive.bot || p.currentBot : p.currentBot,
+        nextAction: nextActive
+          ? `${nextActive.mode}${nextActive.bot ? ` — ${nextActive.bot}` : ""}`
+          : p.nextAction,
+      };
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
@@ -927,9 +1005,10 @@ function ProjectCreatorPage() {
                 Projects · {filteredProjects.length}/{projects.length}
               </div>
               <button
-                onClick={() => setShowNewProject(true)}
+                onClick={quickCreateProject}
                 className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
+                title="Create a new draft project at Mode 0 / Raw Idea"
               >
                 + new
               </button>
@@ -2510,16 +2589,18 @@ function ProjectSettingsModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
-  const [projectType, setProjectType] = useState<ProjectType>(
-    initial?.projectType ?? "App / Software",
+  // Allow "Unclassified" (stored as undefined). Treat empty-string as the
+  // Unclassified sentinel inside the modal state.
+  const [projectType, setProjectType] = useState<ProjectType | "">(
+    initial?.projectType ?? "",
   );
   const [projectTypeCustom, setProjectTypeCustom] = useState(
     initial?.projectTypeCustom ?? "",
   );
-  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
+  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Raw Idea");
   const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
   const [nextAction, setNextAction] = useState(
-    initial?.nextAction ?? "Boss writes the clarity brief",
+    initial?.nextAction ?? "Fill Mode 0 / Raw Idea",
   );
   const [blocker, setBlocker] = useState(initial?.blocker ?? "");
 
@@ -2548,7 +2629,7 @@ function ProjectSettingsModal({
                     name,
                     summary,
                     status,
-                    projectType,
+                    projectType: (projectType || "App / Software") as ProjectType,
                     projectTypeCustom,
                     currentMode,
                     currentBot,
@@ -2569,7 +2650,7 @@ function ProjectSettingsModal({
                 name,
                 summary,
                 status,
-                projectType,
+                projectType: projectType || undefined,
                 projectTypeCustom,
                 currentMode,
                 currentBot,
@@ -2606,8 +2687,11 @@ function ProjectSettingsModal({
           <ModalLabel>Project type</ModalLabel>
           <ModalSelect
             value={projectType}
-            onChange={(e) => setProjectType(e.target.value as ProjectType)}
+            onChange={(e) => setProjectType(e.target.value as ProjectType | "")}
           >
+            <option value="" className="bg-[oklch(0.18_0.02_60)]">
+              Unclassified
+            </option>
             {PROJECT_TYPES.map((t) => (
               <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">
                 {t}
@@ -2691,7 +2775,7 @@ function HandoffEditorModal({
     const completedAt =
       status === "Complete"
         ? initial.completedAt ?? new Date().toISOString()
-        : initial.completedAt;
+        : undefined;
     onSave({
       ...initial,
       mode: mode.trim(),
