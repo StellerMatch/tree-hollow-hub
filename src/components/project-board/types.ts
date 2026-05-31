@@ -123,6 +123,10 @@ export type Project = {
   nextAction: string;
   blocker?: string;
   updatedAt: string;
+  /** Creator involvement preference. UI-only for now. Defaults to "Better". */
+  creatorMode?: "Good" | "Better" | "Best";
+  /** Optional creator-facing guidance text shown above the selected step. */
+  creatorGuidance?: string;
   clarity: string; // Mode 0
   shapeNotes: string; // Mode 1 structured notes
   shapeBotOutput: string;
