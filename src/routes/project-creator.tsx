@@ -1413,6 +1413,7 @@ function SectionMeta({ updatedAt, who }: { updatedAt: string; who?: string }) {
 // ---------- Handoffs ----------
 function HandoffChain({
   project,
+  onChange,
   onPreviewArtifact,
   onAddHandoff,
   onEditHandoff,
@@ -1430,6 +1431,11 @@ function HandoffChain({
   onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
 }) {
   const buckets = useMemo(() => bucketHandoffs(project.handoffs), [project.handoffs]);
+
+  useEffect(() => {
+    if (officialRecordHandoffCount(project.handoffs) > 0) return;
+    onChange((p) => ensureOfficialRecordHandoff(p).project);
+  }, [project.id, project.handoffs, onChange]);
 
   const initialOpen = useMemo(() => {
     const o: Record<string, boolean> = {};
