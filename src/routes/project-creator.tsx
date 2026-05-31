@@ -478,6 +478,17 @@ function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
   return `Complete ${handoff.mode || "current step"}`;
 }
 
+function syncProjectCurrentWorkflow(project: Project): Project {
+  const active = activeWorkflowEntry(project.handoffs)?.handoff ?? null;
+  if (!active) return project;
+  return {
+    ...project,
+    currentMode: active.mode,
+    currentBot: active.bot || project.currentBot,
+    nextAction: requiredActionForHandoff(active, project.nextAction),
+  };
+}
+
 function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
   const handoffs: Handoff[] = [];
   for (const stage of PIPELINE_STAGES) {
