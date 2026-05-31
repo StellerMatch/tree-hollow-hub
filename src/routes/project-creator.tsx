@@ -8,12 +8,14 @@ import type {
   Artifact,
   ArtifactType,
   ArtifactSource,
+  ProjectType,
 } from "@/components/project-board/types";
 import {
   ARTIFACT_TYPES,
   ARTIFACT_SOURCES,
   PROJECT_STATUSES,
   HANDOFF_STATUSES,
+  PROJECT_TYPES,
 } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 import {
@@ -104,6 +106,8 @@ type ProjectSettingsInput = {
   name: string;
   summary: string;
   status: ProjectStatus;
+  projectType: ProjectType;
+  projectTypeCustom: string;
   currentMode: string;
   currentBot: string;
   nextAction: string;
