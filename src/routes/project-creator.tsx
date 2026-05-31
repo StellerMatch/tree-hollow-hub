@@ -1895,6 +1895,8 @@ function CreatorGuidance({
 
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
+  project,
+  onChange,
   handoff,
   globalIndex,
   total,
@@ -1904,7 +1906,12 @@ function SelectedStepDetail({
   onRemove,
   onChangeStatus,
   onPreview,
+  onAddArtifact,
+  onEditArtifact,
+  onRemoveArtifact,
 }: {
+  project: Project;
+  onChange: (mut: (p: Project) => Project) => void;
   handoff: Handoff;
   globalIndex: number;
   total: number;
@@ -1914,50 +1921,353 @@ function SelectedStepDetail({
   onRemove: () => void;
   onChangeStatus: (s: HandoffStatus) => void;
   onPreview: (a: Artifact) => void;
+  onAddArtifact: () => void;
+  onEditArtifact: (id: string) => void;
+  onRemoveArtifact: (id: string) => void;
 }) {
+  const [tab, setTab] = useState<"output" | "details" | "artifacts" | "activity">(
+    "output",
+  );
+  const title = stepTitleOnly(handoff.mode, handoff.bot) || "Untitled step";
+  const stageColor =
+    handoff.status === "Complete"
+      ? EMERALD
+      : handoff.status === "Blocked"
+        ? "oklch(0.65 0.22 25)"
+        : AMBER;
   return (
     <section
       className="rounded-2xl border bark-texture p-3 md:p-4"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-          style={{ borderColor: AMBER_LINE, color: AMBER }}
-        >
-          Selected step
-        </span>
-        <span className="text-[11px] text-muted-foreground">
-          step {globalIndex + 1} of {total}
-        </span>
+      {/* Summary header */}
+      <div className="mb-3 flex items-start gap-3">
+        <BotAvatar name={handoff.bot} size={44} ring={stageColor} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            <span>Selected step</span>
+            <span className="opacity-40">·</span>
+            <span>{globalIndex + 1} of {total}</span>
+          </div>
+          <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
+            {title}
+          </h3>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+            <span><span className="opacity-60">Owner:</span> {handoff.bot || "—"}</span>
+            <StatusPill status={handoff.status} />
+            <span>
+              {handoff.completedAt
+                ? `completed ${fmtTime(handoff.completedAt)}`
+                : "in flight"}
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <select
+            value={handoff.status}
+            onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
+            className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-[11px]"
+            style={{ borderColor: AMBER_SOFT }}
+            aria-label="change status"
+          >
+            {HANDOFF_STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={onMoveUp}
+            disabled={globalIndex <= 0}
+            title="Move up"
+            className="rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-30"
+            style={{ borderColor: AMBER_SOFT }}
+          >▲</button>
+          <button
+            onClick={onMoveDown}
+            disabled={globalIndex === -1 || globalIndex >= total - 1}
+            title="Move down"
+            className="rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-30"
+            style={{ borderColor: AMBER_SOFT }}
+          >▼</button>
+        </div>
       </div>
-      <HandoffCard
-        handoff={handoff}
-        displayStep={globalIndex + 1}
-        isFirst={globalIndex <= 0}
-        isLast={globalIndex === -1 || globalIndex >= total - 1}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-        onChangeStatus={onChangeStatus}
-        onRemove={onRemove}
-        onEdit={onEdit}
-        onPreview={() => {
-          if (handoff.artifactBody || handoff.artifactLink) {
-            onPreview({
-              id: handoff.id,
-              title: handoff.artifactTitle || `${handoff.mode} artifact`,
-              kind: handoff.mode,
-              type: "other",
-              source: "Handoff",
-              body: handoff.artifactBody,
-              link: handoff.artifactLink,
-              bot: handoff.bot,
-              createdAt: handoff.completedAt ?? new Date().toISOString(),
-            });
-          }
-        }}
-      />
+
+      {/* Tab strip */}
+      <div
+        className="mb-3 flex flex-wrap gap-1 border-b pb-2"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        {(
+          [
+            { k: "output", label: "Step Result" },
+            { k: "details", label: "Summary" },
+            { k: "artifacts", label: "Artifacts" },
+            { k: "activity", label: "Activity" },
+          ] as const
+        ).map((t) => {
+          const sel = tab === t.k;
+          return (
+            <button
+              key={t.k}
+              onClick={() => setTab(t.k)}
+              className="rounded-md border px-2.5 py-1 text-[11px] transition"
+              style={{
+                borderColor: sel ? AMBER : AMBER_SOFT,
+                background: sel ? "oklch(0.78 0.18 50 / 0.14)" : "transparent",
+                color: sel ? AMBER : "inherit",
+                fontWeight: sel ? 600 : 400,
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+        <div className="ml-auto flex gap-1">
+          <button
+            onClick={onEdit}
+            className="rounded-md border px-2 py-0.5 text-[11px]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            ✎ edit step
+          </button>
+          <button
+            onClick={onRemove}
+            className="rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground/70 hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+            title="Remove step"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {tab === "output" && (
+        <StepResultPanel project={project} handoff={handoff} onChange={onChange} onPreview={onPreview} />
+      )}
+      {tab === "details" && (
+        <StepSummaryPanel handoff={handoff} />
+      )}
+      {tab === "artifacts" && (
+        <ArtifactGrid
+          project={project}
+          onPreview={onPreview}
+          onAdd={onAddArtifact}
+          onEdit={onEditArtifact}
+          onRemove={onRemoveArtifact}
+        />
+      )}
+      {tab === "activity" && <ActivityLog project={project} />}
     </section>
+  );
+}
+
+function StepSummaryPanel({ handoff }: { handoff: Handoff }) {
+  return (
+    <div className="space-y-3 text-sm">
+      {handoff.assignment ? (
+        <LabelledBlock label="Assignment">
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/85">
+            {handoff.assignment}
+          </p>
+        </LabelledBlock>
+      ) : (
+        <div className="text-xs italic text-muted-foreground">No assignment text.</div>
+      )}
+      {handoff.authorityNotes && (
+        <LabelledBlock label="Authority boundary">
+          <p className="whitespace-pre-wrap text-[11px] italic leading-relaxed text-muted-foreground">
+            {handoff.authorityNotes}
+          </p>
+        </LabelledBlock>
+      )}
+      {(handoff.nextBot || handoff.nextStep) && (
+        <LabelledBlock label="Next step">
+          <div
+            className="rounded-md border px-2 py-1 text-xs"
+            style={{
+              borderColor: AMBER_SOFT,
+              background: "oklch(0.78 0.18 50 / 0.04)",
+            }}
+          >
+            → <strong>{handoff.nextStep || "—"}</strong>
+            {handoff.nextBot && <> by <strong>{handoff.nextBot}</strong></>}
+          </div>
+        </LabelledBlock>
+      )}
+    </div>
+  );
+}
+
+function StepResultPanel({
+  project,
+  handoff,
+  onChange,
+  onPreview,
+}: {
+  project: Project;
+  handoff: Handoff;
+  onChange: (mut: (p: Project) => Project) => void;
+  onPreview: (a: Artifact) => void;
+}) {
+  const modeKey = (handoff.mode ?? "").trim().toLowerCase();
+  const isMode0 = modeKey.startsWith("mode 0");
+  const isMode1 = modeKey.startsWith("mode 1");
+  const isMode2 = modeKey.startsWith("mode 2");
+  const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
+
+  if (isMode0) {
+    return (
+      <div className="space-y-2">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          Raw idea / intake — collected by Boss
+        </div>
+        <textarea
+          value={project.clarity}
+          onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
+          rows={8}
+          placeholder="What are we building? Who is it for? What does done look like?"
+          className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+          style={{ borderColor: AMBER_SOFT }}
+        />
+      </div>
+    );
+  }
+
+  if (isMode1) {
+    return (
+      <div className="space-y-3">
+        <Field label="Structured shape notes">
+          <textarea
+            value={project.shapeNotes}
+            onChange={(e) => onChange((p) => ({ ...p, shapeNotes: e.target.value }))}
+            rows={4}
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+        <Field label="Bot output">
+          <textarea
+            value={project.shapeBotOutput}
+            onChange={(e) => onChange((p) => ({ ...p, shapeBotOutput: e.target.value }))}
+            rows={3}
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+        <Field label="Artifact link">
+          <input
+            value={project.shapeArtifact ?? ""}
+            placeholder="https://…"
+            onChange={(e) =>
+              onChange((p) => ({ ...p, shapeArtifact: e.target.value || undefined }))
+            }
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+      </div>
+    );
+  }
+
+  if (isMode2) {
+    return (
+      <div className="space-y-3">
+        <Field label="Planning notes">
+          <textarea
+            value={project.planNotes}
+            onChange={(e) => onChange((p) => ({ ...p, planNotes: e.target.value }))}
+            rows={4}
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+        <Field label="Bot output">
+          <textarea
+            value={project.planBotOutput}
+            onChange={(e) => onChange((p) => ({ ...p, planBotOutput: e.target.value }))}
+            rows={3}
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+        <Field label="Artifact link">
+          <input
+            value={project.planArtifact ?? ""}
+            placeholder="https://…"
+            onChange={(e) =>
+              onChange((p) => ({ ...p, planArtifact: e.target.value || undefined }))
+            }
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+      </div>
+    );
+  }
+
+  // Generic step output: artifact body / link / title
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
+        What this step produced
+      </div>
+      {handoff.artifactTitle && (
+        <div className="font-display text-sm font-semibold">{handoff.artifactTitle}</div>
+      )}
+      {handoff.artifactBody ? (
+        <div
+          className="whitespace-pre-wrap rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          {handoff.artifactBody}
+        </div>
+      ) : (
+        <div
+          className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          No result captured yet. Use <strong>✎ edit step</strong> to add the output this step delivered.
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        {handoff.receiptLink && (
+          <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+            className="rounded-md border px-2 py-0.5"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}>
+            🧾 receipt
+          </a>
+        )}
+        {handoff.artifactLink && (
+          <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+            className="rounded-md border px-2 py-0.5"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}>
+            🔗 link
+          </a>
+        )}
+        {hasArtifactPreview && (
+          <button
+            onClick={() =>
+              onPreview({
+                id: handoff.id,
+                title: handoff.artifactTitle || `${handoff.mode} artifact`,
+                kind: handoff.mode,
+                type: "other",
+                source: "Handoff",
+                body: handoff.artifactBody,
+                link: handoff.artifactLink,
+                bot: handoff.bot,
+                createdAt: handoff.completedAt ?? new Date().toISOString(),
+              })
+            }
+            className="rounded-md border px-2 py-0.5"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            preview
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
