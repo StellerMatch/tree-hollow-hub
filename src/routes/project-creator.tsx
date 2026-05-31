@@ -832,8 +832,9 @@ function ProjectCreatorPage() {
         ...p,
         handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
       };
+      const synced = syncProjectCurrentWorkflow(next);
       if (isNew) {
-        return logActivity(next, {
+        return logActivity(synced, {
           bot: h.bot || p.currentBot,
           action: `added handoff "${h.mode || "untitled"}"`,
           status: h.status,
@@ -842,7 +843,7 @@ function ProjectCreatorPage() {
       const events: string[] = [];
       if (prev && prev.status !== h.status) events.push(`status → ${h.status}`);
       events.push("edited");
-      return logActivity(next, {
+      return logActivity(synced, {
         bot: h.bot || p.currentBot,
         action: `handoff "${h.mode || "untitled"}" ${events.join(", ")}`,
         status: h.status,
