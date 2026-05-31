@@ -2577,9 +2577,6 @@ function CurrentStageIndicator({
             )}
           </span>
           <StatusPill status={active.status} />
-          <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            tap for receipt ›
-          </span>
         </div>
       )}
 
