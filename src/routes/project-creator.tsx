@@ -1844,7 +1844,13 @@ function MetaItem({
   );
 }
 
-function CurrentStageIndicator({ project }: { project: Project }) {
+function CurrentStageIndicator({
+  project,
+  onClick,
+}: {
+  project: Project;
+  onClick?: () => void;
+}) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker || active?.status === "Blocked";
@@ -1854,8 +1860,12 @@ function CurrentStageIndicator({ project }: { project: Project }) {
   if (!active && !nextAction && !hasBlocker) return null;
 
   return (
-    <div
-      className="mt-4 rounded-xl border p-3"
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Open command receipt"
+      title="Click to open command receipt"
+      className="mt-4 block w-full rounded-xl border p-3 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[oklch(0.78_0.18_50)]"
       style={{
         borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.55)" : AMBER_LINE,
         background: hasBlocker
@@ -1878,6 +1888,9 @@ function CurrentStageIndicator({ project }: { project: Project }) {
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
           </span>
           <StatusPill status={active.status} />
+          <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            tap for receipt ›
+          </span>
         </div>
       )}
 
@@ -1906,7 +1919,7 @@ function CurrentStageIndicator({ project }: { project: Project }) {
           <span><strong className="uppercase tracking-[0.14em] text-[10px] mr-1.5">Blocker</strong>{project.blocker}</span>
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
