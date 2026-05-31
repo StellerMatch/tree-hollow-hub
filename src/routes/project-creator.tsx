@@ -2682,6 +2682,8 @@ function ProjectMain({
   onRemoveArtifact,
   selectedHandoffId,
   onSelectHandoff,
+  selectedPhaseId,
+  onSelectPhase,
   onOpenCommandReceipt,
 }: {
   project: Project;
@@ -2698,6 +2700,8 @@ function ProjectMain({
   onRemoveArtifact: (id: string) => void;
   selectedHandoffId: string | null;
   onSelectHandoff: (id: string | null) => void;
+  selectedPhaseId: string | null;
+  onSelectPhase: (id: string | null) => void;
   onOpenCommandReceipt: () => void;
 }) {
   const activeEntry = currentStageEntry(project);
