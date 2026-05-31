@@ -463,6 +463,11 @@ function ProjectCreatorPage() {
       name: input.name.trim() || "Untitled Project",
       summary: input.summary,
       status: input.status,
+      projectType: input.projectType,
+      projectTypeCustom:
+        input.projectType === "Other / Custom"
+          ? input.projectTypeCustom.trim() || undefined
+          : undefined,
       currentMode: fromPipeline
         ? DABOTTREE_PIPELINE[0].stage
         : input.currentMode || "Mode 0 / Clarity",
