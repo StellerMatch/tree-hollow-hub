@@ -1005,9 +1005,10 @@ function ProjectCreatorPage() {
                 Projects · {filteredProjects.length}/{projects.length}
               </div>
               <button
-                onClick={() => setShowNewProject(true)}
+                onClick={quickCreateProject}
                 className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
+                title="Create a new draft project at Mode 0 / Raw Idea"
               >
                 + new
               </button>
