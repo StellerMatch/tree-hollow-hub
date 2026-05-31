@@ -896,14 +896,7 @@ function ProjectCreatorPage() {
       const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
       // Advance the project's current stage/owner/next-action to the next
       // incomplete workflow step in displayed stage/template order.
-      const nextActive = activeWorkflowEntry(nextHandoffs)?.handoff ?? null;
-      const next: Project = {
-        ...p,
-        handoffs: nextHandoffs,
-        currentMode: nextActive ? nextActive.mode : p.currentMode,
-        currentBot: nextActive ? nextActive.bot || p.currentBot : p.currentBot,
-        nextAction: requiredActionForHandoff(nextActive, p.nextAction),
-      };
+      const next = syncProjectCurrentWorkflow({ ...p, handoffs: nextHandoffs });
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
