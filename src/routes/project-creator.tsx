@@ -1129,6 +1129,25 @@ function ProjectCreatorPage() {
         h,
         updated,
       );
+      // When a step is marked Complete, auto-advance the center detail
+      // panel to the next open step so the creator immediately sees what
+      // to do next. The completed step is still reachable via the rail.
+      if (status === "Complete" && selectedHandoffId === id) {
+        const idx = next.handoffs.findIndex((x) => x.id === id);
+        const after = next.handoffs
+          .slice(idx + 1)
+          .find((x) => x.status !== "Complete" && x.status !== "Parked");
+        const before = after
+          ? null
+          : next.handoffs.find(
+              (x) => x.status !== "Complete" && x.status !== "Parked",
+            );
+        const nextOpen = after ?? before;
+        if (nextOpen) {
+          setSelectedHandoffId(nextOpen.id);
+          setSelectedPhaseId(null);
+        }
+      }
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
