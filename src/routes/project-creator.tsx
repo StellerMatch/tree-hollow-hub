@@ -1154,6 +1154,7 @@ function ProjectCreatorPage() {
     const { projects: repaired, changed: repairedChanged } =
       repairToCanonicalWorkflow(ensured);
     if (changed || repairedChanged) {
+      saveProjects(repaired);
       setProjects(repaired);
       return;
     }
