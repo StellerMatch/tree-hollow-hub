@@ -3052,6 +3052,59 @@ function StepTemplateForm({
   );
 }
 
+function StepOutputField({
+  handoff,
+  onChange,
+  fieldKey,
+  label,
+  placeholder,
+  multiline,
+  rows,
+}: {
+  handoff: Handoff;
+  onChange: (mut: (p: Project) => Project) => void;
+  fieldKey: string;
+  label: React.ReactNode;
+  placeholder?: string;
+  multiline?: boolean;
+  rows?: number;
+}) {
+  const value = handoff.stepOutput?.[fieldKey] ?? "";
+  const setValue = (v: string) =>
+    onChange((p) => ({
+      ...p,
+      handoffs: p.handoffs.map((h) => {
+        if (h.id !== handoff.id) return h;
+        const next = { ...(h.stepOutput ?? {}) };
+        if (v.trim() === "") delete next[fieldKey];
+        else next[fieldKey] = v;
+        return { ...h, stepOutput: next };
+      }),
+    }));
+  return (
+    <Field label={label}>
+      {multiline ? (
+        <textarea
+          value={value}
+          rows={rows ?? 3}
+          placeholder={placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+          style={{ borderColor: AMBER_SOFT }}
+        />
+      ) : (
+        <input
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => setValue(e.target.value)}
+          className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
+          style={{ borderColor: AMBER_SOFT }}
+        />
+      )}
+    </Field>
+  );
+}
+
 function StepResultPanel({
   project,
   handoff,
