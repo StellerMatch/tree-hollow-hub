@@ -1538,8 +1538,8 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
-          {active && splitStepTitle(active.mode).phase && (
-            <> · phase <span className="text-foreground">{splitStepTitle(active.mode).phase}</span></>
+          {active && (
+            <> · phase <span className="text-foreground">{phaseForHandoff(active).label}</span></>
           )}
           {active && <> · <StatusPill status={active.status} /></>}
         </div>
@@ -2548,7 +2548,12 @@ function SelectedStepDetail({
   useEffect(() => {
     setTab("output");
   }, [handoff.id, project.id]);
-  const { title: parsedTitle, phase } = splitStepTitle(handoff.mode);
+  const { title: parsedTitle } = splitStepTitle(handoff.mode);
+  // Phase label should reflect the actual workflow phase the step is
+  // grouped under in the rail, not whatever suffix the legacy mode
+  // string happens to carry (e.g. "Chief Intake Summary / Clarity"
+  // belongs to the Chief Review phase, not Clarity).
+  const phase = phaseForHandoff(handoff).label;
   const title = parsedTitle || "Untitled step";
   const stageColor =
     handoff.status === "Complete"
@@ -3690,9 +3695,8 @@ function CurrentStageIndicator({
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
-            {splitStepTitle(active.mode).phase && (
-              <> · phase <strong className="text-foreground">{splitStepTitle(active.mode).phase}</strong></>
-            )}
+            {" · "}phase{" "}
+            <strong className="text-foreground">{phaseForHandoff(active).label}</strong>
           </span>
           <StatusPill status={active.status} />
         </div>
