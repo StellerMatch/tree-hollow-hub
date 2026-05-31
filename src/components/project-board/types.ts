@@ -1,5 +1,38 @@
-export type ProjectStatus = "Draft" | "Active" | "Waiting" | "Blocked" | "Complete";
-export type HandoffStatus = "Not Started" | "Sent" | "Working" | "Complete" | "Blocked";
+export type ProjectStatus =
+  | "Draft"
+  | "Active"
+  | "Waiting"
+  | "Blocked"
+  | "Review"
+  | "Complete"
+  | "Parked";
+export type HandoffStatus =
+  | "Not Started"
+  | "Sent"
+  | "Working"
+  | "Needs Review"
+  | "Complete"
+  | "Blocked"
+  | "Parked";
+
+export const PROJECT_STATUSES: ProjectStatus[] = [
+  "Draft",
+  "Active",
+  "Waiting",
+  "Blocked",
+  "Review",
+  "Complete",
+  "Parked",
+];
+export const HANDOFF_STATUSES: HandoffStatus[] = [
+  "Not Started",
+  "Sent",
+  "Working",
+  "Needs Review",
+  "Complete",
+  "Blocked",
+  "Parked",
+];
 
 export type Handoff = {
   id: string;
@@ -15,6 +48,7 @@ export type Handoff = {
   completedAt?: string;
   nextBot?: string;
   nextStep?: string;
+  authorityNotes?: string;
 };
 
 export type Artifact = {
