@@ -3695,7 +3695,8 @@ function CurrentStageIndicator({
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
-            <> · phase <strong className="text-foreground">{phaseForHandoff(active).label}</strong></>
+            {" · "}phase{" "}
+            <strong className="text-foreground">{phaseForHandoff(active).label}</strong>
           </span>
           <StatusPill status={active.status} />
         </div>
