@@ -2589,16 +2589,18 @@ function ProjectSettingsModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
-  const [projectType, setProjectType] = useState<ProjectType>(
-    initial?.projectType ?? "App / Software",
+  // Allow "Unclassified" (stored as undefined). Treat empty-string as the
+  // Unclassified sentinel inside the modal state.
+  const [projectType, setProjectType] = useState<ProjectType | "">(
+    initial?.projectType ?? "",
   );
   const [projectTypeCustom, setProjectTypeCustom] = useState(
     initial?.projectTypeCustom ?? "",
   );
-  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
+  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Raw Idea");
   const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
   const [nextAction, setNextAction] = useState(
-    initial?.nextAction ?? "Boss writes the clarity brief",
+    initial?.nextAction ?? "Fill Mode 0 / Raw Idea",
   );
   const [blocker, setBlocker] = useState(initial?.blocker ?? "");
 
@@ -2627,7 +2629,7 @@ function ProjectSettingsModal({
                     name,
                     summary,
                     status,
-                    projectType,
+                    projectType: (projectType || "App / Software") as ProjectType,
                     projectTypeCustom,
                     currentMode,
                     currentBot,
@@ -2648,7 +2650,7 @@ function ProjectSettingsModal({
                 name,
                 summary,
                 status,
-                projectType,
+                projectType: (projectType || undefined) as ProjectType,
                 projectTypeCustom,
                 currentMode,
                 currentBot,
@@ -2685,8 +2687,11 @@ function ProjectSettingsModal({
           <ModalLabel>Project type</ModalLabel>
           <ModalSelect
             value={projectType}
-            onChange={(e) => setProjectType(e.target.value as ProjectType)}
+            onChange={(e) => setProjectType(e.target.value as ProjectType | "")}
           >
+            <option value="" className="bg-[oklch(0.18_0.02_60)]">
+              Unclassified
+            </option>
             {PROJECT_TYPES.map((t) => (
               <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">
                 {t}
