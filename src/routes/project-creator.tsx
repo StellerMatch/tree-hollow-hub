@@ -373,9 +373,13 @@ function ProjectCreatorPage() {
     const q = query.trim().toLowerCase();
     if (!q) return projects;
     return projects.filter((p) =>
-      [p.name, p.status, p.currentBot, p.currentMode, p.summary]
+      [p.name, p.status, p.currentBot, p.currentMode, p.summary,
+        p.projectType === "Other / Custom"
+          ? p.projectTypeCustom || "Other / Custom"
+          : p.projectType,
+      ]
         .filter(Boolean)
-        .some((v) => v.toLowerCase().includes(q)),
+        .some((v) => v!.toLowerCase().includes(q)),
     );
   }, [projects, query]);
 
@@ -834,7 +838,9 @@ function ProjectCreatorPage() {
                         <StatusPill status={p.status} />
                       </div>
                       <div className="mt-1 truncate text-[11px] text-muted-foreground">
-                        {p.currentMode} · {p.currentBot}
+                        {p.projectType === "Other / Custom"
+                          ? p.projectTypeCustom || "Other / Custom"
+                          : p.projectType || "Unclassified"} · {p.currentMode} · {p.currentBot}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                         updated {fmtTime(p.updatedAt)}
