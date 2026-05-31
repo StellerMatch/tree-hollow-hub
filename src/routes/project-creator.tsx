@@ -22,6 +22,52 @@ import {
   createPipelineHandoffs,
   activeHandoff,
 } from "@/components/project-board/pipeline";
+import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
+
+function BotAvatar({
+  name,
+  size = 32,
+  ring,
+}: {
+  name?: string | null;
+  size?: number;
+  ring?: string;
+}) {
+  const img = botImageFor(name);
+  const initials = botInitials(name);
+  const dim = { width: size, height: size };
+  const borderColor = ring ?? "oklch(0.78 0.18 50 / 0.45)";
+  const label = name?.trim() || "unassigned bot";
+  if (img) {
+    return (
+      <img
+        src={img}
+        alt={label}
+        title={label}
+        loading="lazy"
+        className="shrink-0 rounded-full border object-cover"
+        style={{ ...dim, borderColor, background: "oklch(0.2 0.02 60)" }}
+      />
+    );
+  }
+  return (
+    <div
+      title={label}
+      aria-label={label}
+      className="flex shrink-0 items-center justify-center rounded-full border font-display font-semibold"
+      style={{
+        ...dim,
+        borderColor,
+        background: "oklch(0.22 0.03 60)",
+        color: "oklch(0.85 0.12 70)",
+        fontSize: Math.max(10, Math.round(size * 0.38)),
+        lineHeight: 1,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/project-creator")({
   component: ProjectCreatorPage,
