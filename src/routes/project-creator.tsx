@@ -109,7 +109,7 @@ type ProjectSettingsInput = {
   name: string;
   summary: string;
   status: ProjectStatus;
-  projectType: ProjectType;
+  projectType?: ProjectType;
   projectTypeCustom: string;
   currentMode: string;
   currentBot: string;
