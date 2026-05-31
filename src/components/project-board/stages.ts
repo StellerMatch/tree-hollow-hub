@@ -86,10 +86,13 @@ export const OTHER_STAGE: StageDef = {
 export function stageForHandoff(h: Handoff): StageDef {
   const hay = `${h.mode ?? ""} ${h.bot ?? ""}`.toLowerCase();
   for (const stage of PIPELINE_STAGES) {
-    if (stage.match.some((kw) => {
-      if (kw === "rd") return /(^|[^a-z0-9])rd([^a-z0-9]|$)/.test(hay);
-      return hay.includes(kw);
-    })) return stage;
+    if (
+      stage.match.some((kw) => {
+        if (kw === "rd") return /(^|[^a-z0-9])rd([^a-z0-9]|$)/.test(hay);
+        return hay.includes(kw);
+      })
+    )
+      return stage;
   }
   return OTHER_STAGE;
 }
@@ -154,8 +157,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
       bot: "Chief",
       assignment:
         "Confirm the Project Type field and make sure the project is classified before deeper planning. Flag if the type is unclear or likely to change.",
-      authorityNotes:
-        "Chief + Clarity. Classification gate before Mode 1 work begins.",
+      authorityNotes: "Chief + Clarity. Classification gate before Mode 1 work begins.",
       nextBot: "Clarity",
       nextStep: "Mode 1 / Shape",
     },
@@ -174,18 +176,15 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
       bot: "Clarity",
       assignment:
         "Create a project-ready brief that Chief can use to open or continue the project.",
-      authorityNotes:
-        "Clarity owns the brief. Brief is the handoff packet to Chief.",
+      authorityNotes: "Clarity owns the brief. Brief is the handoff packet to Chief.",
       nextBot: "Chief",
       nextStep: "Chief Intake Summary / Clarity",
     },
     {
       mode: "Chief Intake Summary / Clarity",
       bot: "Chief",
-      assignment:
-        "Summarize what is known, what is missing, and what should happen next.",
-      authorityNotes:
-        "Chief owns intake summary. Names open questions before R&D begins.",
+      assignment: "Summarize what is known, what is missing, and what should happen next.",
+      authorityNotes: "Chief owns intake summary. Names open questions before R&D begins.",
       nextBot: "Compass",
       nextStep: "Lantern Team Kickoff / R&D",
     },
@@ -246,8 +245,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
       bot: "Compass",
       assignment:
         "Compass reviews the lantern passes, narrows what matters, separates current scope from future hooks, and prepares the final research direction.",
-      authorityNotes:
-        "Compass synthesizes. Decisions about scope vs. future hooks happen here.",
+      authorityNotes: "Compass synthesizes. Decisions about scope vs. future hooks happen here.",
       nextBot: "Compass",
       nextStep: "R&D Highlight Brief",
     },
@@ -256,8 +254,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
       bot: "Compass",
       assignment:
         "Create a short Boss-facing summary of the most important findings, risks, recommendations, and next-step implications.",
-      authorityNotes:
-        "Highlight brief is the handoff packet out of R&D into Knowledge Packet.",
+      authorityNotes: "Highlight brief is the handoff packet out of R&D into Knowledge Packet.",
       nextBot: "Rook",
       nextStep: "Rook / Knowledge Packet",
     },
@@ -367,8 +364,7 @@ STAGE_NESTED_STEPS["prototype"] = [
   {
     mode: "Prototype Handoff / Prototype",
     bot: "Tinker",
-    assignment:
-      "Hand the prototype URL, evidence, and demo note to Luma for design polish review.",
+    assignment: "Hand the prototype URL, evidence, and demo note to Luma for design polish review.",
     authorityNotes: "Handoff packet out of the build lane.",
     nextBot: "Tinker",
     nextStep: "Tinker Result Review / Prototype",
@@ -463,8 +459,7 @@ STAGE_NESTED_STEPS["final-package"] = [
   {
     mode: "Final Package Handoff / Final Package",
     bot: "Weaver",
-    assignment:
-      "Hand the final package and delivery note to Ledger for the official record.",
+    assignment: "Hand the final package and delivery note to Ledger for the official record.",
     authorityNotes: "Weaver closes the packaging lane.",
     nextBot: "Weaver",
     nextStep: "Weaver Result Review / Final Package",
@@ -502,8 +497,7 @@ STAGE_NESTED_STEPS["official-record"] = [
   {
     mode: "Record Handoff / Official Record",
     bot: "Ledger",
-    assignment:
-      "Hand the filed record to Echo for memory alignment.",
+    assignment: "Hand the filed record to Echo for memory alignment.",
     authorityNotes: "Closes the record lane before memory work begins.",
     nextBot: "Ledger",
     nextStep: "Official Record / Official Record",
@@ -590,18 +584,21 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   // checkpoint of their phase so the rail does not show summary-style
   // duplicates next to the freshly-backfilled nested steps.
   "rook / knowledge packet": "Business Plan Draft / Knowledge Packet",
+  "knowledge packet": "Business Plan Draft / Knowledge Packet",
   "tinker / prototype": "Build v1 / Prototype",
+  prototype: "Build v1 / Prototype",
   "luma / design polish": "Visual Review / Design Polish",
+  "design polish": "Visual Review / Design Polish",
   "weaver / final package": "Package Intake / Final Package",
+  "final package": "Package Intake / Final Package",
   "ledger / official record": "Decision Record / Official Record",
+  "official record": "Decision Record / Official Record",
   "echo / memory alignment": "Memory Decisions / Memory Alignment",
+  "memory alignment": "Memory Decisions / Memory Alignment",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
-export function handoffMatchesNestedStep(
-  handoff: Handoff,
-  template: NestedStepTemplate,
-): boolean {
+export function handoffMatchesNestedStep(handoff: Handoff, template: NestedStepTemplate): boolean {
   const a = (handoff.mode ?? "").trim().toLowerCase();
   const b = template.mode.trim().toLowerCase();
   return a === b;
