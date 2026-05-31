@@ -1319,6 +1319,9 @@ function ProjectCreatorPage() {
               onAddArtifact={addArtifact}
               onEditArtifact={(id) => setEditingArtifactId(id)}
               onRemoveArtifact={removeArtifact}
+              selectedHandoffId={selectedHandoffId}
+              onSelectHandoff={setSelectedHandoffId}
+              onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
             />
           ) : (
             <div
@@ -1341,13 +1344,28 @@ function ProjectCreatorPage() {
             </div>
           )}
 
-          {/* RIGHT — status strip */}
-          {selected && <StatusPanel project={selected} onChange={updateSelected} />}
+          {/* RIGHT — workflow rail */}
+          {selected && (
+            <WorkflowRail
+              project={selected}
+              selectedHandoffId={selectedHandoffId}
+              onSelectHandoff={setSelectedHandoffId}
+              onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
+            />
+          )}
         </div>
       </div>
 
       {previewArtifact && (
         <ArtifactPreview artifact={previewArtifact} onClose={() => setPreviewArtifact(null)} />
+      )}
+
+      {selected && commandReceiptOpen && (
+        <CommandReceiptModal
+          project={selected}
+          onChange={updateSelected}
+          onClose={() => setCommandReceiptOpen(false)}
+        />
       )}
 
       {showNewProject && (
