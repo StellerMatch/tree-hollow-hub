@@ -263,6 +263,44 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
     }
     return h;
   });
+  // After renaming legacy handoffs into canonical nested-step names, two
+  // handoffs may now share the same mode (e.g. a legacy "Trunk / R&D" got
+  // renamed to "Lantern Team Kickoff / R&D" but a freshly-backfilled
+  // nested-* placeholder for that step already exists). Collapse duplicates
+  // by keeping the one with the most user-saved data; prefer the legacy /
+  // user-edited handoff over the auto-generated `nested-*` placeholder so
+  // saved status, artifact links, receipts, and outputs are preserved.
+  const score = (h: Handoff) => {
+    let s = 0;
+    if (h.status && h.status !== "Not Started") s += 4;
+    if (h.artifactLink) s += 2;
+    if (h.receiptLink) s += 2;
+    if (h.artifactBody) s += 2;
+    if (h.artifactTitle) s += 1;
+    if (h.completedAt) s += 1;
+    if (!h.id.startsWith("nested-")) s += 1;
+    return s;
+  };
+  const byMode = new Map<string, Handoff>();
+  const deduped: Handoff[] = [];
+  for (const h of handoffs) {
+    const key = (h.mode ?? "").trim().toLowerCase();
+    const existing = byMode.get(key);
+    if (!existing) {
+      byMode.set(key, h);
+      deduped.push(h);
+      continue;
+    }
+    changed = true;
+    if (score(h) > score(existing)) {
+      // Replace the existing entry with the richer one.
+      const idx = deduped.indexOf(existing);
+      if (idx >= 0) deduped[idx] = h;
+      byMode.set(key, h);
+    }
+    // else: drop h
+  }
+  handoffs = deduped;
   for (const [stageId, templates] of Object.entries(STAGE_NESTED_STEPS)) {
     const stage = PIPELINE_STAGES.find((s) => s.id === stageId);
     if (!stage) continue;
