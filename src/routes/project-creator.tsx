@@ -766,6 +766,7 @@ function ProjectCreatorPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedHandoffId, setSelectedHandoffId] = useState<string | null>(null);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [commandReceiptOpen, setCommandReceiptOpen] = useState(false);
 
   // Load from localStorage after mount.
@@ -800,10 +801,12 @@ function ProjectCreatorPage() {
   useEffect(() => {
     if (!selected) {
       setSelectedHandoffId(null);
+      setSelectedPhaseId(null);
       return;
     }
     const active = currentStageEntry(selected)?.handoff;
     setSelectedHandoffId(active?.id ?? selected.handoffs[0]?.id ?? null);
+    setSelectedPhaseId(null);
     setCommandReceiptOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
@@ -1382,7 +1385,15 @@ function ProjectCreatorPage() {
               onEditArtifact={(id) => setEditingArtifactId(id)}
               onRemoveArtifact={removeArtifact}
               selectedHandoffId={selectedHandoffId}
-              onSelectHandoff={setSelectedHandoffId}
+              selectedPhaseId={selectedPhaseId}
+              onSelectHandoff={(id) => {
+                setSelectedHandoffId(id);
+                setSelectedPhaseId(null);
+              }}
+              onSelectPhase={(id) => {
+                setSelectedPhaseId(id);
+                setSelectedHandoffId(null);
+              }}
               onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
             />
           ) : (
@@ -1411,7 +1422,15 @@ function ProjectCreatorPage() {
             <WorkflowRail
               project={selected}
               selectedHandoffId={selectedHandoffId}
-              onSelectHandoff={setSelectedHandoffId}
+              selectedPhaseId={selectedPhaseId}
+              onSelectHandoff={(id) => {
+                setSelectedHandoffId(id);
+                setSelectedPhaseId(null);
+              }}
+              onSelectPhase={(id) => {
+                setSelectedPhaseId(id);
+                setSelectedHandoffId(null);
+              }}
               onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
               onAddHandoff={openNewHandoff}
             />
@@ -1659,21 +1678,151 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // ---------- Workflow rail (right panel) ----------
+
+// Creator-facing top-level phases. Each phase groups one or more internal
+// detailed handoffs. Order matters — the first matching phase wins. The
+// active phase is whichever phase contains the project's active handoff.
+type WorkflowPhase = {
+  id: string;
+  label: string;
+  blurb: string;
+  match: (h: Handoff) => boolean;
+};
+
+const WORKFLOW_PHASES: WorkflowPhase[] = [
+  {
+    id: "clarity",
+    label: "Clarity",
+    blurb:
+      "Boss captures the raw idea, confirms project type, and shapes the project brief.",
+    match: (h) =>
+      /(mode 0|raw idea|project type|mode 1|\bshape\b|mode 2|project brief)/i.test(
+        h.mode,
+      ),
+  },
+  {
+    id: "chief-review",
+    label: "Chief Review",
+    blurb:
+      "Chief reviews the brief and prepares the project for the lantern R&D team.",
+    match: (h) => /chief intake|chief review/i.test(h.mode),
+  },
+  {
+    id: "lantern-rd",
+    label: "Lantern R&D",
+    blurb:
+      "Compass leads the lantern team through past, present, future, risks, synthesis, and the highlight brief.",
+    match: (h) =>
+      /(lantern|r&d|past landscape|present landscape|future hooks|risks and unknowns|research scope|highlight brief|\btrunk\b)/i.test(
+        h.mode,
+      ),
+  },
+  {
+    id: "knowledge-packet",
+    label: "Knowledge Packet",
+    blurb: "Rook turns clarity and research into a business-plan / knowledge packet.",
+    match: (h) => /knowledge packet/i.test(h.mode) || /^rook$/i.test(h.bot ?? ""),
+  },
+  {
+    id: "prototype",
+    label: "Prototype",
+    blurb: "Tinker builds and tests a working prototype.",
+    match: (h) => /prototype/i.test(h.mode) || /^tinker$/i.test(h.bot ?? ""),
+  },
+  {
+    id: "design-polish",
+    label: "Design Polish",
+    blurb: "Luma reviews visual trust, readability, accessibility, and packaging.",
+    match: (h) =>
+      /(design polish|design review)/i.test(h.mode) || /^luma$/i.test(h.bot ?? ""),
+  },
+  {
+    id: "final-package",
+    label: "Final Package",
+    blurb: "Weaver bundles the final handoff package.",
+    match: (h) => /final package/i.test(h.mode) || /^weaver$/i.test(h.bot ?? ""),
+  },
+  {
+    id: "record-memory",
+    label: "Official Record & Memory",
+    blurb:
+      "Ledger files the official record. Echo aligns what should be remembered.",
+    match: (h) =>
+      /(official record|memory alignment|\bmemory\b)/i.test(h.mode) ||
+      /^(ledger|echo)$/i.test(h.bot ?? ""),
+  },
+];
+
+const OTHER_PHASE: WorkflowPhase = {
+  id: "other",
+  label: "Other Steps",
+  blurb: "Custom or unclassified handoffs.",
+  match: () => true,
+};
+
+function phaseForHandoff(h: Handoff): WorkflowPhase {
+  for (const p of WORKFLOW_PHASES) if (p.match(h)) return p;
+  return OTHER_PHASE;
+}
+
+type PhaseBucket = {
+  phase: WorkflowPhase;
+  items: Array<{ handoff: Handoff; globalIndex: number }>;
+};
+
+function bucketHandoffsByPhase(handoffs: Handoff[]): PhaseBucket[] {
+  const buckets = new Map<string, PhaseBucket>();
+  for (const p of WORKFLOW_PHASES) buckets.set(p.id, { phase: p, items: [] });
+  buckets.set(OTHER_PHASE.id, { phase: OTHER_PHASE, items: [] });
+  handoffs.forEach((h, i) => {
+    buckets
+      .get(phaseForHandoff(h).id)!
+      .items.push({ handoff: h, globalIndex: i });
+  });
+  const ordered: PhaseBucket[] = WORKFLOW_PHASES.map((p) => buckets.get(p.id)!).filter(
+    (b) => b.items.length > 0,
+  );
+  const other = buckets.get(OTHER_PHASE.id)!;
+  if (other.items.length > 0) ordered.push(other);
+  return ordered;
+}
+
 function WorkflowRail({
   project,
   selectedHandoffId,
+  selectedPhaseId,
   onSelectHandoff,
+  onSelectPhase,
   onOpenCommandReceipt,
   onAddHandoff,
 }: {
   project: Project;
   selectedHandoffId: string | null;
+  selectedPhaseId: string | null;
   onSelectHandoff: (id: string) => void;
+  onSelectPhase: (id: string) => void;
   onOpenCommandReceipt: () => void;
   onAddHandoff: () => void;
 }) {
   const activeEntry = currentStageEntry(project);
   const activeId = activeEntry?.handoff.id ?? null;
+  const phaseBuckets = bucketHandoffsByPhase(project.handoffs);
+  const activePhaseId =
+    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === activeId))?.phase.id ??
+    null;
+  const selectedHandoffPhaseId =
+    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === selectedHandoffId))
+      ?.phase.id ?? null;
+
+  // Phases auto-expand when active, when they contain the selected step, or
+  // when they ARE the selected phase. Users can also toggle manually.
+  const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>({});
+  const isExpanded = (id: string) => {
+    if (id in manualExpanded) return manualExpanded[id];
+    return id === activePhaseId || id === selectedHandoffPhaseId || id === selectedPhaseId;
+  };
+  const togglePhase = (id: string) =>
+    setManualExpanded((m) => ({ ...m, [id]: !isExpanded(id) }));
 
   return (
     <aside
@@ -1695,6 +1844,7 @@ function WorkflowRail({
         </button>
       </div>
       <div className="mb-2 text-[10px] text-muted-foreground/70">
+        {phaseBuckets.length} phase{phaseBuckets.length === 1 ? "" : "s"} ·{" "}
         {project.handoffs.length} step{project.handoffs.length === 1 ? "" : "s"} · click to view
       </div>
       {project.handoffs.length === 0 ? (
@@ -1705,133 +1855,225 @@ function WorkflowRail({
           No handoffs yet.
         </div>
       ) : (
-        <ol className="relative space-y-1.5">
-          {project.handoffs.map((h, idx) => {
-            const isActive = h.id === activeId;
-            const isSelected = h.id === selectedHandoffId;
+        <ol className="relative space-y-2">
+          {phaseBuckets.map((bucket, phaseIdx) => {
+            const phaseNum = phaseIdx + 1;
+            const isPhaseActive = bucket.phase.id === activePhaseId;
+            const isPhaseSelected = bucket.phase.id === selectedPhaseId;
+            const expanded = isExpanded(bucket.phase.id);
+            const total = bucket.items.length;
+            const complete = bucket.items.filter((it) => it.handoff.status === "Complete").length;
+            const blocked = bucket.items.some((it) => it.handoff.status === "Blocked");
+            const allComplete = total > 0 && complete === total;
+            const activeItem = bucket.items.find((it) => it.handoff.id === activeId);
             const NEUTRAL = "oklch(0.6 0.04 75)";
             const BLOCK = "oklch(0.65 0.22 25)";
-            const stageColor =
-              h.status === "Complete"
-                ? EMERALD
-                : h.status === "Blocked"
-                  ? BLOCK
-                  : h.status === "Parked"
-                    ? NEUTRAL
-                    : isActive
-                      ? AMBER
-                      : NEUTRAL;
-            const dotChar =
-              h.status === "Complete"
-                ? "✓"
-                : h.status === "Blocked"
-                  ? "!"
-                  : h.status === "Parked"
-                    ? "·"
-                    : isActive
-                      ? "●"
-                      : "○";
-            const { title, phase } = splitStepTitle(h.mode);
-            // Row visual: raised card with subtle status-tinted background,
-            // left accent strip, and stronger emphasis on the active step.
-            const rowBg = isSelected
-              ? `color-mix(in oklab, ${stageColor} 14%, oklch(0.28 0.035 70))`
-              : isActive
-                ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
-                : h.status === "Complete"
-                  ? `color-mix(in oklab, ${EMERALD} 5%, oklch(0.26 0.035 65))`
-                  : h.status === "Blocked"
-                    ? `color-mix(in oklab, ${BLOCK} 7%, oklch(0.26 0.035 65))`
-                    : "oklch(0.28 0.035 70 / 0.55)";
-            const rowBorder = isSelected
-              ? stageColor
-              : isActive
+            const phaseColor = blocked
+              ? BLOCK
+              : isPhaseActive
                 ? AMBER
-                : "oklch(0.42 0.04 70 / 0.55)";
-            const rowShadow = isActive
+                : allComplete
+                  ? EMERALD
+                  : NEUTRAL;
+            const headerBg = isPhaseSelected
+              ? `color-mix(in oklab, ${phaseColor} 16%, oklch(0.28 0.035 70))`
+              : isPhaseActive
+                ? `color-mix(in oklab, ${AMBER} 12%, oklch(0.26 0.035 65))`
+                : allComplete
+                  ? `color-mix(in oklab, ${EMERALD} 6%, oklch(0.26 0.035 65))`
+                  : "oklch(0.28 0.035 70 / 0.55)";
+            const headerShadow = isPhaseActive
               ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 6px 16px -8px ${AMBER}55, 0 0 0 1px ${AMBER}33`
-              : isSelected
-                ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 4px 10px -6px ${stageColor}66`
+              : isPhaseSelected
+                ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 4px 10px -6px ${phaseColor}66`
                 : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
+            const summary = activeItem
+              ? `Current: ${splitStepTitle(activeItem.handoff.mode).title || "—"}`
+              : allComplete
+                ? `${total} of ${total} complete`
+                : `${complete} of ${total} complete`;
             return (
-              <li key={h.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelectHandoff(h.id)}
-                  className="relative flex w-full items-center gap-2 overflow-hidden rounded-lg border pl-3 pr-2 py-1.5 text-left transition hover:brightness-110"
+              <li key={bucket.phase.id}>
+                <div
+                  className="relative overflow-hidden rounded-lg border"
                   style={{
-                    borderColor: rowBorder,
-                    background: rowBg,
-                    boxShadow: rowShadow,
+                    borderColor: isPhaseSelected
+                      ? phaseColor
+                      : isPhaseActive
+                        ? AMBER
+                        : "oklch(0.42 0.04 70 / 0.55)",
+                    background: headerBg,
+                    boxShadow: headerShadow,
                   }}
-                  title={`${idx + 1}. ${h.mode} · ${h.status}`}
                 >
                   {/* left accent strip — timeline cue */}
                   <span
                     aria-hidden
                     className="absolute left-0 top-0 h-full"
                     style={{
-                      width: isActive ? 3 : 2,
-                      background: stageColor,
-                      opacity: isActive ? 1 : h.status === "Not Started" ? 0.35 : 0.7,
-                      boxShadow: isActive ? `0 0 8px ${AMBER}` : undefined,
+                      width: isPhaseActive ? 3 : 2,
+                      background: phaseColor,
+                      opacity: isPhaseActive ? 1 : allComplete ? 0.85 : 0.5,
+                      boxShadow: isPhaseActive ? `0 0 8px ${AMBER}` : undefined,
                     }}
                   />
-                  <span
-                    className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/70"
-                    style={{ minWidth: "1.25rem", textAlign: "right" }}
-                  >
-                    {idx + 1}
-                  </span>
-                  <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
-                    style={{
-                      borderColor: stageColor,
-                      color: stageColor,
-                      background: isActive
-                        ? `color-mix(in oklab, ${AMBER} 18%, transparent)`
-                        : "transparent",
-                      boxShadow: isActive ? `0 0 6px ${AMBER}88` : undefined,
-                    }}
-                  >
-                    {dotChar}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className="block truncate leading-tight"
-                      style={{
-                        fontWeight: isActive ? 700 : isSelected ? 600 : 500,
-                        fontSize: isActive ? "12.5px" : "12px",
-                        color: isActive
-                          ? "oklch(0.96 0.04 80)"
-                          : h.status === "Complete"
-                            ? "oklch(0.85 0.03 85)"
-                            : "oklch(0.88 0.03 85)",
-                      }}
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      onClick={() => onSelectPhase(bucket.phase.id)}
+                      className="flex min-w-0 flex-1 items-center gap-2 pl-3 pr-1 py-2 text-left transition hover:brightness-110"
+                      title={`Phase ${phaseNum}: ${bucket.phase.label}`}
                     >
-                      {title || <span className="italic opacity-60">untitled</span>}
-                    </span>
-                    <span className="flex items-center gap-1 text-[10px] leading-tight text-muted-foreground">
-                      <span className="truncate">
-                        {h.bot || "—"}
-                        {phase && <span className="opacity-60"> · {phase}</span>}
+                      <span
+                        className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/80"
+                        style={{ minWidth: "1.25rem", textAlign: "right" }}
+                      >
+                        {phaseNum}
                       </span>
-                    </span>
-                  </span>
-                  {isActive && (
-                    <span
-                      className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
-                      style={{
-                        borderColor: AMBER,
-                        color: "oklch(0.2 0.04 60)",
-                        background: AMBER,
-                        boxShadow: `0 0 8px ${AMBER}66`,
-                      }}
+                      <span
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                        style={{
+                          borderColor: phaseColor,
+                          color: phaseColor,
+                          background: isPhaseActive
+                            ? `color-mix(in oklab, ${AMBER} 18%, transparent)`
+                            : "transparent",
+                          boxShadow: isPhaseActive ? `0 0 6px ${AMBER}88` : undefined,
+                        }}
+                      >
+                        {allComplete ? "✓" : blocked ? "!" : isPhaseActive ? "●" : "○"}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className="block truncate leading-tight"
+                          style={{
+                            fontWeight: isPhaseActive ? 700 : isPhaseSelected ? 600 : 500,
+                            fontSize: isPhaseActive ? "13px" : "12.5px",
+                            color: isPhaseActive
+                              ? "oklch(0.96 0.04 80)"
+                              : "oklch(0.9 0.03 85)",
+                          }}
+                        >
+                          {bucket.phase.label}
+                        </span>
+                        <span className="block truncate text-[10px] leading-tight text-muted-foreground">
+                          {summary}
+                        </span>
+                      </span>
+                      {isPhaseActive && (
+                        <span
+                          className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
+                          style={{
+                            borderColor: AMBER,
+                            color: "oklch(0.2 0.04 60)",
+                            background: AMBER,
+                            boxShadow: `0 0 8px ${AMBER}66`,
+                          }}
+                        >
+                          now
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => togglePhase(bucket.phase.id)}
+                      aria-label={expanded ? "collapse phase" : "expand phase"}
+                      className="flex w-7 shrink-0 items-center justify-center text-xs text-muted-foreground transition hover:text-foreground"
+                      title={expanded ? "Collapse" : "Expand"}
                     >
-                      now
-                    </span>
+                      <span style={{ transform: expanded ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>
+                        ›
+                      </span>
+                    </button>
+                  </div>
+                  {expanded && total > 0 && (
+                    <ol className="space-y-1 border-t px-2 py-1.5" style={{ borderColor: AMBER_SOFT }}>
+                      {bucket.items.map(({ handoff: h, globalIndex }) => {
+                        const isActive = h.id === activeId;
+                        const isSelected = h.id === selectedHandoffId;
+                        const stepColor =
+                          h.status === "Complete"
+                            ? EMERALD
+                            : h.status === "Blocked"
+                              ? BLOCK
+                              : h.status === "Parked"
+                                ? NEUTRAL
+                                : isActive
+                                  ? AMBER
+                                  : NEUTRAL;
+                        const dotChar =
+                          h.status === "Complete"
+                            ? "✓"
+                            : h.status === "Blocked"
+                              ? "!"
+                              : h.status === "Parked"
+                                ? "·"
+                                : isActive
+                                  ? "●"
+                                  : "○";
+                        const { title } = splitStepTitle(h.mode);
+                        return (
+                          <li key={h.id}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectHandoff(h.id)}
+                              className="flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition hover:brightness-110"
+                              style={{
+                                borderColor: isSelected
+                                  ? stepColor
+                                  : "oklch(0.42 0.04 70 / 0.4)",
+                                background: isSelected
+                                  ? `color-mix(in oklab, ${stepColor} 14%, oklch(0.28 0.035 70))`
+                                  : isActive
+                                    ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
+                                    : "oklch(0.28 0.035 70 / 0.4)",
+                              }}
+                              title={`${globalIndex + 1}. ${h.mode} · ${h.status}`}
+                            >
+                              <span
+                                className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
+                                style={{ minWidth: "1rem", textAlign: "right" }}
+                              >
+                                {globalIndex + 1}
+                              </span>
+                              <span
+                                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold"
+                                style={{
+                                  borderColor: stepColor,
+                                  color: stepColor,
+                                  background: isActive
+                                    ? `color-mix(in oklab, ${AMBER} 18%, transparent)`
+                                    : "transparent",
+                                }}
+                              >
+                                {dotChar}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span
+                                  className="block truncate leading-tight"
+                                  style={{
+                                    fontWeight: isActive ? 600 : isSelected ? 600 : 400,
+                                    fontSize: "11.5px",
+                                    color: isActive
+                                      ? "oklch(0.94 0.04 80)"
+                                      : "oklch(0.85 0.03 85)",
+                                  }}
+                                >
+                                  {title || <span className="italic opacity-60">untitled</span>}
+                                </span>
+                                {h.bot && (
+                                  <span className="block truncate text-[9.5px] leading-tight text-muted-foreground/80">
+                                    {h.bot}
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ol>
                   )}
-                </button>
+                </div>
               </li>
             );
           })}
@@ -1852,6 +2094,126 @@ function WorkflowRail({
         Legend: <span style={{ color: AMBER }}>●</span> working · <span style={{ color: EMERALD }}>✓</span> complete · <span style={{ color: "oklch(0.65 0.22 25)" }}>!</span> blocked
       </div>
     </aside>
+  );
+}
+
+// ---------- Phase overview (shown when a top-level phase is selected) ----------
+function PhaseOverview({
+  bucket,
+  activeId,
+  onSelectHandoff,
+}: {
+  bucket: PhaseBucket;
+  activeId: string | null;
+  onSelectHandoff: (id: string) => void;
+}) {
+  const total = bucket.items.length;
+  const complete = bucket.items.filter((it) => it.handoff.status === "Complete").length;
+  const activeItem = bucket.items.find((it) => it.handoff.id === activeId) ?? null;
+  const allComplete = total > 0 && complete === total;
+  const NEUTRAL = "oklch(0.6 0.04 75)";
+  const BLOCK = "oklch(0.65 0.22 25)";
+  return (
+    <div
+      className="rounded-2xl border bark-texture p-4 md:p-5"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+        Phase overview
+      </div>
+      <h3
+        className="mt-1 font-display text-xl font-semibold leading-tight"
+        style={{ color: AMBER }}
+      >
+        {bucket.phase.label}
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
+        <span>
+          <span className="opacity-60">Progress: </span>
+          <span className="text-foreground">
+            {complete} of {total} complete
+          </span>
+        </span>
+        {activeItem && (
+          <span>
+            <span className="opacity-60">Current step: </span>
+            <span className="text-foreground">
+              {splitStepTitle(activeItem.handoff.mode).title || "—"}
+            </span>
+          </span>
+        )}
+        {allComplete && !activeItem && (
+          <span style={{ color: EMERALD }}>All steps complete in this phase.</span>
+        )}
+      </div>
+      <ol className="mt-4 space-y-1.5">
+        {bucket.items.map(({ handoff: h, globalIndex }) => {
+          const isActive = h.id === activeId;
+          const stepColor =
+            h.status === "Complete"
+              ? EMERALD
+              : h.status === "Blocked"
+                ? BLOCK
+                : h.status === "Parked"
+                  ? NEUTRAL
+                  : isActive
+                    ? AMBER
+                    : NEUTRAL;
+          const { title } = splitStepTitle(h.mode);
+          return (
+            <li key={h.id}>
+              <button
+                type="button"
+                onClick={() => onSelectHandoff(h.id)}
+                className="flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition hover:brightness-110"
+                style={{
+                  borderColor: isActive ? AMBER : "oklch(0.42 0.04 70 / 0.5)",
+                  background: isActive
+                    ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
+                    : "oklch(0.28 0.035 70 / 0.4)",
+                }}
+              >
+                <span
+                  className="shrink-0 text-[11px] font-mono tabular-nums text-muted-foreground"
+                  style={{ minWidth: "1.5rem", textAlign: "right" }}
+                >
+                  {globalIndex + 1}
+                </span>
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                  style={{ borderColor: stepColor, color: stepColor }}
+                >
+                  {h.status === "Complete"
+                    ? "✓"
+                    : h.status === "Blocked"
+                      ? "!"
+                      : isActive
+                        ? "●"
+                        : "○"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {title || <span className="italic opacity-60">untitled</span>}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {h.bot || "—"} · {h.status}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                  open ›
+                </span>
+              </button>
+            </li>
+          );
+        })}
+        {bucket.items.length === 0 && (
+          <li className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+            No steps in this phase yet.
+          </li>
+        )}
+      </ol>
+    </div>
   );
 }
 
@@ -2440,6 +2802,8 @@ function ProjectMain({
   onRemoveArtifact,
   selectedHandoffId,
   onSelectHandoff,
+  selectedPhaseId,
+  onSelectPhase,
   onOpenCommandReceipt,
 }: {
   project: Project;
@@ -2456,17 +2820,26 @@ function ProjectMain({
   onRemoveArtifact: (id: string) => void;
   selectedHandoffId: string | null;
   onSelectHandoff: (id: string | null) => void;
+  selectedPhaseId: string | null;
+  onSelectPhase: (id: string | null) => void;
   onOpenCommandReceipt: () => void;
 }) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const displayBot = active?.bot || project.currentBot;
 
-  const selectedHandoff =
-    project.handoffs.find((h) => h.id === selectedHandoffId) ?? active ?? null;
+  // If the user explicitly selected a phase header, show the phase overview
+  // instead of any step detail (even the active default).
+  const showingPhase = !!selectedPhaseId && !selectedHandoffId;
+  const selectedHandoff = showingPhase
+    ? null
+    : (project.handoffs.find((h) => h.id === selectedHandoffId) ?? active ?? null);
   const selectedGlobalIndex = selectedHandoff
     ? project.handoffs.findIndex((h) => h.id === selectedHandoff.id)
     : -1;
+  const selectedPhase = selectedPhaseId
+    ? bucketHandoffsByPhase(project.handoffs).find((b) => b.phase.id === selectedPhaseId) ?? null
+    : null;
 
   return (
     <div className="space-y-4 min-w-0">
@@ -2549,6 +2922,12 @@ function ProjectMain({
           onAddArtifact={onAddArtifact}
           onEditArtifact={onEditArtifact}
           onRemoveArtifact={onRemoveArtifact}
+        />
+      ) : selectedPhase ? (
+        <PhaseOverview
+          bucket={selectedPhase}
+          activeId={active?.id ?? null}
+          onSelectHandoff={(id: string) => onSelectHandoff(id)}
         />
       ) : (
         <div
