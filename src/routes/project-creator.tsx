@@ -561,10 +561,32 @@ function splitStepTitle(mode?: string | null): { title: string; phase: string } 
   if (!m) return { title: "", phase: "" };
   const idx = m.indexOf("/");
   if (idx === -1) return { title: m, phase: "" };
-  const title = m.slice(0, idx).trim();
-  const phase = m.slice(idx + 1).trim();
-  return { title: title || m, phase };
+  const left = m.slice(0, idx).trim();
+  const right = m.slice(idx + 1).trim();
+  // If the leading segment is a bot/team name (e.g. "Rook / Knowledge Packet"),
+  // swap so the human-readable work step becomes the title and the bot moves
+  // to the metadata row (the rail also renders handoff.bot separately).
+  if (left && right && KNOWN_BOT_NAMES.has(left.toLowerCase())) {
+    return { title: right, phase: "" };
+  }
+  return { title: left || m, phase: right };
 }
+
+const KNOWN_BOT_NAMES = new Set<string>([
+  "boss",
+  "chief",
+  "clarity",
+  "compass",
+  "vault",
+  "bloom",
+  "luma",
+  "rook",
+  "tinker",
+  "weaver",
+  "ledger",
+  "echo",
+  "squirrels",
+]);
 
 type WorkflowEntry = { handoff: Handoff; displayStep: number };
 
@@ -1251,6 +1273,14 @@ function ProjectCreatorPage() {
         )}
 
         {/* 3-column layout */}
+        {!hydrated ? (
+          <div
+            className="rounded-2xl border bark-texture p-8 text-center text-sm text-muted-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+          >
+            loading projects…
+          </div>
+        ) : (
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
           {/* LEFT — project list */}
           <aside
@@ -1298,8 +1328,11 @@ function ProjectCreatorPage() {
               {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
                 const workflow = currentStageEntry(p)?.handoff;
-                const displayMode = workflow?.mode || p.currentMode;
+                const rawMode = workflow?.mode || p.currentMode;
+                const split = splitStepTitle(rawMode);
                 const displayBot = workflow?.bot || p.currentBot;
+                const displayMode = split.title || rawMode;
+                const displayPhase = split.phase;
                 return (
                   <li key={p.id}>
                     <button
@@ -1320,6 +1353,7 @@ function ProjectCreatorPage() {
                         {p.projectType === "Other / Custom"
                           ? p.projectTypeCustom || "Other / Custom"
                           : p.projectType || "Unclassified"} · {displayMode} · {displayBot}
+                        {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                         updated {fmtTime(p.updatedAt)}
@@ -1382,6 +1416,7 @@ function ProjectCreatorPage() {
             />
           )}
         </div>
+        )}
       </div>
 
       {previewArtifact && (
@@ -1692,7 +1727,7 @@ function WorkflowRail({
                     ? "·"
                     : isActive
                       ? "●"
-                      : String(idx + 1);
+                      : "○";
             const { title, phase } = splitStepTitle(h.mode);
             return (
               <li key={h.id}>
@@ -1735,23 +1770,6 @@ function WorkflowRail({
                         {phase && <span className="opacity-60"> · {phase}</span>}
                       </span>
                     </span>
-                  </span>
-                  <span
-                    className="shrink-0 text-[10px]"
-                    style={{ color: stageColor }}
-                    title={h.status}
-                  >
-                    {h.status === "Complete"
-                      ? "✓"
-                      : h.status === "Blocked"
-                        ? "!"
-                        : h.status === "Working"
-                          ? "●"
-                          : h.status === "Sent" || h.status === "Needs Review"
-                            ? "○"
-                            : h.status === "Parked"
-                              ? "·"
-                              : ""}
                   </span>
                   {isActive && (
                     <span
@@ -2441,8 +2459,16 @@ function ProjectMain({
                 : project.projectType || "—"
             }
           />
-          <MetaItem label="Mode" value={project.currentMode} />
-          <MetaItem label="Owner" value={displayBot} />
+          {(() => {
+            const split = splitStepTitle(project.currentMode);
+            return (
+              <>
+                <MetaItem label="Current Step" value={split.title || project.currentMode} />
+                {split.phase && <MetaItem label="Phase" value={split.phase} />}
+                <MetaItem label="Owner" value={displayBot} />
+              </>
+            );
+          })()}
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
       </div>
