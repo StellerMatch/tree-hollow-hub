@@ -1839,6 +1839,7 @@ function StageGroup({
 
 function HandoffCard({
   handoff,
+  displayStep,
   isFirst,
   isLast,
   onMoveUp,
@@ -1849,6 +1850,7 @@ function HandoffCard({
   onPreview,
 }: {
   handoff: Handoff;
+  displayStep?: number;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -1903,7 +1905,7 @@ function HandoffCard({
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
             style={{ borderColor: accentBar, color: accentBar }}
           >
-            {handoff.step}
+            {displayStep ?? handoff.step}
           </div>
           <BotAvatar name={handoff.bot} size={36} ring={accentBar} />
           <div className="flex flex-col gap-0.5">
