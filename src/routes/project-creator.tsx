@@ -1682,36 +1682,38 @@ function ModalButton({
   );
 }
 
-// ---------- New project modal ----------
-function NewProjectModal({
+// ---------- Project settings modal (create + edit) ----------
+function ProjectSettingsModal({
+  mode,
+  initial,
   onClose,
-  onCreate,
+  onSave,
 }: {
+  mode: "create" | "edit";
+  initial?: Project;
   onClose: () => void;
-  onCreate: (input: {
-    name: string;
-    summary: string;
-    status: ProjectStatus;
-    currentMode: string;
-    currentBot: string;
-    nextAction: string;
-    blocker: string;
-  }) => void;
+  onSave: (input: ProjectSettingsInput) => void;
 }) {
-  const [name, setName] = useState("");
-  const [summary, setSummary] = useState("");
-  const [status, setStatus] = useState<ProjectStatus>("Draft");
-  const [currentMode, setCurrentMode] = useState("Mode 0 / Clarity");
-  const [currentBot, setCurrentBot] = useState("Boss");
-  const [nextAction, setNextAction] = useState("Boss writes the clarity brief");
-  const [blocker, setBlocker] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
+  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
+  const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
+  const [nextAction, setNextAction] = useState(
+    initial?.nextAction ?? "Boss writes the clarity brief",
+  );
+  const [blocker, setBlocker] = useState(initial?.blocker ?? "");
 
   const canSave = name.trim().length > 0;
 
   return (
     <ModalShell
-      title="New project"
-      subtitle="Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+      title={mode === "create" ? "New project" : "Project settings"}
+      subtitle={
+        mode === "create"
+          ? "Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+          : "Edit project name, summary, status, mode, owner, next action, and blocker."
+      }
       onClose={onClose}
       footer={
         <>
@@ -1721,10 +1723,10 @@ function NewProjectModal({
           <ModalButton
             disabled={!canSave}
             onClick={() =>
-              onCreate({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+              onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
             }
           >
-            create project
+            {mode === "create" ? "create project" : "save changes"}
           </ModalButton>
         </>
       }
