@@ -1081,20 +1081,6 @@ function CurrentStageIndicator({ project }: { project: Project }) {
   );
 }
 
-function TagOld({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      className="rounded-md border px-2 py-1.5"
-      style={{ borderColor: AMBER_SOFT }}
-    >
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-        {label}
-      </div>
-      <div className="truncate text-sm">{value || "—"}</div>
-    </div>
-  );
-}
-
 function Section({
   title,
   subtitle,
