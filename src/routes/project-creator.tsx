@@ -184,8 +184,9 @@ function ProjectCreatorPage() {
   // Load from localStorage after mount.
   useEffect(() => {
     const stored = loadProjects();
-    setProjects(stored);
-    setSelectedId(stored[0]?.id ?? "");
+    const { projects: migrated } = migrateProjects(stored);
+    setProjects(migrated);
+    setSelectedId(migrated[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
