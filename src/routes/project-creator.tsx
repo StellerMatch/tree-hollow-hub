@@ -1043,7 +1043,11 @@ function ProjectMain({
       </div>
 
       {/* Mode 0 */}
-      <Section title="Mode 0 · Clarity" subtitle="Boss writes what they want in plain language.">
+      <Section
+        title="Mode 0 · Clarity"
+        subtitle="Boss writes what they want in plain language."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <textarea
           value={project.clarity}
           onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
@@ -1056,7 +1060,11 @@ function ProjectMain({
       </Section>
 
       {/* Mode 1 */}
-      <Section title="Mode 1 · Shape" subtitle="First refinement step.">
+      <Section
+        title="Mode 1 · Shape"
+        subtitle="First refinement step."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <Field label="Structured notes">
           <textarea
             value={project.shapeNotes}
@@ -1090,7 +1098,11 @@ function ProjectMain({
       </Section>
 
       {/* Mode 2 */}
-      <Section title="Mode 2 · Plan" subtitle="Deeper project planning.">
+      <Section
+        title="Mode 2 · Plan"
+        subtitle="Deeper project planning."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <Field label="Planning notes">
           <textarea
             value={project.planNotes}
@@ -1242,10 +1254,12 @@ function CurrentStageIndicator({ project }: { project: Project }) {
 function Section({
   title,
   subtitle,
+  headerRight,
   children,
 }: {
   title: string;
   subtitle?: string;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -1253,7 +1267,7 @@ function Section({
       className="rounded-2xl border bark-texture p-4 md:p-5"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-3 flex items-baseline justify-between gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold" style={{ color: AMBER }}>
             {title}
@@ -1262,6 +1276,7 @@ function Section({
             <div className="text-xs text-muted-foreground">{subtitle}</div>
           )}
         </div>
+        {headerRight}
       </div>
       <div className="space-y-3">{children}</div>
     </section>
