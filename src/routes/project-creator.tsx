@@ -1307,24 +1307,48 @@ function HandoffCard({
 }) {
   const isComplete = handoff.status === "Complete";
   const isBlocked = handoff.status === "Blocked";
+  const isParked = handoff.status === "Parked";
+
+  const borderColor = isBlocked
+    ? "oklch(0.65 0.22 25 / 0.55)"
+    : isComplete
+      ? "oklch(0.7 0.14 160 / 0.45)"
+      : isParked
+        ? "oklch(0.6 0.03 80 / 0.4)"
+        : AMBER_LINE;
+  const accentBar = isBlocked
+    ? "oklch(0.65 0.22 25)"
+    : isComplete
+      ? EMERALD
+      : isParked
+        ? "oklch(0.6 0.03 80)"
+        : AMBER;
+
+  const hasArtifactPreview = !!(handoff.artifactBody || handoff.artifactLink);
 
   return (
     <div
-      className="ml-0 rounded-xl border p-3"
+      className="relative ml-0 overflow-hidden rounded-xl border"
       style={{
-        borderColor: isBlocked
-          ? "oklch(0.65 0.22 25 / 0.5)"
-          : isComplete
-            ? "oklch(0.7 0.14 160 / 0.4)"
-            : AMBER_SOFT,
-        background: isComplete ? "oklch(0.7 0.14 160 / 0.06)" : "transparent",
+        borderColor,
+        background: isComplete
+          ? "oklch(0.7 0.14 160 / 0.05)"
+          : isBlocked
+            ? "oklch(0.65 0.22 25 / 0.04)"
+            : "transparent",
       }}
     >
-      <div className="flex items-start gap-3">
+      {/* left accent bar */}
+      <div
+        className="absolute inset-y-0 left-0 w-[3px]"
+        style={{ background: accentBar, opacity: 0.85 }}
+      />
+      <div className="flex items-stretch gap-3 p-3 pl-4">
+        {/* step number + reorder */}
         <div className="flex flex-col items-center gap-1">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
-            style={{ borderColor: AMBER_LINE, color: AMBER }}
+            style={{ borderColor: accentBar, color: accentBar }}
           >
             {handoff.step}
           </div>
@@ -1351,124 +1375,150 @@ function HandoffCard({
             </button>
           </div>
         </div>
+
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          {/* title row */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
               {handoff.mode || <span className="italic opacity-60">untitled step</span>}
             </div>
-            <div className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground"
-              style={{ borderColor: AMBER_SOFT }}>
-              {handoff.bot || "—"}
+            <div className="text-[11px] text-muted-foreground">
+              <span className="opacity-60">owner</span>{" "}
+              <span className="text-foreground">{handoff.bot || "—"}</span>
             </div>
-            <select
-              value={handoff.status}
-              onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
-              className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-              aria-label="status"
-            >
-              {HANDOFF_STATUSES.map((s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ))}
-            </select>
             <StatusPill status={handoff.status} />
           </div>
 
+          {/* assignment */}
           {handoff.assignment && (
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
-              {handoff.assignment}
-            </p>
+            <LabelledBlock label="Assignment">
+              <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/85">
+                {handoff.assignment}
+              </p>
+            </LabelledBlock>
           )}
 
+          {/* authority boundary */}
           {handoff.authorityNotes && (
-            <div
-              className="mt-2 rounded-md border px-2 py-1 text-[11px] italic"
-              style={{
-                borderColor: AMBER_SOFT,
-                background: "oklch(0.78 0.18 50 / 0.05)",
-                color: "oklch(0.85 0.05 80)",
-              }}
-            >
-              authority: {handoff.authorityNotes}
-            </div>
+            <LabelledBlock label="Authority boundary">
+              <p className="whitespace-pre-wrap text-[11px] italic leading-relaxed text-muted-foreground">
+                {handoff.authorityNotes}
+              </p>
+            </LabelledBlock>
           )}
 
-          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle) && (
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-              {handoff.receiptLink && (
-                <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
-                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
-                  🧾 receipt
-                </a>
-              )}
-              {handoff.artifactLink && (
-                <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
-                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
-                  🔗 artifact link
-                </a>
-              )}
-              {handoff.artifactTitle && (
-                <span className="rounded-md border px-2 py-0.5 text-muted-foreground"
-                  style={{ borderColor: AMBER_SOFT }}>
-                  📎 {handoff.artifactTitle}
-                </span>
-              )}
-            </div>
+          {/* artifact / receipt */}
+          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle || hasArtifactPreview) && (
+            <LabelledBlock label="Artifact / receipt">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                {handoff.artifactTitle && (
+                  <span className="rounded-md border px-2 py-0.5 text-foreground/80"
+                    style={{ borderColor: AMBER_SOFT }}>
+                    📎 {handoff.artifactTitle}
+                  </span>
+                )}
+                {handoff.receiptLink && (
+                  <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    🧾 receipt
+                  </a>
+                )}
+                {handoff.artifactLink && (
+                  <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    🔗 link
+                  </a>
+                )}
+                {hasArtifactPreview && (
+                  <button
+                    onClick={onPreview}
+                    className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}
+                  >
+                    preview
+                  </button>
+                )}
+              </div>
+            </LabelledBlock>
           )}
 
-          {isComplete && (handoff.nextBot || handoff.nextStep) && (
-            <div
-              className="mt-2 rounded-md border px-2 py-1.5 text-xs"
-              style={{
-                borderColor: EMERALD,
-                background: "oklch(0.7 0.14 160 / 0.08)",
-                color: EMERALD,
-              }}
-            >
-              → next: <strong>{handoff.nextStep || "—"}</strong>
-              {handoff.nextBot && (
-                <> by <strong>{handoff.nextBot}</strong></>
-              )}
-            </div>
+          {/* next step */}
+          {(handoff.nextBot || handoff.nextStep) && (
+            <LabelledBlock label="Next step">
+              <div
+                className="rounded-md border px-2 py-1 text-xs"
+                style={{
+                  borderColor: isComplete ? EMERALD : AMBER_SOFT,
+                  background: isComplete
+                    ? "oklch(0.7 0.14 160 / 0.08)"
+                    : "oklch(0.78 0.18 50 / 0.04)",
+                  color: isComplete ? EMERALD : "inherit",
+                }}
+              >
+                → <strong>{handoff.nextStep || "—"}</strong>
+                {handoff.nextBot && <> by <strong>{handoff.nextBot}</strong></>}
+              </div>
+            </LabelledBlock>
           )}
 
-          <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground/80">
-            <div>
-              {handoff.completedAt
-                ? `completed ${fmtTime(handoff.completedAt)}`
-                : "in flight"}
+          {/* footer: status select + meta + actions */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground/80"
+            style={{ borderColor: AMBER_SOFT }}>
+            <div className="flex items-center gap-2">
+              <select
+                value={handoff.status}
+                onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
+                className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-[11px]"
+                style={{ borderColor: AMBER_SOFT }}
+                aria-label="change status"
+              >
+                {HANDOFF_STATUSES.map((s) => (
+                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                    {s}
+                  </option>
+                ))}
+              </select>
+              <span>
+                {handoff.completedAt
+                  ? `completed ${fmtTime(handoff.completedAt)}`
+                  : "in flight"}
+              </span>
             </div>
-            <div className="flex gap-2">
-              {(handoff.artifactBody || handoff.artifactLink) && (
-                <button
-                  onClick={onPreview}
-                  className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                  style={{ borderColor: AMBER_LINE, color: AMBER }}
-                >
-                  preview artifact
-                </button>
-              )}
+            <div className="flex gap-1">
               <button
                 onClick={onEdit}
                 className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
+                title="Edit handoff"
               >
-                edit
+                ✎ edit
               </button>
               <button
                 onClick={onRemove}
-                className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
+                className="rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
+                style={{ borderColor: AMBER_SOFT }}
+                title="Remove handoff"
+                aria-label="remove handoff"
               >
-                remove
+                ✕
               </button>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LabelledBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-2.5">
+      <div className="mb-0.5 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60">
+        {label}
+      </div>
+      {children}
     </div>
   );
 }
