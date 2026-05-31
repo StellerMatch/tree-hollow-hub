@@ -2446,8 +2446,16 @@ function ProjectMain({
                 : project.projectType || "—"
             }
           />
-          <MetaItem label="Mode" value={project.currentMode} />
-          <MetaItem label="Owner" value={displayBot} />
+          {(() => {
+            const split = splitStepTitle(project.currentMode);
+            return (
+              <>
+                <MetaItem label="Current Step" value={split.title || project.currentMode} />
+                {split.phase && <MetaItem label="Phase" value={split.phase} />}
+                <MetaItem label="Owner" value={displayBot} />
+              </>
+            );
+          })()}
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
       </div>
