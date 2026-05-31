@@ -76,7 +76,7 @@ export const DABOTTREE_PIPELINE: PipelineStageTemplate[] = [
     stage: "Ledger / Official Record",
     bot: "Ledger",
     assignment:
-      "File decision record: approval status, what changed, what did not change.",
+      "File the final decision, artifacts, receipts, and official project record.",
     authorityNotes:
       "Ledger is the official record. No edits to past entries — only new ones.",
     nextBot: "Echo",

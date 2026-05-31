@@ -161,28 +161,9 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
       const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
       if (missing.length === 0) return p;
       const baseStep = p.handoffs.length;
-      const appended: Handoff[] = missing.map((stage, idx) => {
-        const tpl = DABOTTREE_PIPELINE.find(
-          (t) => stageForHandoff({
-            id: "tpl",
-            step: 0,
-            mode: t.stage,
-            bot: t.bot,
-            status: "Not Started",
-          } as Handoff).id === stage.id,
-        );
-        return {
-          id: `backfill-${p.id}-${stage.id}`,
-          step: baseStep + idx + 1,
-          mode: tpl?.stage ?? stage.label,
-          bot: tpl?.bot ?? stage.bot,
-          assignment: tpl?.assignment ?? "",
-          status: "Not Started",
-          authorityNotes: tpl?.authorityNotes,
-          nextBot: tpl?.nextBot,
-          nextStep: tpl?.nextStep,
-        };
-      });
+      const appended: Handoff[] = missing.map((stage, idx) =>
+        createRequiredStageHandoff(p.id, stage.id, baseStep + idx + 1, "backfill"),
+      );
       changed = true;
       return { ...p, handoffs: [...p.handoffs, ...appended] };
     });
@@ -194,6 +175,37 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     /* ignore */
   }
   return { projects: next, changed };
+}
+
+function createRequiredStageHandoff(
+  projectId: string,
+  stageId: string,
+  step: number,
+  prefix: string,
+): Handoff {
+  const stage = PIPELINE_STAGES.find((s) => s.id === stageId);
+  const tpl = DABOTTREE_PIPELINE.find(
+    (t) =>
+      stageForHandoff({
+        id: "tpl",
+        step: 0,
+        mode: t.stage,
+        bot: t.bot,
+        assignment: t.assignment,
+        status: "Not Started",
+      }).id === stageId,
+  );
+  return {
+    id: `${prefix}-${projectId}-${stageId}-${step}`,
+    step,
+    mode: tpl?.stage ?? stage?.label ?? "Required stage",
+    bot: tpl?.bot ?? stage?.bot ?? "",
+    assignment: tpl?.assignment ?? "",
+    status: "Not Started",
+    authorityNotes: tpl?.authorityNotes,
+    nextBot: tpl?.nextBot,
+    nextStep: tpl?.nextStep,
+  };
 }
 
 // Version-independent safety net: every project must have at least one
@@ -209,29 +221,9 @@ function ensureRequiredStages(
     const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
     if (missing.length === 0) return p;
     const baseStep = p.handoffs.length;
-    const appended: Handoff[] = missing.map((stage, idx) => {
-      const tpl = DABOTTREE_PIPELINE.find(
-        (t) =>
-          stageForHandoff({
-            id: "tpl",
-            step: 0,
-            mode: t.stage,
-            bot: t.bot,
-            status: "Not Started",
-          } as Handoff).id === stage.id,
-      );
-      return {
-        id: `ensure-${p.id}-${stage.id}-${Date.now()}-${idx}`,
-        step: baseStep + idx + 1,
-        mode: tpl?.stage ?? stage.label,
-        bot: tpl?.bot ?? stage.bot,
-        assignment: tpl?.assignment ?? "",
-        status: "Not Started",
-        authorityNotes: tpl?.authorityNotes,
-        nextBot: tpl?.nextBot,
-        nextStep: tpl?.nextStep,
-      };
-    });
+    const appended: Handoff[] = missing.map((stage, idx) =>
+      createRequiredStageHandoff(p.id, stage.id, baseStep + idx + 1, "ensure"),
+    );
     changed = true;
     return { ...p, handoffs: [...p.handoffs, ...appended] };
   });
