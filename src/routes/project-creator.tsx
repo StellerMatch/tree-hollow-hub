@@ -2128,6 +2128,7 @@ function HandoffEditorModal({
       title={isNew ? "New handoff" : `Edit step ${initial.step}`}
       subtitle="Who's doing what, and what they're handing back."
       onClose={onClose}
+      width="lg"
       footer={
         <>
           <ModalButton variant="ghost" onClick={onClose}>
