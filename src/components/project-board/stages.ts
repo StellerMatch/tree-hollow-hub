@@ -266,9 +266,9 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
 
 // --- Phases 4–8: detailed hand-down checklist ----------------------------
 // Restores the full internal handoff sequence under each creator-facing
-// phase. Top counts: Modes 5 + R&D 7 + Knowledge Packet 4 + Prototype 5 +
-// Design Polish 4 + Final Package 4 + Official Record 3 + Memory 3 = 35
-// detailed steps, matching the hand-down workflow document.
+// phase. Counts: Modes 5 (Clarity 4 + Chief Review 1) + R&D 7 +
+// Knowledge Packet 6 + Prototype 6 + Design Polish 5 + Final Package 5 +
+// Official Record 4 + Memory 5 = 43 detailed steps.
 
 STAGE_NESTED_STEPS["knowledge-packet"] = [
   {
@@ -277,6 +277,15 @@ STAGE_NESTED_STEPS["knowledge-packet"] = [
     assignment:
       "Rook reads Clarity brief + Compass R&D highlight brief and confirms the inputs needed to assemble the knowledge packet.",
     authorityNotes: "Rook owns intake. Flags missing inputs before synthesis.",
+    nextBot: "Squirrels",
+    nextStep: "Risk and Sanity Check / Knowledge Packet",
+  },
+  {
+    mode: "Risk and Sanity Check / Knowledge Packet",
+    bot: "Squirrels",
+    assignment:
+      "Squirrels review the intake for risk, missing assumptions, and sanity issues before drafting begins. Flag concerns; cannot block delivery.",
+    authorityNotes: "Squirrels advise. Rook decides whether to revise.",
     nextBot: "Rook",
     nextStep: "Business Plan Draft / Knowledge Packet",
   },
@@ -286,15 +295,15 @@ STAGE_NESTED_STEPS["knowledge-packet"] = [
     assignment:
       "Draft the business-plan / knowledge packet: problem, audience, offer, scope, success criteria, and next-step plan.",
     authorityNotes: "Rook owns synthesis. Pulls from Clarity + R&D only.",
-    nextBot: "Squirrels",
-    nextStep: "Risk and Sanity Check / Knowledge Packet",
+    nextBot: "Vault",
+    nextStep: "Practical Lane Checks / Knowledge Packet",
   },
   {
-    mode: "Risk and Sanity Check / Knowledge Packet",
-    bot: "Squirrels",
+    mode: "Practical Lane Checks / Knowledge Packet",
+    bot: "Vault",
     assignment:
-      "Squirrels review the draft packet for risk, missing assumptions, and sanity issues. Flag concerns; cannot block delivery.",
-    authorityNotes: "Squirrels advise. Rook decides whether to revise.",
+      "Vault and Bloom run lane-specific checks against the draft — money realism, audience realism, and any operational gaps Rook should fold in.",
+    authorityNotes: "Vault + Bloom advise. Rook decides whether to revise the draft.",
     nextBot: "Rook",
     nextStep: "Packet Finalization / Knowledge Packet",
   },
@@ -302,8 +311,17 @@ STAGE_NESTED_STEPS["knowledge-packet"] = [
     mode: "Packet Finalization / Knowledge Packet",
     bot: "Rook",
     assignment:
-      "Finalize the knowledge packet, attach links and receipts, and prepare the handoff to Tinker for prototype work.",
-    authorityNotes: "Rook owns final packet. Handoff packet out of Phase 4.",
+      "Finalize the knowledge packet: incorporate lane checks, attach links and receipts, and lock the version.",
+    authorityNotes: "Rook owns the final packet. No further edits after this gate.",
+    nextBot: "Rook",
+    nextStep: "Tinker-Ready Handoff / Knowledge Packet",
+  },
+  {
+    mode: "Tinker-Ready Handoff / Knowledge Packet",
+    bot: "Rook",
+    assignment:
+      "Hand the locked packet, scope notes, and any open questions to Tinker so the prototype can start cleanly.",
+    authorityNotes: "Handoff packet out of Phase 4.",
     nextBot: "Tinker",
     nextStep: "Prototype Kickoff / Prototype",
   },
@@ -351,7 +369,16 @@ STAGE_NESTED_STEPS["prototype"] = [
     bot: "Tinker",
     assignment:
       "Hand the prototype URL, evidence, and demo note to Luma for design polish review.",
-    authorityNotes: "Handoff packet out of Phase 5.",
+    authorityNotes: "Handoff packet out of the build lane.",
+    nextBot: "Tinker",
+    nextStep: "Tinker Result Review / Prototype",
+  },
+  {
+    mode: "Tinker Result Review / Prototype",
+    bot: "Tinker",
+    assignment:
+      "Review the prototype against the knowledge packet: scope match, blockers logged, evidence attached, and Luma handoff confirmed.",
+    authorityNotes: "Final gate out of Phase 5. Confirms Tinker's result before Luma takes it.",
     nextBot: "Luma",
     nextStep: "Visual Review / Design Polish",
   },
@@ -390,7 +417,16 @@ STAGE_NESTED_STEPS["design-polish"] = [
     bot: "Luma",
     assignment:
       "Sign off on the polished prototype and write the handoff note to Weaver for final packaging.",
-    authorityNotes: "Handoff packet out of Phase 6.",
+    authorityNotes: "Luma owns sign-off. Closes the polish lane.",
+    nextBot: "Luma",
+    nextStep: "Luma Result Review / Design Polish",
+  },
+  {
+    mode: "Luma Result Review / Design Polish",
+    bot: "Luma",
+    assignment:
+      "Review the polished result end-to-end: visual trust, accessibility, packaging, and readiness for Weaver.",
+    authorityNotes: "Final gate out of Phase 6.",
     nextBot: "Weaver",
     nextStep: "Package Intake / Final Package",
   },
@@ -429,7 +465,16 @@ STAGE_NESTED_STEPS["final-package"] = [
     bot: "Weaver",
     assignment:
       "Hand the final package and delivery note to Ledger for the official record.",
-    authorityNotes: "Handoff packet out of Phase 7.",
+    authorityNotes: "Weaver closes the packaging lane.",
+    nextBot: "Weaver",
+    nextStep: "Weaver Result Review / Final Package",
+  },
+  {
+    mode: "Weaver Result Review / Final Package",
+    bot: "Weaver",
+    assignment:
+      "Review the assembled package end-to-end: links resolve, receipts attached, delivery note clear, owner named.",
+    authorityNotes: "Final gate out of Phase 7.",
     nextBot: "Ledger",
     nextStep: "Decision Record / Official Record",
   },
@@ -459,28 +504,46 @@ STAGE_NESTED_STEPS["official-record"] = [
     bot: "Ledger",
     assignment:
       "Hand the filed record to Echo for memory alignment.",
-    authorityNotes: "Handoff packet out of Phase 8a.",
+    authorityNotes: "Closes the record lane before memory work begins.",
+    nextBot: "Ledger",
+    nextStep: "Official Record / Official Record",
+  },
+  {
+    mode: "Official Record / Official Record",
+    bot: "Ledger",
+    assignment:
+      "Confirm the official record is filed, immutable, and discoverable. Final ledger gate before memory alignment.",
+    authorityNotes: "Final gate out of Phase 8a.",
     nextBot: "Echo",
-    nextStep: "Memory Decisions / Memory Alignment",
+    nextStep: "Brain Update Requests / Memory Alignment",
   },
 ];
 
 STAGE_NESTED_STEPS["memory-alignment"] = [
-  {
-    mode: "Memory Decisions / Memory Alignment",
-    bot: "Echo",
-    assignment:
-      "Echo decides what should be remembered from this project and what should be intentionally forgotten.",
-    authorityNotes: "Echo guards memory. May request brain updates; cannot perform them silently.",
-    nextBot: "Echo",
-    nextStep: "Brain Update Requests / Memory Alignment",
-  },
   {
     mode: "Brain Update Requests / Memory Alignment",
     bot: "Echo",
     assignment:
       "Name any brain / system memory updates that should follow from this project, with reasons.",
     authorityNotes: "Requests only. Boss approves brain changes.",
+    nextBot: "Echo",
+    nextStep: "Memory Alignment / Memory Alignment",
+  },
+  {
+    mode: "Memory Alignment / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Reconcile requested brain updates with current memory. Resolve conflicts, note what shifts, what holds.",
+    authorityNotes: "Echo owns alignment. No silent overwrites.",
+    nextBot: "Echo",
+    nextStep: "Memory Decisions / Memory Alignment",
+  },
+  {
+    mode: "Memory Decisions / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Decide what is remembered, what is intentionally forgotten, and where each decision is recorded.",
+    authorityNotes: "Echo guards memory. Decisions are append-only.",
     nextBot: "Echo",
     nextStep: "Project Close / Memory Alignment",
   },
@@ -489,7 +552,16 @@ STAGE_NESTED_STEPS["memory-alignment"] = [
     bot: "Echo",
     assignment:
       "Close out the project: confirm record is filed, memory is aligned, and nothing important is left dangling.",
-    authorityNotes: "Final close. Project moves to Complete after sign-off.",
+    authorityNotes: "Project moves to Complete after sign-off.",
+    nextBot: "Echo",
+    nextStep: "Final Memory Receipt / Memory Alignment",
+  },
+  {
+    mode: "Final Memory Receipt / Memory Alignment",
+    bot: "Echo",
+    assignment:
+      "Issue the final memory receipt: a short note linking record, memory decisions, and any open follow-ups.",
+    authorityNotes: "Final gate out of Phase 8b. Receipt is the project's closing artifact.",
   },
 ];
 
@@ -514,6 +586,15 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   // Legacy "Trunk / R&D" carried Compass's synthesis/research content, so
   // it migrates into Research Scope and Synthesis (not Kickoff).
   "trunk / r&d": "Research Scope and Synthesis / R&D",
+  // Legacy pipeline-seed broad cards collapse into the canonical first
+  // checkpoint of their phase so the rail does not show summary-style
+  // duplicates next to the freshly-backfilled nested steps.
+  "rook / knowledge packet": "Business Plan Draft / Knowledge Packet",
+  "tinker / prototype": "Build v1 / Prototype",
+  "luma / design polish": "Visual Review / Design Polish",
+  "weaver / final package": "Package Intake / Final Package",
+  "ledger / official record": "Decision Record / Official Record",
+  "echo / memory alignment": "Memory Decisions / Memory Alignment",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
