@@ -663,6 +663,45 @@ function ProjectCreatorPage() {
     setShowNewProject(false);
   }
 
+  // One-click "+ new" project. Creates an editable project seeded with
+  // the canonical Mode 0 defaults; nested Modes + R&D steps are appended
+  // automatically by ensureRequiredStages on the next render tick.
+  function quickCreateProject() {
+    const id = uid();
+    const ts = new Date().toISOString();
+    const fresh: Project = {
+      id,
+      name: "Untitled Project",
+      summary: "",
+      status: "Draft",
+      projectType: undefined, // displayed as "Unclassified" until set
+      projectTypeCustom: undefined,
+      currentMode: "Mode 0 / Raw Idea",
+      currentBot: "Boss",
+      nextAction: "Fill Mode 0 / Raw Idea",
+      blocker: undefined,
+      updatedAt: ts,
+      clarity: "",
+      shapeNotes: "",
+      shapeBotOutput: "",
+      planNotes: "",
+      planBotOutput: "",
+      handoffs: [],
+      artifacts: [],
+      activity: [
+        {
+          id: uid(),
+          at: ts,
+          bot: "Boss",
+          action: "created project",
+          status: "Draft",
+        },
+      ],
+    };
+    setProjects((prev) => [fresh, ...prev]);
+    setSelectedId(id);
+  }
+
   function exportJSON() {
     if (typeof window === "undefined") return;
     const blob = new Blob([JSON.stringify(projects, null, 2)], {
