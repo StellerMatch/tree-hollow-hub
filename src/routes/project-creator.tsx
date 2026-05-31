@@ -422,13 +422,7 @@ function ensureRequiredStages(
     }
     const nested = ensureNestedSteps(repairedProject);
     if (nested.changed) changed = true;
-    const synced = syncProjectCurrentWorkflow(nested.project);
-    if (
-      synced.currentMode !== nested.project.currentMode ||
-      synced.currentBot !== nested.project.currentBot ||
-      synced.nextAction !== nested.project.nextAction
-    ) changed = true;
-    return synced;
+    return nested.project;
   });
   return { projects: next, changed };
 }
