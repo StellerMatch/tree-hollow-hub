@@ -23,7 +23,13 @@ import {
   activeHandoff,
 } from "@/components/project-board/pipeline";
 import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
-import { bucketHandoffs, type StageBucket } from "@/components/project-board/stages";
+import {
+  bucketHandoffs,
+  PIPELINE_STAGES,
+  stageForHandoff,
+  type StageBucket,
+} from "@/components/project-board/stages";
+import { DABOTTREE_PIPELINE } from "@/components/project-board/pipeline";
 
 function BotAvatar({
   name,
