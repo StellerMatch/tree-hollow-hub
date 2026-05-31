@@ -1123,7 +1123,17 @@ function ArtifactGrid({
         </button>
       </div>
       {all.length === 0 ? (
-        <div className="text-sm text-muted-foreground">No artifacts yet.</div>
+        <div
+          className="rounded-xl border border-dashed p-6 text-center"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          <div className="font-display text-sm" style={{ color: AMBER }}>
+            No artifacts yet
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Artifacts appear here when bots return work. Add one manually with the button above.
+          </p>
+        </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {all.map((a) => (
