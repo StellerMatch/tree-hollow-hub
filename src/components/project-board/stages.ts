@@ -255,7 +255,9 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   // preserved because only the `mode` text is renamed.
   "mode 0 / clarity intake": "Mode 0 / Raw Idea",
   "clarity / mode 0": "Mode 0 / Raw Idea",
-  "trunk / r&d": "Lantern Team Kickoff / R&D",
+  // Legacy "Trunk / R&D" carried Compass's synthesis/research content, so
+  // it migrates into Research Scope and Synthesis (not Kickoff).
+  "trunk / r&d": "Research Scope and Synthesis / R&D",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
