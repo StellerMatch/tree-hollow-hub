@@ -1,6 +1,9 @@
 import type { Project } from "./types";
 
-const now = () => new Date().toISOString();
+// Fixed timestamp so SSR and client first render produce identical markup.
+// Real activity uses live timestamps.
+const SEED_TS = "2026-05-31T00:00:00.000Z";
+const now = () => SEED_TS;
 
 export const SEED_PROJECTS: Project[] = [
   {

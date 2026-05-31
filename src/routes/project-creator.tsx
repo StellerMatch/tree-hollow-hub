@@ -6,7 +6,10 @@ import type {
   HandoffStatus,
   ProjectStatus,
   Artifact,
+  ArtifactType,
+  ArtifactSource,
 } from "@/components/project-board/types";
+import { ARTIFACT_TYPES, ARTIFACT_SOURCES } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 
 export const Route = createFileRoute("/project-creator")({
@@ -30,6 +33,16 @@ const AMBER_LINE = "oklch(0.78 0.18 50 / 0.35)";
 const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
+
+type ProjectSettingsInput = {
+  name: string;
+  summary: string;
+  status: ProjectStatus;
+  currentMode: string;
+  currentBot: string;
+  nextAction: string;
+  blocker: string;
+};
 
 function loadProjects(): Project[] {
   if (typeof window === "undefined") return SEED_PROJECTS;
@@ -100,26 +113,71 @@ function StatusPill({ status }: { status: ProjectStatus | HandoffStatus }) {
 }
 
 function ProjectCreatorPage() {
-  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
-  const [selectedId, setSelectedId] = useState<string>(
-    () => loadProjects()[0]?.id ?? "",
-  );
+  // Initialize with deterministic seed so SSR and client first render match.
+  // localStorage is read after mount in a useEffect.
+  const [projects, setProjects] = useState<Project[]>(SEED_PROJECTS);
+  const [selectedId, setSelectedId] = useState<string>(SEED_PROJECTS[0]?.id ?? "");
+  const [hydrated, setHydrated] = useState(false);
   const [previewArtifact, setPreviewArtifact] = useState<Artifact | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingHandoff, setEditingHandoff] = useState<{
     handoff: Handoff;
     isNew: boolean;
   } | null>(null);
+  const [editingArtifactId, setEditingArtifactId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
+  // Load from localStorage after mount.
   useEffect(() => {
-    saveProjects(projects);
-  }, [projects]);
+    const stored = loadProjects();
+    setProjects(stored);
+    setSelectedId(stored[0]?.id ?? "");
+    setHydrated(true);
+  }, []);
+
+  // Persist only after hydration so we never overwrite stored data with seed.
+  useEffect(() => {
+    if (hydrated) saveProjects(projects);
+  }, [projects, hydrated]);
 
   const selected = useMemo(
     () => projects.find((p) => p.id === selectedId) ?? projects[0] ?? null,
     [projects, selectedId],
   );
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter((p) =>
+      [p.name, p.status, p.currentBot, p.currentMode, p.summary]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes(q)),
+    );
+  }, [projects, query]);
+
+  function logActivity(
+    p: Project,
+    entry: { bot?: string; action: string; status?: HandoffStatus | ProjectStatus; receipt?: string; blocker?: string; link?: string },
+  ): Project {
+    return {
+      ...p,
+      activity: [
+        ...p.activity,
+        {
+          id: uid(),
+          at: new Date().toISOString(),
+          bot: entry.bot ?? p.currentBot ?? "—",
+          action: entry.action,
+          status: entry.status,
+          receipt: entry.receipt,
+          blocker: entry.blocker,
+          link: entry.link,
+        },
+      ],
+    };
+  }
 
   function updateSelected(mut: (p: Project) => Project) {
     if (!selected) return;
@@ -128,17 +186,44 @@ function ProjectCreatorPage() {
     );
   }
 
-  function createProject(input: {
-    name: string;
-    summary: string;
-    status: ProjectStatus;
-    currentMode: string;
-    currentBot: string;
-    nextAction: string;
-    blocker: string;
-  }) {
+  function saveProjectSettings(input: ProjectSettingsInput) {
+    if (!editingProjectId) return;
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== editingProjectId) return p;
+        const changed: string[] = [];
+        if (input.name !== p.name) changed.push("name");
+        if (input.summary !== p.summary) changed.push("summary");
+        if (input.status !== p.status) changed.push("status");
+        if (input.currentMode !== p.currentMode) changed.push("mode");
+        if (input.currentBot !== p.currentBot) changed.push("owner");
+        if (input.nextAction !== p.nextAction) changed.push("next action");
+        if ((input.blocker.trim() || undefined) !== p.blocker) changed.push("blocker");
+        const next: Project = {
+          ...p,
+          name: input.name.trim() || p.name,
+          summary: input.summary,
+          status: input.status,
+          currentMode: input.currentMode,
+          currentBot: input.currentBot,
+          nextAction: input.nextAction,
+          blocker: input.blocker.trim() || undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        if (changed.length === 0) return next;
+        return logActivity(next, {
+          action: `updated project settings (${changed.join(", ")})`,
+          status: next.status,
+          blocker: next.blocker,
+        });
+      }),
+    );
+    setEditingProjectId(null);
+  }
+
+  function createProject(input: ProjectSettingsInput) {
     const id = uid();
-    const now = new Date().toISOString();
+    const ts = new Date().toISOString();
     const fresh: Project = {
       id,
       name: input.name.trim() || "Untitled Project",
@@ -148,7 +233,7 @@ function ProjectCreatorPage() {
       currentBot: input.currentBot || "Boss",
       nextAction: input.nextAction,
       blocker: input.blocker.trim() || undefined,
-      updatedAt: now,
+      updatedAt: ts,
       clarity: "",
       shapeNotes: "",
       shapeBotOutput: "",
@@ -157,7 +242,13 @@ function ProjectCreatorPage() {
       handoffs: [],
       artifacts: [],
       activity: [
-        { id: uid(), at: now, bot: input.currentBot || "Boss", action: "opened project", status: input.status },
+        {
+          id: uid(),
+          at: ts,
+          bot: input.currentBot || "Boss",
+          action: "created project",
+          status: input.status,
+        },
       ],
     };
     setProjects((prev) => [fresh, ...prev]);
@@ -186,14 +277,21 @@ function ProjectCreatorPage() {
       try {
         const parsed = JSON.parse(String(reader.result));
         if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
-        // Basic shape check
         for (const p of parsed) {
           if (typeof p?.id !== "string" || typeof p?.name !== "string") {
             throw new Error("Project entries missing id/name");
           }
         }
-        setProjects(parsed as Project[]);
-        setSelectedId((parsed[0] as Project)?.id ?? "");
+        const ts = new Date().toISOString();
+        const stamped = (parsed as Project[]).map((p) => ({
+          ...p,
+          activity: [
+            ...(p.activity ?? []),
+            { id: uid(), at: ts, bot: "—", action: "data imported" },
+          ],
+        }));
+        setProjects(stamped);
+        setSelectedId(stamped[0]?.id ?? "");
         setImportError(null);
       } catch (err) {
         setImportError(err instanceof Error ? err.message : "Invalid JSON");
@@ -219,14 +317,133 @@ function ProjectCreatorPage() {
 
   function saveHandoff(h: Handoff, isNew: boolean) {
     if (!selected) return;
-    updateSelected((p) => ({
-      ...p,
-      handoffs: isNew
-        ? [...p.handoffs, h]
-        : p.handoffs.map((x) => (x.id === h.id ? h : x)),
-    }));
+    const prev = selected.handoffs.find((x) => x.id === h.id);
+    updateSelected((p) => {
+      const next: Project = {
+        ...p,
+        handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
+      };
+      if (isNew) {
+        return logActivity(next, {
+          bot: h.bot || p.currentBot,
+          action: `added handoff "${h.mode || "untitled"}"`,
+          status: h.status,
+        });
+      }
+      const events: string[] = [];
+      if (prev && prev.status !== h.status) events.push(`status → ${h.status}`);
+      events.push("edited");
+      return logActivity(next, {
+        bot: h.bot || p.currentBot,
+        action: `handoff "${h.mode || "untitled"}" ${events.join(", ")}`,
+        status: h.status,
+      });
+    });
     setEditingHandoff(null);
   }
+
+  function moveHandoff(id: string, dir: -1 | 1) {
+    updateSelected((p) => {
+      const idx = p.handoffs.findIndex((h) => h.id === id);
+      if (idx < 0) return p;
+      const target = idx + dir;
+      if (target < 0 || target >= p.handoffs.length) return p;
+      const next = [...p.handoffs];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      const renumbered = next.map((h, i) => ({ ...h, step: i + 1 }));
+      return { ...p, handoffs: renumbered };
+    });
+  }
+
+  function removeHandoff(id: string) {
+    updateSelected((p) => {
+      const h = p.handoffs.find((x) => x.id === id);
+      const next = {
+        ...p,
+        handoffs: p.handoffs.filter((x) => x.id !== id).map((x, i) => ({ ...x, step: i + 1 })),
+      };
+      return logActivity(next, {
+        bot: h?.bot,
+        action: `removed handoff "${h?.mode || "untitled"}"`,
+      });
+    });
+  }
+
+  function changeHandoffStatus(id: string, status: HandoffStatus) {
+    updateSelected((p) => {
+      const h = p.handoffs.find((x) => x.id === id);
+      if (!h || h.status === status) return p;
+      const updated: Handoff = {
+        ...h,
+        status,
+        completedAt:
+          status === "Complete" ? h.completedAt ?? new Date().toISOString() : h.completedAt,
+      };
+      const next = { ...p, handoffs: p.handoffs.map((x) => (x.id === id ? updated : x)) };
+      return logActivity(next, {
+        bot: h.bot,
+        action: `handoff "${h.mode || "untitled"}" status → ${status}`,
+        status,
+      });
+    });
+  }
+
+  function addArtifact() {
+    if (!selected) return;
+    const ts = new Date().toISOString();
+    const a: Artifact = {
+      id: uid(),
+      title: "Untitled artifact",
+      kind: "note",
+      type: "other",
+      source: "Manual",
+      body: "",
+      bot: selected.currentBot || "—",
+      createdAt: ts,
+      updatedAt: ts,
+    };
+    updateSelected((p) =>
+      logActivity({ ...p, artifacts: [...p.artifacts, a] }, {
+        bot: a.bot,
+        action: `added artifact "${a.title}"`,
+      }),
+    );
+    setEditingArtifactId(a.id);
+  }
+
+  function saveArtifact(updated: Artifact) {
+    updateSelected((p) =>
+      logActivity(
+        {
+          ...p,
+          artifacts: p.artifacts.map((a) =>
+            a.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : a,
+          ),
+        },
+        { bot: updated.bot, action: `updated artifact "${updated.title}"` },
+      ),
+    );
+    setEditingArtifactId(null);
+  }
+
+  function removeArtifact(id: string) {
+    updateSelected((p) => {
+      const a = p.artifacts.find((x) => x.id === id);
+      return logActivity(
+        { ...p, artifacts: p.artifacts.filter((x) => x.id !== id) },
+        { bot: a?.bot, action: `removed artifact "${a?.title ?? "untitled"}"` },
+      );
+    });
+  }
+
+  const editingProject = useMemo(
+    () => projects.find((p) => p.id === editingProjectId) ?? null,
+    [projects, editingProjectId],
+  );
+  const editingArtifact = useMemo(
+    () => selected?.artifacts.find((a) => a.id === editingArtifactId) ?? null,
+    [selected, editingArtifactId],
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -324,7 +541,7 @@ function ProjectCreatorPage() {
           >
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-                Projects
+                Projects · {filteredProjects.length}/{projects.length}
               </div>
               <button
                 onClick={() => setShowNewProject(true)}
@@ -334,8 +551,32 @@ function ProjectCreatorPage() {
                 + new
               </button>
             </div>
+            <div className="relative mb-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="search name, status, bot, mode…"
+                className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
+                style={{ borderColor: AMBER_SOFT }}
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="clear search"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded px-1.5 text-xs text-muted-foreground/70 hover:text-foreground"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {filteredProjects.length === 0 && (
+              <div className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+                style={{ borderColor: AMBER_LINE }}>
+                no projects match
+              </div>
+            )}
             <ul className="space-y-1.5">
-              {projects.map((p) => {
+              {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
                 return (
                   <li key={p.id}>
@@ -374,6 +615,13 @@ function ProjectCreatorPage() {
               onPreviewArtifact={setPreviewArtifact}
               onAddHandoff={openNewHandoff}
               onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
+              onOpenSettings={() => setEditingProjectId(selected.id)}
+              onMoveHandoff={moveHandoff}
+              onRemoveHandoff={removeHandoff}
+              onChangeHandoffStatus={changeHandoffStatus}
+              onAddArtifact={addArtifact}
+              onEditArtifact={(id) => setEditingArtifactId(id)}
+              onRemoveArtifact={removeArtifact}
             />
           ) : (
             <div
@@ -406,9 +654,19 @@ function ProjectCreatorPage() {
       )}
 
       {showNewProject && (
-        <NewProjectModal
+        <ProjectSettingsModal
+          mode="create"
           onClose={() => setShowNewProject(false)}
-          onCreate={createProject}
+          onSave={createProject}
+        />
+      )}
+
+      {editingProject && (
+        <ProjectSettingsModal
+          mode="edit"
+          initial={editingProject}
+          onClose={() => setEditingProjectId(null)}
+          onSave={saveProjectSettings}
         />
       )}
 
@@ -418,6 +676,14 @@ function ProjectCreatorPage() {
           isNew={editingHandoff.isNew}
           onClose={() => setEditingHandoff(null)}
           onSave={(h) => saveHandoff(h, editingHandoff.isNew)}
+        />
+      )}
+
+      {editingArtifact && (
+        <ArtifactEditorModal
+          initial={editingArtifact}
+          onClose={() => setEditingArtifactId(null)}
+          onSave={saveArtifact}
         />
       )}
     </div>
@@ -566,12 +832,26 @@ function ProjectMain({
   onPreviewArtifact,
   onAddHandoff,
   onEditHandoff,
+  onOpenSettings,
+  onMoveHandoff,
+  onRemoveHandoff,
+  onChangeHandoffStatus,
+  onAddArtifact,
+  onEditArtifact,
+  onRemoveArtifact,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
   onAddHandoff: () => void;
   onEditHandoff: (h: Handoff) => void;
+  onOpenSettings: () => void;
+  onMoveHandoff: (id: string, dir: -1 | 1) => void;
+  onRemoveHandoff: (id: string) => void;
+  onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
+  onAddArtifact: () => void;
+  onEditArtifact: (id: string) => void;
+  onRemoveArtifact: (id: string) => void;
 }) {
   return (
     <div className="space-y-4 min-w-0">
@@ -582,21 +862,27 @@ function ProjectMain({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <input
-              value={project.name}
-              onChange={(e) => onChange((p) => ({ ...p, name: e.target.value }))}
-              className="w-full bg-transparent font-display text-2xl font-semibold leading-tight outline-none md:text-3xl"
+            <h2
+              className="font-display text-2xl font-semibold leading-tight md:text-3xl"
               style={{ color: AMBER }}
-            />
-            <textarea
-              value={project.summary}
-              placeholder="Short summary…"
-              onChange={(e) => onChange((p) => ({ ...p, summary: e.target.value }))}
-              rows={1}
-              className="mt-1 w-full resize-none bg-transparent text-sm text-muted-foreground outline-none"
-            />
+            >
+              {project.name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {project.summary || <span className="italic opacity-60">no summary yet</span>}
+            </p>
           </div>
-          <StatusPill status={project.status} />
+          <div className="flex items-center gap-2">
+            <StatusPill status={project.status} />
+            <button
+              onClick={onOpenSettings}
+              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Edit project settings"
+            >
+              ⚙ settings
+            </button>
+          </div>
         </div>
         <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
           <Tag label="Mode" value={project.currentMode} />
@@ -692,10 +978,19 @@ function ProjectMain({
         onPreviewArtifact={onPreviewArtifact}
         onAddHandoff={onAddHandoff}
         onEditHandoff={onEditHandoff}
+        onMoveHandoff={onMoveHandoff}
+        onRemoveHandoff={onRemoveHandoff}
+        onChangeHandoffStatus={onChangeHandoffStatus}
       />
 
       {/* Artifacts */}
-      <ArtifactGrid project={project} onChange={onChange} onPreview={onPreviewArtifact} />
+      <ArtifactGrid
+        project={project}
+        onPreview={onPreviewArtifact}
+        onAdd={onAddArtifact}
+        onEdit={onEditArtifact}
+        onRemove={onRemoveArtifact}
+      />
 
       {/* Activity */}
       <ActivityLog project={project} />
@@ -757,28 +1052,22 @@ function SectionMeta({ updatedAt, who }: { updatedAt: string; who?: string }) {
 // ---------- Handoffs ----------
 function HandoffChain({
   project,
-  onChange,
   onPreviewArtifact,
   onAddHandoff,
   onEditHandoff,
+  onMoveHandoff,
+  onRemoveHandoff,
+  onChangeHandoffStatus,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
   onAddHandoff: () => void;
   onEditHandoff: (h: Handoff) => void;
+  onMoveHandoff: (id: string, dir: -1 | 1) => void;
+  onRemoveHandoff: (id: string) => void;
+  onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
 }) {
-  function updateHandoff(id: string, mut: (h: Handoff) => Handoff) {
-    onChange((p) => ({
-      ...p,
-      handoffs: p.handoffs.map((h) => (h.id === id ? mut(h) : h)),
-    }));
-  }
-
-  function removeHandoff(id: string) {
-    onChange((p) => ({ ...p, handoffs: p.handoffs.filter((h) => h.id !== id) }));
-  }
-
   return (
     <section
       className="rounded-2xl border bark-texture p-4 md:p-5"
@@ -790,7 +1079,7 @@ function HandoffChain({
             Handoff Chain
           </h2>
           <div className="text-xs text-muted-foreground">
-            One card per step. Update status as bots work.
+            One card per step. Reorder with ↑↓, edit details with edit.
           </div>
         </div>
         <button
@@ -833,8 +1122,12 @@ function HandoffChain({
             )}
             <HandoffCard
               handoff={h}
-              onUpdate={(mut) => updateHandoff(h.id, mut)}
-              onRemove={() => removeHandoff(h.id)}
+              isFirst={idx === 0}
+              isLast={idx === project.handoffs.length - 1}
+              onMoveUp={() => onMoveHandoff(h.id, -1)}
+              onMoveDown={() => onMoveHandoff(h.id, 1)}
+              onChangeStatus={(s) => onChangeHandoffStatus(h.id, s)}
+              onRemove={() => onRemoveHandoff(h.id)}
               onEdit={() => onEditHandoff(h)}
               onPreview={() => {
                 if (h.artifactBody || h.artifactLink) {
@@ -842,6 +1135,8 @@ function HandoffChain({
                     id: h.id,
                     title: h.artifactTitle || `${h.mode} artifact`,
                     kind: h.mode,
+                    type: "other",
+                    source: "Handoff",
                     body: h.artifactBody,
                     link: h.artifactLink,
                     bot: h.bot,
@@ -860,13 +1155,21 @@ function HandoffChain({
 
 function HandoffCard({
   handoff,
-  onUpdate,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
+  onChangeStatus,
   onRemove,
   onEdit,
   onPreview,
 }: {
   handoff: Handoff;
-  onUpdate: (mut: (h: Handoff) => Handoff) => void;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onChangeStatus: (s: HandoffStatus) => void;
   onRemove: () => void;
   onEdit: () => void;
   onPreview: () => void;
@@ -887,102 +1190,93 @@ function HandoffCard({
       }}
     >
       <div className="flex items-start gap-3">
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
-          style={{ borderColor: AMBER_LINE, color: AMBER }}
-        >
-          {handoff.step}
+        <div className="flex flex-col items-center gap-1">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            {handoff.step}
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={onMoveUp}
+              disabled={isFirst}
+              aria-label="move up"
+              title="Move up"
+              className="rounded border px-1 text-[10px] leading-none text-muted-foreground transition hover:text-foreground disabled:opacity-30"
+              style={{ borderColor: AMBER_SOFT }}
+            >
+              ▲
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={isLast}
+              aria-label="move down"
+              title="Move down"
+              className="rounded border px-1 text-[10px] leading-none text-muted-foreground transition hover:text-foreground disabled:opacity-30"
+              style={{ borderColor: AMBER_SOFT }}
+            >
+              ▼
+            </button>
+          </div>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={handoff.mode}
-              placeholder="Mode / step name"
-              onChange={(e) => onUpdate((h) => ({ ...h, mode: e.target.value }))}
-              className="min-w-0 flex-1 bg-transparent font-display text-sm font-semibold outline-none"
-            />
-            <input
-              value={handoff.bot}
-              placeholder="bot"
-              onChange={(e) => onUpdate((h) => ({ ...h, bot: e.target.value }))}
-              className="w-28 rounded-md border bg-transparent px-2 py-0.5 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
+            <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
+              {handoff.mode || <span className="italic opacity-60">untitled step</span>}
+            </div>
+            <div className="rounded-md border px-2 py-0.5 text-xs text-muted-foreground"
+              style={{ borderColor: AMBER_SOFT }}>
+              {handoff.bot || "—"}
+            </div>
             <select
               value={handoff.status}
-              onChange={(e) => {
-                const newStatus = e.target.value as HandoffStatus;
-                onUpdate((h) => ({
-                  ...h,
-                  status: newStatus,
-                  completedAt:
-                    newStatus === "Complete"
-                      ? h.completedAt ?? new Date().toISOString()
-                      : h.completedAt,
-                }));
-              }}
-              className="rounded-md border bg-transparent px-1.5 py-0.5 text-xs"
+              onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
+              className="rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-xs"
               style={{ borderColor: AMBER_SOFT }}
+              aria-label="status"
             >
-              {(
-                ["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]
-              ).map((s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ))}
+              {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
+                (s) => (
+                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                    {s}
+                  </option>
+                ),
+              )}
             </select>
             <StatusPill status={handoff.status} />
           </div>
 
-          <textarea
-            value={handoff.assignment}
-            onChange={(e) => onUpdate((h) => ({ ...h, assignment: e.target.value }))}
-            rows={2}
-            placeholder="Assignment text…"
-            className="mt-2 w-full rounded-md border bg-transparent px-2 py-1.5 text-xs leading-relaxed"
-            style={{ borderColor: AMBER_SOFT }}
-          />
+          {handoff.assignment && (
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+              {handoff.assignment}
+            </p>
+          )}
 
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <input
-              value={handoff.receiptLink ?? ""}
-              placeholder="Receipt / report link"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, receiptLink: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-            <input
-              value={handoff.artifactLink ?? ""}
-              placeholder="Artifact link"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, artifactLink: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-            <input
-              value={handoff.artifactTitle ?? ""}
-              placeholder="Artifact title"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, artifactTitle: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-            <textarea
-              value={handoff.artifactBody ?? ""}
-              rows={1}
-              placeholder="Artifact text (paste output)"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, artifactBody: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-          </div>
+          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle) && (
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+              {handoff.receiptLink && (
+                <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                  🧾 receipt
+                </a>
+              )}
+              {handoff.artifactLink && (
+                <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+                  className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                  style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                  🔗 artifact link
+                </a>
+              )}
+              {handoff.artifactTitle && (
+                <span className="rounded-md border px-2 py-0.5 text-muted-foreground"
+                  style={{ borderColor: AMBER_SOFT }}>
+                  📎 {handoff.artifactTitle}
+                </span>
+              )}
+            </div>
+          )}
 
           {isComplete && (handoff.nextBot || handoff.nextStep) && (
             <div
@@ -999,27 +1293,6 @@ function HandoffCard({
               )}
             </div>
           )}
-
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <input
-              value={handoff.nextBot ?? ""}
-              placeholder="Next bot"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, nextBot: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-            <input
-              value={handoff.nextStep ?? ""}
-              placeholder="Next step"
-              onChange={(e) =>
-                onUpdate((h) => ({ ...h, nextStep: e.target.value || undefined }))
-              }
-              className="rounded-md border bg-transparent px-2 py-1 text-xs"
-              style={{ borderColor: AMBER_SOFT }}
-            />
-          </div>
 
           <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground/80">
             <div>
@@ -1061,30 +1334,17 @@ function HandoffCard({
 // ---------- Artifact grid ----------
 function ArtifactGrid({
   project,
-  onChange,
   onPreview,
+  onAdd,
+  onEdit,
+  onRemove,
 }: {
   project: Project;
-  onChange: (mut: (p: Project) => Project) => void;
   onPreview: (a: Artifact) => void;
+  onAdd: () => void;
+  onEdit: (id: string) => void;
+  onRemove: (id: string) => void;
 }) {
-  function addArtifact() {
-    onChange((p) => ({
-      ...p,
-      artifacts: [
-        ...p.artifacts,
-        {
-          id: uid(),
-          title: "Untitled artifact",
-          kind: "note",
-          body: "",
-          bot: "Boss",
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    }));
-  }
-
   // Combine standalone artifacts + handoff artifacts
   const handoffArtifacts: Artifact[] = project.handoffs
     .filter((h) => h.artifactBody || h.artifactLink)
@@ -1092,6 +1352,8 @@ function ArtifactGrid({
       id: `h-${h.id}`,
       title: h.artifactTitle || `${h.mode} artifact`,
       kind: h.mode,
+      type: "other",
+      source: "Handoff",
       body: h.artifactBody,
       link: h.artifactLink,
       bot: h.bot,
@@ -1111,11 +1373,11 @@ function ArtifactGrid({
             Bot Work · Artifacts
           </h2>
           <div className="text-xs text-muted-foreground">
-            Every completed bot output. Click to preview.
+            Every completed bot output. Click to preview, ✎ to edit metadata.
           </div>
         </div>
         <button
-          onClick={addArtifact}
+          onClick={onAdd}
           className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
           style={{ borderColor: AMBER_LINE, color: AMBER }}
         >
@@ -1136,27 +1398,56 @@ function ArtifactGrid({
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {all.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => onPreview(a)}
-              className="rounded-xl border bg-transparent px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_SOFT }}
-            >
-              <div className="truncate font-display text-sm font-semibold">
-                {a.title}
+          {all.map((a) => {
+            const isHandoff = a.id.startsWith("h-");
+            return (
+              <div
+                key={a.id}
+                className="group relative rounded-xl border bg-transparent px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_SOFT }}
+              >
+                <button onClick={() => onPreview(a)} className="block w-full text-left">
+                  <div className="truncate pr-12 font-display text-sm font-semibold">
+                    {a.title}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="rounded border px-1.5 py-0.5" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                      {a.type ?? "other"}
+                    </span>
+                    <span className="rounded border px-1.5 py-0.5 text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+                      {a.source ?? (isHandoff ? "Handoff" : "Manual")}
+                    </span>
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {a.body || a.link || "—"}
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground/70">
+                    {a.bot} · {fmtTime(a.updatedAt ?? a.createdAt)}
+                  </div>
+                </button>
+                {!isHandoff && (
+                  <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      onClick={() => onEdit(a.id)}
+                      className="rounded border px-1.5 py-0.5 text-[10px]"
+                      style={{ borderColor: AMBER_LINE, color: AMBER }}
+                      aria-label="edit artifact"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      onClick={() => onRemove(a.id)}
+                      className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                      style={{ borderColor: AMBER_SOFT }}
+                      aria-label="remove artifact"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="truncate text-[11px]" style={{ color: AMBER }}>
-                {a.kind}
-              </div>
-              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                {a.body || a.link || "—"}
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground/70">
-                {a.bot} · {fmtTime(a.createdAt)}
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -1230,12 +1521,25 @@ function ArtifactPreview({ artifact, onClose }: { artifact: Artifact; onClose: (
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-              {artifact.kind}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                {artifact.type ?? "other"}
+              </span>
+              <span className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+                source: {artifact.source ?? "Manual"}
+              </span>
+              {artifact.kind && (
+                <span className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+                  · {artifact.kind}
+                </span>
+              )}
             </div>
             <h3 className="font-display text-xl font-semibold">{artifact.title}</h3>
             <div className="text-xs text-muted-foreground">
-              by {artifact.bot} · {fmtTime(artifact.createdAt)}
+              by {artifact.bot} · created {fmtTime(artifact.createdAt)}
+              {artifact.updatedAt && artifact.updatedAt !== artifact.createdAt && (
+                <> · updated {fmtTime(artifact.updatedAt)}</>
+              )}
             </div>
           </div>
           <button
@@ -1409,36 +1713,38 @@ function ModalButton({
   );
 }
 
-// ---------- New project modal ----------
-function NewProjectModal({
+// ---------- Project settings modal (create + edit) ----------
+function ProjectSettingsModal({
+  mode,
+  initial,
   onClose,
-  onCreate,
+  onSave,
 }: {
+  mode: "create" | "edit";
+  initial?: Project;
   onClose: () => void;
-  onCreate: (input: {
-    name: string;
-    summary: string;
-    status: ProjectStatus;
-    currentMode: string;
-    currentBot: string;
-    nextAction: string;
-    blocker: string;
-  }) => void;
+  onSave: (input: ProjectSettingsInput) => void;
 }) {
-  const [name, setName] = useState("");
-  const [summary, setSummary] = useState("");
-  const [status, setStatus] = useState<ProjectStatus>("Draft");
-  const [currentMode, setCurrentMode] = useState("Mode 0 / Clarity");
-  const [currentBot, setCurrentBot] = useState("Boss");
-  const [nextAction, setNextAction] = useState("Boss writes the clarity brief");
-  const [blocker, setBlocker] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
+  const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
+  const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
+  const [nextAction, setNextAction] = useState(
+    initial?.nextAction ?? "Boss writes the clarity brief",
+  );
+  const [blocker, setBlocker] = useState(initial?.blocker ?? "");
 
   const canSave = name.trim().length > 0;
 
   return (
     <ModalShell
-      title="New project"
-      subtitle="Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+      title={mode === "create" ? "New project" : "Project settings"}
+      subtitle={
+        mode === "create"
+          ? "Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+          : "Edit project name, summary, status, mode, owner, next action, and blocker."
+      }
       onClose={onClose}
       footer={
         <>
@@ -1448,10 +1754,10 @@ function NewProjectModal({
           <ModalButton
             disabled={!canSave}
             onClick={() =>
-              onCreate({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+              onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
             }
           >
-            create project
+            {mode === "create" ? "create project" : "save changes"}
           </ModalButton>
         </>
       }
@@ -1655,6 +1961,99 @@ function HandoffEditorModal({
             onChange={(e) => setNextStep(e.target.value)}
           />
         </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ---------- Artifact editor modal ----------
+function ArtifactEditorModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial: Artifact;
+  onClose: () => void;
+  onSave: (a: Artifact) => void;
+}) {
+  const [title, setTitle] = useState(initial.title);
+  const [type, setType] = useState<ArtifactType>(initial.type ?? "other");
+  const [source, setSource] = useState<ArtifactSource>(initial.source ?? "Manual");
+  const [bot, setBot] = useState(initial.bot);
+  const [link, setLink] = useState(initial.link ?? "");
+  const [body, setBody] = useState(initial.body ?? "");
+  const [kind, setKind] = useState(initial.kind ?? "");
+
+  return (
+    <ModalShell
+      title="Edit artifact"
+      subtitle="Strengthen the metadata so it's findable later."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>cancel</ModalButton>
+          <ModalButton
+            onClick={() =>
+              onSave({
+                ...initial,
+                title: title.trim() || "Untitled artifact",
+                type,
+                source,
+                bot: bot.trim() || "—",
+                link: link.trim() || undefined,
+                body: body.trim() || undefined,
+                kind: kind.trim() || type,
+              })
+            }
+          >
+            save changes
+          </ModalButton>
+        </>
+      }
+    >
+      <div>
+        <ModalLabel>Title</ModalLabel>
+        <ModalInput value={title} autoFocus onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Type</ModalLabel>
+          <ModalSelect value={type} onChange={(e) => setType(e.target.value as ArtifactType)}>
+            {ARTIFACT_TYPES.map((t) => (
+              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">{t}</option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Source</ModalLabel>
+          <ModalSelect value={source} onChange={(e) => setSource(e.target.value as ArtifactSource)}>
+            {ARTIFACT_SOURCES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">{s}</option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Owner / bot</ModalLabel>
+          <ModalInput value={bot} onChange={(e) => setBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Label (free text)</ModalLabel>
+          <ModalInput value={kind} placeholder="e.g. master prompt" onChange={(e) => setKind(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Link</ModalLabel>
+        <ModalInput value={link} placeholder="https://…" onChange={(e) => setLink(e.target.value)} />
+      </div>
+      <div>
+        <ModalLabel>Body / pasted text</ModalLabel>
+        <ModalTextarea value={body} rows={6} onChange={(e) => setBody(e.target.value)} />
+      </div>
+      <div className="text-[11px] text-muted-foreground/70">
+        created {fmtTime(initial.createdAt)}
+        {initial.updatedAt && initial.updatedAt !== initial.createdAt && (
+          <> · last updated {fmtTime(initial.updatedAt)}</>
+        )}
       </div>
     </ModalShell>
   );
