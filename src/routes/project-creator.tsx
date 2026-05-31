@@ -343,6 +343,35 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
       changed = true;
     }
   }
+  // Reorder handoffs within each templated stage to match the template
+  // order. Templated steps come first in template order; any unmatched
+  // legacy/custom handoffs in that stage keep their relative order at the
+  // end. Handoffs in other stages keep their existing positions.
+  const mutable = [...handoffs];
+  for (const [stageId, templates] of Object.entries(STAGE_NESTED_STEPS)) {
+    const indices: number[] = [];
+    mutable.forEach((h, i) => {
+      if (stageForHandoff(h).id === stageId) indices.push(i);
+    });
+    if (indices.length === 0) continue;
+    const group = indices.map((i) => mutable[i]);
+    const sortKey = (h: Handoff) => {
+      const idx = templates.findIndex((t) => handoffMatchesNestedStep(h, t));
+      return idx === -1 ? templates.length + 1000 : idx;
+    };
+    const sorted = [...group]
+      .map((h, originalIdx) => ({ h, originalIdx }))
+      .sort((a, b) => {
+        const d = sortKey(a.h) - sortKey(b.h);
+        return d !== 0 ? d : a.originalIdx - b.originalIdx;
+      })
+      .map((x) => x.h);
+    indices.forEach((origIdx, k) => {
+      if (mutable[origIdx].id !== sorted[k].id) changed = true;
+      mutable[origIdx] = sorted[k];
+    });
+  }
+  handoffs = mutable;
   return { project: changed ? { ...project, handoffs } : project, changed };
 }
 
