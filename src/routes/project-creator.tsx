@@ -1043,7 +1043,11 @@ function ProjectMain({
       </div>
 
       {/* Mode 0 */}
-      <Section title="Mode 0 · Clarity" subtitle="Boss writes what they want in plain language.">
+      <Section
+        title="Mode 0 · Clarity"
+        subtitle="Boss writes what they want in plain language."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <textarea
           value={project.clarity}
           onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
@@ -1056,7 +1060,11 @@ function ProjectMain({
       </Section>
 
       {/* Mode 1 */}
-      <Section title="Mode 1 · Shape" subtitle="First refinement step.">
+      <Section
+        title="Mode 1 · Shape"
+        subtitle="First refinement step."
+        headerRight={<BotAvatar name="Clarity" size={48} ring={AMBER_LINE} />}
+      >
         <Field label="Structured notes">
           <textarea
             value={project.shapeNotes}
