@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 4; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 5; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -178,17 +178,54 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   // v4: repair projects whose project-level currentMode/currentBot/nextAction
   // were rewound by an earlier sync bug to "Project Type Confirmation /
   // Clarity" even though the project already had real later-stage work.
-  // For known seed projects, restore from seed. For everything else,
-  // recompute from the corrected resolver (which now skips backfilled
-  // template steps).
+  // Known seeded projects are restored from seed; other projects keep their
+  // saved project-level state because current-stage display is now read-only.
   if (stored < 4) {
     next = next.map((p) => {
       const rewound =
-        (p.currentMode ?? "").trim().toLowerCase() ===
-        "project type confirmation / clarity";
+        workflowTextKey(p.currentMode) === "project type confirmation / clarity";
       if (!rewound) return p;
       const seed = SEED_PROJECTS.find((s) => s.id === p.id);
-      if (seed) {
+      if (!seed) return p;
+      changed = true;
+      return {
+        ...p,
+        currentMode: seed.currentMode,
+        currentBot: seed.currentBot,
+        nextAction: seed.nextAction,
+      };
+    });
+  }
+
+  // v5: repair the follow-up regression that persisted computed R&D steps
+  // as the project current state. Do not infer new state here; only restore
+  // known corrupted records or the new-project Mode 0 → Project Type gate.
+  if (stored < 5) {
+    next = next.map((p) => {
+      const modeKey = workflowTextKey(p.currentMode);
+      const nextActionKey = workflowTextKey(p.nextAction);
+      const seed = SEED_PROJECTS.find((s) => s.id === p.id || s.name === p.name);
+      const isComputedGate =
+        modeKey === "project type confirmation / clarity" ||
+        modeKey === "research scope and synthesis / r&d";
+
+      if (p.id === "bot-card-studio" || p.name === "Bot Card Studio") {
+        changed = true;
+        return {
+          ...p,
+          status: "Active",
+          currentMode: "Mode 2 / Plan",
+          currentBot: "Tinker",
+          nextAction: "Tinker delivers v1 prototype URL",
+          handoffs: p.handoffs.map((h) =>
+            workflowTextKey(h.mode) === "prototype"
+              ? { ...h, status: "Working", completedAt: undefined }
+              : h,
+          ),
+        };
+      }
+
+      if (seed && isComputedGate && workflowTextKey(seed.currentMode) !== modeKey) {
         changed = true;
         return {
           ...p,
@@ -197,22 +234,20 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
           nextAction: seed.nextAction,
         };
       }
-      const active = activeWorkflowEntry(p.handoffs)?.handoff;
-      // Only repair if the resolver disagrees with the stored value AND
-      // the active step is not Project Type Confirmation itself.
+
       if (
-        active &&
-        (active.mode ?? "").trim().toLowerCase() !==
-          "project type confirmation / clarity"
+        modeKey === "research scope and synthesis / r&d" &&
+        nextActionKey === "confirm project type"
       ) {
         changed = true;
         return {
           ...p,
-          currentMode: active.mode,
-          currentBot: active.bot || p.currentBot,
-          nextAction: requiredActionForHandoff(active, p.nextAction),
+          currentMode: "Project Type Confirmation / Clarity",
+          currentBot: "Chief",
+          nextAction: "Confirm Project Type",
         };
       }
+
       return p;
     });
   }
@@ -500,57 +535,115 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function activeWorkflowEntry(handoffs: Handoff[]): { handoff: Handoff; displayStep: number } | null {
-  const buckets = bucketHandoffs(handoffs);
-  // Auto-backfilled template steps (created by ensureNestedSteps with an
-  // id starting with `nested-`) must never rewind an established project
-  // backward. They only become the active step when no real user handoff
-  // is still open. Real handoffs (legacy or hand-edited) take priority in
-  // pipeline order; the backfilled steps act as an optional checklist.
-  const isBackfill = (h: Handoff) => h.id.startsWith("nested-");
-  const isOpen = (h: Handoff) =>
-    h.status !== "Complete" && h.status !== "Parked";
-  // Pass 1 — first open user handoff in pipeline order.
-  for (const bucket of buckets) {
-    const idx = bucket.items.findIndex(
-      ({ handoff }) => isOpen(handoff) && !isBackfill(handoff),
-    );
-    if (idx !== -1) {
-      return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
-    }
+function workflowTextKey(value?: string | null) {
+  return (value ?? "").trim().toLowerCase();
+}
+
+type WorkflowEntry = { handoff: Handoff; displayStep: number };
+
+function workflowEntries(handoffs: Handoff[]): WorkflowEntry[] {
+  return bucketHandoffs(handoffs).flatMap((bucket) =>
+    bucket.items.map(({ handoff }, idx) => ({ handoff, displayStep: idx + 1 })),
+  );
+}
+
+function activeWorkflowEntry(handoffs: Handoff[]): WorkflowEntry | null {
+  const entries = workflowEntries(handoffs);
+  return entries.find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ?? null;
+}
+
+function currentStageEntry(project: Project): WorkflowEntry | null {
+  const entries = workflowEntries(project.handoffs);
+  const modeKey = workflowTextKey(project.currentMode);
+  const botKey = workflowTextKey(project.currentBot);
+  const nextActionKey = workflowTextKey(project.nextAction);
+  const inFlight = new Set<HandoffStatus>(["Sent", "Working", "Needs Review", "Blocked"]);
+  const isOpen = (h: Handoff) => h.status !== "Complete" && h.status !== "Parked";
+  const findMode = (mode: string) =>
+    entries.find(({ handoff }) => workflowTextKey(handoff.mode) === mode && isOpen(handoff)) ??
+    entries.find(({ handoff }) => workflowTextKey(handoff.mode) === mode) ??
+    null;
+
+  if (nextActionKey === "confirm project type") {
+    const projectTypeGate = findMode("project type confirmation / clarity");
+    if (projectTypeGate) return projectTypeGate;
   }
-  // Pass 2 — fall back to any open step (covers brand-new projects that
-  // only contain backfilled template steps, e.g. fresh Mode 0).
-  for (const bucket of buckets) {
-    const idx = bucket.items.findIndex(({ handoff }) => isOpen(handoff));
-    if (idx !== -1) {
-      return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
-    }
+
+  const ownedInFlight = entries.find(
+    ({ handoff }) => inFlight.has(handoff.status) && (!botKey || workflowTextKey(handoff.bot) === botKey),
+  );
+  if (ownedInFlight) return ownedInFlight;
+
+  if (modeKey) {
+    const savedMode = findMode(modeKey);
+    if (savedMode) return savedMode;
   }
-  return null;
+
+  return entries.find(({ handoff }) => inFlight.has(handoff.status)) ?? null;
+}
+
+function nextOpenWorkflowEntryAfter(handoffs: Handoff[], id: string): WorkflowEntry | null {
+  const entries = workflowEntries(handoffs);
+  const start = entries.findIndex(({ handoff }) => handoff.id === id);
+  if (start === -1) return null;
+  return entries
+    .slice(start + 1)
+    .find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ?? null;
 }
 
 function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
-  const mode = (handoff?.mode ?? "").trim().toLowerCase();
+  const mode = workflowTextKey(handoff?.mode);
   if (mode === "mode 0 / raw idea") return "Fill Mode 0 / Raw Idea";
   if (mode === "project type confirmation / clarity") return "Confirm Project Type";
-  // Preserve an existing project-level next-action (e.g. "Tinker delivers
-  // v1 prototype URL", "Resolve parts catalog access") instead of
-  // overwriting it with a generic "Complete X" string.
   if (fallback && fallback.trim()) return fallback;
   if (!handoff) return fallback;
   return `Complete ${handoff.mode || "current step"}`;
 }
 
-function syncProjectCurrentWorkflow(project: Project): Project {
-  const active = activeWorkflowEntry(project.handoffs)?.handoff ?? null;
-  if (!active) return project;
+function moveProjectToWorkflowEntry(
+  project: Project,
+  entry: WorkflowEntry,
+  { updateMode, fallbackAction = "" }: { updateMode: boolean; fallbackAction?: string },
+): Project {
   return {
     ...project,
-    currentMode: active.mode,
-    currentBot: active.bot || project.currentBot,
-    nextAction: requiredActionForHandoff(active, project.nextAction),
+    currentMode: updateMode ? entry.handoff.mode : project.currentMode,
+    currentBot: entry.handoff.bot || project.currentBot,
+    nextAction: requiredActionForHandoff(entry.handoff, fallbackAction),
   };
+}
+
+function advanceProjectAfterHandoffStatusChange(
+  previousProject: Project,
+  nextProject: Project,
+  previousHandoff: Handoff,
+  updatedHandoff: Handoff,
+): Project {
+  const beforeCurrent = currentStageEntry(previousProject)?.handoff;
+  const wasCurrent =
+    beforeCurrent?.id === previousHandoff.id ||
+    workflowTextKey(previousProject.currentMode) === workflowTextKey(previousHandoff.mode);
+
+  if ((updatedHandoff.status === "Complete" || updatedHandoff.status === "Parked") && wasCurrent) {
+    const nextEntry = nextOpenWorkflowEntryAfter(nextProject.handoffs, updatedHandoff.id);
+    return nextEntry
+      ? moveProjectToWorkflowEntry(nextProject, nextEntry, { updateMode: true })
+      : nextProject;
+  }
+
+  if (["Sent", "Working", "Needs Review", "Blocked"].includes(updatedHandoff.status)) {
+    const entry = workflowEntries(nextProject.handoffs).find(
+      ({ handoff }) => handoff.id === updatedHandoff.id,
+    );
+    return entry
+      ? moveProjectToWorkflowEntry(nextProject, entry, {
+          updateMode: false,
+          fallbackAction: nextProject.nextAction,
+        })
+      : nextProject;
+  }
+
+  return nextProject;
 }
 
 function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
@@ -896,9 +989,13 @@ function ProjectCreatorPage() {
         ...p,
         handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
       };
-      const synced = syncProjectCurrentWorkflow(next);
+      const moved = prev && prev.status !== h.status
+        ? advanceProjectAfterHandoffStatusChange(p, next, prev, h)
+        : isNew && h.status !== "Not Started"
+          ? advanceProjectAfterHandoffStatusChange(p, next, { ...h, status: "Not Started" }, h)
+          : next;
       if (isNew) {
-        return logActivity(synced, {
+        return logActivity(moved, {
           bot: h.bot || p.currentBot,
           action: `added handoff "${h.mode || "untitled"}"`,
           status: h.status,
@@ -907,7 +1004,7 @@ function ProjectCreatorPage() {
       const events: string[] = [];
       if (prev && prev.status !== h.status) events.push(`status → ${h.status}`);
       events.push("edited");
-      return logActivity(synced, {
+      return logActivity(moved, {
         bot: h.bot || p.currentBot,
         action: `handoff "${h.mode || "untitled"}" ${events.join(", ")}`,
         status: h.status,
@@ -959,9 +1056,12 @@ function ProjectCreatorPage() {
             : undefined,
       };
       const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
-      // Advance the project's current stage/owner/next-action to the next
-      // incomplete workflow step in displayed stage/template order.
-      const next = syncProjectCurrentWorkflow({ ...p, handoffs: nextHandoffs });
+      const next = advanceProjectAfterHandoffStatusChange(
+        p,
+        { ...p, handoffs: nextHandoffs },
+        h,
+        updated,
+      );
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
@@ -1155,7 +1255,7 @@ function ProjectCreatorPage() {
             <ul className="space-y-1.5">
               {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
-                const workflow = activeWorkflowEntry(p.handoffs)?.handoff;
+                const workflow = currentStageEntry(p)?.handoff;
                 const displayMode = workflow?.mode || p.currentMode;
                 const displayBot = workflow?.bot || p.currentBot;
                 return (
@@ -1286,7 +1386,7 @@ function StatusPanel({
   const latestActivity = [...project.activity].sort((a, b) =>
     b.at.localeCompare(a.at),
   )[0];
-  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker;
 
@@ -1486,9 +1586,8 @@ function ProjectMain({
   onEditArtifact: (id: string) => void;
   onRemoveArtifact: (id: string) => void;
 }) {
-  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
-  const displayMode = active?.mode || project.currentMode;
   const displayBot = active?.bot || project.currentBot;
 
   return (
@@ -1534,7 +1633,7 @@ function ProjectMain({
                 : project.projectType || "—"
             }
           />
-          <MetaItem label="Mode" value={displayMode} />
+          <MetaItem label="Mode" value={project.currentMode} />
           <MetaItem label="Owner" value={displayBot} />
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
@@ -1685,7 +1784,7 @@ function MetaItem({
 }
 
 function CurrentStageIndicator({ project }: { project: Project }) {
-  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker || active?.status === "Blocked";
   const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
