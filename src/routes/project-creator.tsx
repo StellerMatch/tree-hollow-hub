@@ -783,10 +783,31 @@ function ProjectCreatorPage() {
       const updated: Handoff = {
         ...h,
         status,
+        // Stamp completion when newly Complete; clear stamp when the step
+        // moves away from Complete so the card no longer shows a stale
+        // "completed …" line under a Working / Blocked / etc. status.
         completedAt:
-          status === "Complete" ? h.completedAt ?? new Date().toISOString() : h.completedAt,
+          status === "Complete"
+            ? h.completedAt ?? new Date().toISOString()
+            : undefined,
       };
-      const next = { ...p, handoffs: p.handoffs.map((x) => (x.id === id ? updated : x)) };
+      const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
+      // Advance the project's current stage/owner/next-action to the next
+      // incomplete handoff in actual order. Use the same definition as
+      // activeHandoff (anything not Complete and not Parked).
+      const nextActive =
+        nextHandoffs.find(
+          (x) => x.status !== "Complete" && x.status !== "Parked",
+        ) ?? null;
+      const next: Project = {
+        ...p,
+        handoffs: nextHandoffs,
+        currentMode: nextActive ? nextActive.mode : p.currentMode,
+        currentBot: nextActive ? nextActive.bot || p.currentBot : p.currentBot,
+        nextAction: nextActive
+          ? `${nextActive.mode}${nextActive.bot ? ` — ${nextActive.bot}` : ""}`
+          : p.nextAction,
+      };
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
