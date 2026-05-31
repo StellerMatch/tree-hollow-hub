@@ -242,6 +242,41 @@ function ensureOfficialRecordHandoff(project: Project): { project: Project; chan
   };
 }
 
+/**
+ * For every stage that has a defined nested-step template (Modes, R&D, …),
+ * ensure each required nested step exists as an editable handoff. Existing
+ * handoffs (including legacy single ones and user edits) are preserved;
+ * only missing nested steps are appended. Matching is by case-insensitive
+ * `mode` text.
+ */
+function ensureNestedSteps(project: Project): { project: Project; changed: boolean } {
+  let handoffs = project.handoffs;
+  let changed = false;
+  for (const [stageId, templates] of Object.entries(STAGE_NESTED_STEPS)) {
+    const stage = PIPELINE_STAGES.find((s) => s.id === stageId);
+    if (!stage) continue;
+    const inStage = handoffs.filter((h) => stageForHandoff(h).id === stageId);
+    const toAppend: Handoff[] = [];
+    templates.forEach((tpl, i) => {
+      if (inStage.some((h) => handoffMatchesNestedStep(h, tpl))) return;
+      toAppend.push({
+        id: `nested-${project.id}-${stageId}-${i + 1}`,
+        step: handoffs.length + toAppend.length + 1,
+        mode: tpl.mode,
+        bot: tpl.bot,
+        assignment: tpl.assignment,
+        status: "Not Started",
+        authorityNotes: tpl.authorityNotes,
+      });
+    });
+    if (toAppend.length > 0) {
+      handoffs = [...handoffs, ...toAppend];
+      changed = true;
+    }
+  }
+  return { project: changed ? { ...project, handoffs } : project, changed };
+}
+
 // Version-independent safety net: every project must have at least one
 // handoff bucketing into each pipeline stage. Runs on every load regardless
 // of SCHEMA_VERSION so projects saved before a stage was required still get
@@ -252,19 +287,23 @@ function ensureRequiredStages(
   let changed = false;
   const next = projects.map((p) => {
     const officialRecordRepair = ensureOfficialRecordHandoff(p);
-    const repairedProject = officialRecordRepair.project;
+    let repairedProject = officialRecordRepair.project;
     if (officialRecordRepair.changed) changed = true;
     const present = new Set(repairedProject.handoffs.map((h) => stageForHandoff(h).id));
     const missing = PIPELINE_STAGES.filter(
       (s) => s.id !== "official-record" && !present.has(s.id),
     );
-    if (missing.length === 0) return repairedProject;
-    const baseStep = repairedProject.handoffs.length;
-    const appended: Handoff[] = missing.map((stage, idx) =>
-      createRequiredStageHandoff(repairedProject.id, stage.id, baseStep + idx + 1, "ensure"),
-    );
-    changed = true;
-    return { ...repairedProject, handoffs: [...repairedProject.handoffs, ...appended] };
+    if (missing.length > 0) {
+      const baseStep = repairedProject.handoffs.length;
+      const appended: Handoff[] = missing.map((stage, idx) =>
+        createRequiredStageHandoff(repairedProject.id, stage.id, baseStep + idx + 1, "ensure"),
+      );
+      repairedProject = { ...repairedProject, handoffs: [...repairedProject.handoffs, ...appended] };
+      changed = true;
+    }
+    const nested = ensureNestedSteps(repairedProject);
+    if (nested.changed) changed = true;
+    return nested.project;
   });
   return { projects: next, changed };
 }
