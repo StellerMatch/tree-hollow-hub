@@ -414,7 +414,7 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
   // Kickoff / R&D". That synthesis content actually belongs to Research
   // Scope and Synthesis. Detect it by the legacy assignment marker and
   // move it back before the regular rename pass runs.
-  let preMigrated = project.handoffs.map((h) => {
+  const preMigrated = project.handoffs.map((h) => {
     const modeKey = (h.mode ?? "").trim().toLowerCase();
     const assignment = (h.assignment ?? "").trim().toLowerCase();
     const isLegacyTrunkContent = assignment.startsWith(
