@@ -862,6 +862,10 @@ function saveProjects(projects: Project[]) {
   }
 }
 
+function samePersistedProjects(a: Project[], b: Project[]) {
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+}
+
 function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
