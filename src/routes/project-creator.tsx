@@ -251,10 +251,30 @@ function ensureOfficialRecordHandoff(project: Project): { project: Project; chan
  */
 function ensureNestedSteps(project: Project): { project: Project; changed: boolean } {
   let changed = false;
-  // First, migrate any old nested-step names to their new names so the
+  // Content-based migration: a previous backfill renamed legacy "Trunk / R&D"
+  // (whose assignment is Compass's synthesis content) into "Lantern Team
+  // Kickoff / R&D". That synthesis content actually belongs to Research
+  // Scope and Synthesis. Detect it by the legacy assignment marker and
+  // move it back before the regular rename pass runs.
+  let preMigrated = project.handoffs.map((h) => {
+    const modeKey = (h.mode ?? "").trim().toLowerCase();
+    const assignment = (h.assignment ?? "").trim().toLowerCase();
+    const isLegacyTrunkContent = assignment.startsWith(
+      "compass synthesis. gather past / present / future",
+    );
+    if (
+      isLegacyTrunkContent &&
+      modeKey === "lantern team kickoff / r&d"
+    ) {
+      changed = true;
+      return { ...h, mode: "Research Scope and Synthesis / R&D" };
+    }
+    return h;
+  });
+  // Then, migrate any old nested-step names to their new names so the
   // existing handoff (with all user edits) becomes the canonical step
   // instead of being left as a legacy duplicate.
-  let handoffs = project.handoffs.map((h) => {
+  let handoffs = preMigrated.map((h) => {
     const key = (h.mode ?? "").trim().toLowerCase();
     const renamed = NESTED_STEP_RENAMES[key];
     if (renamed && renamed !== h.mode) {
@@ -1779,10 +1799,11 @@ function StageGroup({
             </p>
           ) : (
             <ol className="space-y-3">
-              {items.map(({ handoff: h, globalIndex }) => (
+              {items.map(({ handoff: h, globalIndex }, localIdx) => (
                 <li key={h.id} className="relative">
                   <HandoffCard
                     handoff={h}
+                    displayStep={localIdx + 1}
                     isFirst={globalIndex === 0}
                     isLast={globalIndex === totalHandoffs - 1}
                     onMoveUp={() => onMoveHandoff(h.id, -1)}
@@ -1818,6 +1839,7 @@ function StageGroup({
 
 function HandoffCard({
   handoff,
+  displayStep,
   isFirst,
   isLast,
   onMoveUp,
@@ -1828,6 +1850,7 @@ function HandoffCard({
   onPreview,
 }: {
   handoff: Handoff;
+  displayStep?: number;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -1882,7 +1905,7 @@ function HandoffCard({
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold"
             style={{ borderColor: accentBar, color: accentBar }}
           >
-            {handoff.step}
+            {displayStep ?? handoff.step}
           </div>
           <BotAvatar name={handoff.bot} size={36} ring={accentBar} />
           <div className="flex flex-col gap-0.5">
