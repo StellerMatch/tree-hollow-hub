@@ -2259,6 +2259,7 @@ function ArtifactEditorModal({
       title="Edit artifact"
       subtitle="Strengthen the metadata so it's findable later."
       onClose={onClose}
+      width="lg"
       footer={
         <>
           <ModalButton variant="ghost" onClick={onClose}>cancel</ModalButton>
