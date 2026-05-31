@@ -1334,30 +1334,17 @@ function HandoffCard({
 // ---------- Artifact grid ----------
 function ArtifactGrid({
   project,
-  onChange,
   onPreview,
+  onAdd,
+  onEdit,
+  onRemove,
 }: {
   project: Project;
-  onChange: (mut: (p: Project) => Project) => void;
   onPreview: (a: Artifact) => void;
+  onAdd: () => void;
+  onEdit: (id: string) => void;
+  onRemove: (id: string) => void;
 }) {
-  function addArtifact() {
-    onChange((p) => ({
-      ...p,
-      artifacts: [
-        ...p.artifacts,
-        {
-          id: uid(),
-          title: "Untitled artifact",
-          kind: "note",
-          body: "",
-          bot: "Boss",
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    }));
-  }
-
   // Combine standalone artifacts + handoff artifacts
   const handoffArtifacts: Artifact[] = project.handoffs
     .filter((h) => h.artifactBody || h.artifactLink)
@@ -1365,6 +1352,8 @@ function ArtifactGrid({
       id: `h-${h.id}`,
       title: h.artifactTitle || `${h.mode} artifact`,
       kind: h.mode,
+      type: "other",
+      source: "Handoff",
       body: h.artifactBody,
       link: h.artifactLink,
       bot: h.bot,
@@ -1384,11 +1373,11 @@ function ArtifactGrid({
             Bot Work · Artifacts
           </h2>
           <div className="text-xs text-muted-foreground">
-            Every completed bot output. Click to preview.
+            Every completed bot output. Click to preview, ✎ to edit metadata.
           </div>
         </div>
         <button
-          onClick={addArtifact}
+          onClick={onAdd}
           className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
           style={{ borderColor: AMBER_LINE, color: AMBER }}
         >
@@ -1409,27 +1398,56 @@ function ArtifactGrid({
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {all.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => onPreview(a)}
-              className="rounded-xl border bg-transparent px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_SOFT }}
-            >
-              <div className="truncate font-display text-sm font-semibold">
-                {a.title}
+          {all.map((a) => {
+            const isHandoff = a.id.startsWith("h-");
+            return (
+              <div
+                key={a.id}
+                className="group relative rounded-xl border bg-transparent px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_SOFT }}
+              >
+                <button onClick={() => onPreview(a)} className="block w-full text-left">
+                  <div className="truncate pr-12 font-display text-sm font-semibold">
+                    {a.title}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px]">
+                    <span className="rounded border px-1.5 py-0.5" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                      {a.type ?? "other"}
+                    </span>
+                    <span className="rounded border px-1.5 py-0.5 text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+                      {a.source ?? (isHandoff ? "Handoff" : "Manual")}
+                    </span>
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {a.body || a.link || "—"}
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground/70">
+                    {a.bot} · {fmtTime(a.updatedAt ?? a.createdAt)}
+                  </div>
+                </button>
+                {!isHandoff && (
+                  <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      onClick={() => onEdit(a.id)}
+                      className="rounded border px-1.5 py-0.5 text-[10px]"
+                      style={{ borderColor: AMBER_LINE, color: AMBER }}
+                      aria-label="edit artifact"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      onClick={() => onRemove(a.id)}
+                      className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                      style={{ borderColor: AMBER_SOFT }}
+                      aria-label="remove artifact"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="truncate text-[11px]" style={{ color: AMBER }}>
-                {a.kind}
-              </div>
-              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                {a.body || a.link || "—"}
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground/70">
-                {a.bot} · {fmtTime(a.createdAt)}
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
