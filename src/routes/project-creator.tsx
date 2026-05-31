@@ -380,7 +380,15 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
   const byMode = new Map<string, Handoff>();
   const deduped: Handoff[] = [];
   for (const h of handoffs) {
-    const key = (h.mode ?? "").trim().toLowerCase();
+    // Semantic key: stage + creator-facing title. Catches duplicates that
+    // share the same human-readable step name even when raw mode strings
+    // differ ("Business Plan Draft / Knowledge Packet" vs a legacy
+    // "Knowledge Packet / Business Plan Draft"), and matches the count
+    // shown in the workflow rail (which renders by title, not raw mode).
+    const stageId = stageForHandoff(h).id;
+    const title = splitStepTitle(h.mode).title.trim().toLowerCase();
+    const rawKey = (h.mode ?? "").trim().toLowerCase();
+    const key = title ? `${stageId}::${title}` : rawKey;
     const existing = byMode.get(key);
     if (!existing) {
       byMode.set(key, h);
@@ -388,11 +396,26 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
       continue;
     }
     changed = true;
-    if (score(h) > score(existing)) {
+    // When merging, prefer to keep the canonical mode string (one that
+    // already matches a template) so the backfill recognizes the slot.
+    const templates = STAGE_NESTED_STEPS[stageId] ?? [];
+    const matchesTemplate = (x: Handoff) =>
+      templates.some((t) => handoffMatchesNestedStep(x, t));
+    const hCanon = matchesTemplate(h);
+    const eCanon = matchesTemplate(existing);
+    const winner =
+      hCanon !== eCanon
+        ? hCanon
+          ? h
+          : existing
+        : score(h) > score(existing)
+          ? h
+          : existing;
+    if (winner !== existing) {
       // Replace the existing entry with the richer one.
       const idx = deduped.indexOf(existing);
-      if (idx >= 0) deduped[idx] = h;
-      byMode.set(key, h);
+      if (idx >= 0) deduped[idx] = winner;
+      byMode.set(key, winner);
     }
     // else: drop h
   }
