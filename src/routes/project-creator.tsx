@@ -1175,6 +1175,14 @@ function ProjectMain({
         </div>
         <CurrentStageIndicator project={project} />
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+          <MetaItem
+            label="Type"
+            value={
+              project.projectType === "Other / Custom"
+                ? project.projectTypeCustom || "Other / Custom"
+                : project.projectType || "—"
+            }
+          />
           <MetaItem label="Mode" value={project.currentMode} />
           <MetaItem label="Owner" value={project.currentBot} />
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
