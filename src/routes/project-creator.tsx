@@ -2181,11 +2181,19 @@ function WorkflowRail({
 
 // ---------- Phase overview (shown when a top-level phase is selected) ----------
 function PhaseOverview({
+  project,
   bucket,
+  phaseNumber,
+  isActivePhase,
+  isHistoricalComplete,
   activeId,
   onSelectHandoff,
 }: {
+  project: Project;
   bucket: PhaseBucket;
+  phaseNumber: number;
+  isActivePhase: boolean;
+  isHistoricalComplete: boolean;
   activeId: string | null;
   onSelectHandoff: (id: string) => void;
 }) {
@@ -2201,15 +2209,44 @@ function PhaseOverview({
       style={{ borderColor: AMBER_SOFT }}
     >
       <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-        Phase overview
+        Phase {phaseNumber} overview
       </div>
-      <h3
-        className="mt-1 font-display text-xl font-semibold leading-tight"
-        style={{ color: AMBER }}
-      >
-        {bucket.phase.label}
-      </h3>
+      <div className="mt-1 flex flex-wrap items-baseline gap-2">
+        <h3
+          className="font-display text-xl font-semibold leading-tight"
+          style={{ color: AMBER }}
+        >
+          {bucket.phase.label}
+        </h3>
+        {isActivePhase && (
+          <span
+            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
+            style={{ borderColor: AMBER, color: "oklch(0.2 0.04 60)", background: AMBER }}
+          >
+            now
+          </span>
+        )}
+        {isHistoricalComplete && (
+          <span
+            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+            title="These steps were completed earlier — not the project's final delivery."
+          >
+            on file
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
+
+      {/* Phase facts */}
+      <div className="mt-3 grid gap-2 rounded-lg border p-3 text-[11.5px] sm:grid-cols-2" style={{ borderColor: AMBER_SOFT }}>
+        <PhaseFact label="Purpose" value={bucket.phase.purpose} />
+        <PhaseFact label="Owner team" value={bucket.phase.ownerTeam} />
+        <PhaseFact label="Needs before" value={bucket.phase.needsBefore} />
+        <PhaseFact label="Produces" value={bucket.phase.produces} />
+      </div>
+
+      {/* Live status */}
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
         <span>
           <span className="opacity-60">Progress: </span>
@@ -2225,12 +2262,27 @@ function PhaseOverview({
             </span>
           </span>
         )}
-        {allComplete && !activeItem && (
+        {isActivePhase && project.nextAction && (
+          <span>
+            <span className="opacity-60">Next action: </span>
+            <span className="text-foreground">{project.nextAction}</span>
+          </span>
+        )}
+        {isHistoricalComplete && (
+          <span className="text-muted-foreground">
+            Completed earlier — not the project's final delivery.
+          </span>
+        )}
+        {allComplete && !activeItem && !isHistoricalComplete && (
           <span style={{ color: EMERALD }}>All steps complete in this phase.</span>
         )}
       </div>
+
+      <div className="mt-4 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+        Nested steps
+      </div>
       <ol className="mt-4 space-y-1.5">
-        {bucket.items.map(({ handoff: h, globalIndex }) => {
+        {bucket.items.map(({ handoff: h, globalIndex }, itemIdx) => {
           const isActive = h.id === activeId;
           const stepColor =
             h.status === "Complete"
@@ -2243,6 +2295,7 @@ function PhaseOverview({
                     ? AMBER
                     : NEUTRAL;
           const { title } = splitStepTitle(h.mode);
+          const nestedNum = `${phaseNumber}.${itemIdx + 1}`;
           return (
             <li key={h.id}>
               <button
@@ -2255,12 +2308,13 @@ function PhaseOverview({
                     ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
                     : "oklch(0.28 0.035 70 / 0.4)",
                 }}
+                title={`overall step ${globalIndex + 1}`}
               >
                 <span
                   className="shrink-0 text-[11px] font-mono tabular-nums text-muted-foreground"
-                  style={{ minWidth: "1.5rem", textAlign: "right" }}
+                  style={{ minWidth: "2rem", textAlign: "right" }}
                 >
-                  {globalIndex + 1}
+                  {nestedNum}
                 </span>
                 <span
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
@@ -2295,6 +2349,17 @@ function PhaseOverview({
           </li>
         )}
       </ol>
+    </div>
+  );
+}
+
+function PhaseFact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+        {label}
+      </div>
+      <div className="text-foreground/90">{value || "—"}</div>
     </div>
   );
 }
