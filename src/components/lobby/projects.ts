@@ -45,14 +45,14 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "experiments",
-    name: "Experiments",
-    tagline: "the bubbling stall",
+    name: "Project Creator",
+    tagline: "the operations room",
     description:
-      "Half-finished prototypes, weird interactions, things that may or may not work. Try the soup.",
-    href: "#",
-    icon: "⚗️",
-    kind: "stall",
-    hue: "oklch(0.7 0.2 320)",
+      "One source of truth for a project — clarity, handoffs, receipts, and artifacts behind a single warm door.",
+    href: "/project-creator",
+    icon: "🗂️",
+    kind: "door",
+    hue: "oklch(0.72 0.16 280)",
   },
   {
     id: "notes",
