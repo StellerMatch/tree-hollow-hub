@@ -29,7 +29,6 @@ import {
   stageForHandoff,
   type StageBucket,
 } from "@/components/project-board/stages";
-import { DABOTTREE_PIPELINE } from "@/components/project-board/pipeline";
 
 function BotAvatar({
   name,
