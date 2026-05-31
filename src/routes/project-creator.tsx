@@ -908,6 +908,7 @@ function ProjectMain({
           <Tag label="Owner" value={project.currentBot} />
           <Tag label="Next" value={project.nextAction} />
         </div>
+        <CurrentStageIndicator project={project} />
       </div>
 
       {/* Mode 0 */}
