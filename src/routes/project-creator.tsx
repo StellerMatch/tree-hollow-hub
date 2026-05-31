@@ -989,11 +989,12 @@ function ProjectCreatorPage() {
         ...p,
         handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
       };
-      const moved = prev && prev.status !== h.status
-        ? advanceProjectAfterHandoffStatusChange(p, next, prev, h)
-        : isNew && h.status !== "Not Started"
-          ? advanceProjectAfterHandoffStatusChange(p, next, { ...h, status: "Not Started" }, h)
-          : next;
+      const moved =
+        prev && prev.status !== h.status
+          ? advanceProjectAfterHandoffStatusChange(p, next, prev, h)
+          : isNew && h.status !== "Not Started"
+            ? advanceProjectAfterHandoffStatusChange(p, next, { ...h, status: "Not Started" }, h)
+            : next;
       if (isNew) {
         return logActivity(moved, {
           bot: h.bot || p.currentBot,
