@@ -102,6 +102,8 @@ export type Project = {
   name: string;
   summary: string;
   status: ProjectStatus;
+  projectType?: ProjectType;
+  projectTypeCustom?: string;
   currentMode: string;
   currentBot: string;
   nextAction: string;
