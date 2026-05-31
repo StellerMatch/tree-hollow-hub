@@ -766,6 +766,7 @@ function ProjectCreatorPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [selectedHandoffId, setSelectedHandoffId] = useState<string | null>(null);
+  const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [commandReceiptOpen, setCommandReceiptOpen] = useState(false);
 
   // Load from localStorage after mount.
@@ -800,10 +801,12 @@ function ProjectCreatorPage() {
   useEffect(() => {
     if (!selected) {
       setSelectedHandoffId(null);
+      setSelectedPhaseId(null);
       return;
     }
     const active = currentStageEntry(selected)?.handoff;
     setSelectedHandoffId(active?.id ?? selected.handoffs[0]?.id ?? null);
+    setSelectedPhaseId(null);
     setCommandReceiptOpen(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
