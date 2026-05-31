@@ -1159,7 +1159,7 @@ function ProjectCreatorPage() {
       repairToCanonicalWorkflow(ensured);
     if (changed || repairedChanged) {
       saveProjects(repaired);
-      setProjects(repaired);
+      if (!samePersistedProjects(projects, repaired)) setProjects(repaired);
       return;
     }
     saveProjects(projects);
