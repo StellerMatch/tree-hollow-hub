@@ -1616,11 +1616,13 @@ function WorkflowRail({
   selectedHandoffId,
   onSelectHandoff,
   onOpenCommandReceipt,
+  onAddHandoff,
 }: {
   project: Project;
   selectedHandoffId: string | null;
   onSelectHandoff: (id: string) => void;
   onOpenCommandReceipt: () => void;
+  onAddHandoff: () => void;
 }) {
   const activeEntry = currentStageEntry(project);
   const activeId = activeEntry?.handoff.id ?? null;
@@ -1703,10 +1705,12 @@ function WorkflowRail({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] font-medium leading-snug">
-                      {h.mode || <span className="italic opacity-60">untitled</span>}
+                      {stepTitleOnly(h.mode, h.bot) || <span className="italic opacity-60">untitled</span>}
                     </span>
                     <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <span>{h.bot || "—"}</span>
+                      <span className="truncate">
+                        <span className="opacity-60">Owner:</span> {h.bot || "—"}
+                      </span>
                       <span className="opacity-50">·</span>
                       <span style={{ color: stageColor }}>{h.status}</span>
                       {isActive && (
@@ -1725,6 +1729,14 @@ function WorkflowRail({
           })}
         </ol>
       )}
+      <button
+        type="button"
+        onClick={onAddHandoff}
+        className="mt-2 w-full rounded-md border border-dashed px-2 py-1.5 text-[11px] text-muted-foreground transition hover:text-foreground"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        + add step
+      </button>
       <div
         className="mt-3 rounded-md border px-2 py-1.5 text-[10px] text-muted-foreground/80"
         style={{ borderColor: AMBER_SOFT }}
