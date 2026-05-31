@@ -1705,20 +1705,22 @@ function WorkflowRail({
           No handoffs yet.
         </div>
       ) : (
-        <ol className="relative space-y-0.5">
+        <ol className="relative space-y-1.5">
           {project.handoffs.map((h, idx) => {
             const isActive = h.id === activeId;
             const isSelected = h.id === selectedHandoffId;
+            const NEUTRAL = "oklch(0.6 0.04 75)";
+            const BLOCK = "oklch(0.65 0.22 25)";
             const stageColor =
               h.status === "Complete"
                 ? EMERALD
                 : h.status === "Blocked"
-                  ? "oklch(0.65 0.22 25)"
+                  ? BLOCK
                   : h.status === "Parked"
-                    ? "oklch(0.6 0.03 80)"
+                    ? NEUTRAL
                     : isActive
                       ? AMBER
-                      : "oklch(0.6 0.03 80)";
+                      : NEUTRAL;
             const dotChar =
               h.status === "Complete"
                 ? "✓"
@@ -1730,22 +1732,51 @@ function WorkflowRail({
                       ? "●"
                       : "○";
             const { title, phase } = splitStepTitle(h.mode);
+            // Row visual: raised card with subtle status-tinted background,
+            // left accent strip, and stronger emphasis on the active step.
+            const rowBg = isSelected
+              ? `color-mix(in oklab, ${stageColor} 14%, oklch(0.28 0.035 70))`
+              : isActive
+                ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
+                : h.status === "Complete"
+                  ? `color-mix(in oklab, ${EMERALD} 5%, oklch(0.26 0.035 65))`
+                  : h.status === "Blocked"
+                    ? `color-mix(in oklab, ${BLOCK} 7%, oklch(0.26 0.035 65))`
+                    : "oklch(0.28 0.035 70 / 0.55)";
+            const rowBorder = isSelected
+              ? stageColor
+              : isActive
+                ? AMBER
+                : "oklch(0.42 0.04 70 / 0.55)";
+            const rowShadow = isActive
+              ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 6px 16px -8px ${AMBER}55, 0 0 0 1px ${AMBER}33`
+              : isSelected
+                ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 4px 10px -6px ${stageColor}66`
+                : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
             return (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => onSelectHandoff(h.id)}
-                  className="flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
+                  className="relative flex w-full items-center gap-2 overflow-hidden rounded-lg border pl-3 pr-2 py-1.5 text-left transition hover:brightness-110"
                   style={{
-                    borderColor: isSelected ? AMBER : AMBER_SOFT,
-                    background: isSelected
-                      ? "oklch(0.78 0.18 50 / 0.1)"
-                      : isActive
-                        ? "oklch(0.78 0.18 50 / 0.04)"
-                        : "transparent",
+                    borderColor: rowBorder,
+                    background: rowBg,
+                    boxShadow: rowShadow,
                   }}
                   title={`${idx + 1}. ${h.mode} · ${h.status}`}
                 >
+                  {/* left accent strip — timeline cue */}
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-0 h-full"
+                    style={{
+                      width: isActive ? 3 : 2,
+                      background: stageColor,
+                      opacity: isActive ? 1 : h.status === "Not Started" ? 0.35 : 0.7,
+                      boxShadow: isActive ? `0 0 8px ${AMBER}` : undefined,
+                    }}
+                  />
                   <span
                     className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/70"
                     style={{ minWidth: "1.25rem", textAlign: "right" }}
@@ -1754,14 +1785,29 @@ function WorkflowRail({
                   </span>
                   <span
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
-                    style={{ borderColor: stageColor, color: stageColor }}
+                    style={{
+                      borderColor: stageColor,
+                      color: stageColor,
+                      background: isActive
+                        ? `color-mix(in oklab, ${AMBER} 18%, transparent)`
+                        : "transparent",
+                      boxShadow: isActive ? `0 0 6px ${AMBER}88` : undefined,
+                    }}
                   >
                     {dotChar}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span
-                      className="block truncate text-[12px] leading-tight"
-                      style={{ fontWeight: isActive || isSelected ? 600 : 400 }}
+                      className="block truncate leading-tight"
+                      style={{
+                        fontWeight: isActive ? 700 : isSelected ? 600 : 500,
+                        fontSize: isActive ? "12.5px" : "12px",
+                        color: isActive
+                          ? "oklch(0.96 0.04 80)"
+                          : h.status === "Complete"
+                            ? "oklch(0.85 0.03 85)"
+                            : "oklch(0.88 0.03 85)",
+                      }}
                     >
                       {title || <span className="italic opacity-60">untitled</span>}
                     </span>
@@ -1774,8 +1820,13 @@ function WorkflowRail({
                   </span>
                   {isActive && (
                     <span
-                      className="shrink-0 rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
-                      style={{ borderColor: AMBER, color: AMBER }}
+                      className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
+                      style={{
+                        borderColor: AMBER,
+                        color: "oklch(0.2 0.04 60)",
+                        background: AMBER,
+                        boxShadow: `0 0 8px ${AMBER}66`,
+                      }}
                     >
                       now
                     </span>
@@ -2577,9 +2628,6 @@ function CurrentStageIndicator({
             )}
           </span>
           <StatusPill status={active.status} />
-          <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            tap for receipt ›
-          </span>
         </div>
       )}
 
