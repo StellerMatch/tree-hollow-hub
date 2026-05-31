@@ -3053,6 +3053,8 @@ function StepTemplateForm({
 }
 
 function StepResultPanel({
+  // helper rendered below; defined as a sibling component
+  // see StepOutputField definition.
   project,
   handoff,
   onChange,
