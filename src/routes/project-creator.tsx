@@ -1521,12 +1521,25 @@ function ArtifactPreview({ artifact, onClose }: { artifact: Artifact; onClose: (
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-              {artifact.kind}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                {artifact.type ?? "other"}
+              </span>
+              <span className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+                source: {artifact.source ?? "Manual"}
+              </span>
+              {artifact.kind && (
+                <span className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+                  · {artifact.kind}
+                </span>
+              )}
             </div>
             <h3 className="font-display text-xl font-semibold">{artifact.title}</h3>
             <div className="text-xs text-muted-foreground">
-              by {artifact.bot} · {fmtTime(artifact.createdAt)}
+              by {artifact.bot} · created {fmtTime(artifact.createdAt)}
+              {artifact.updatedAt && artifact.updatedAt !== artifact.createdAt && (
+                <> · updated {fmtTime(artifact.updatedAt)}</>
+              )}
             </div>
           </div>
           <button
