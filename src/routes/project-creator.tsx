@@ -2590,6 +2590,30 @@ function SelectedStepDetail({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {handoff.status !== "Complete" && handoff.status !== "Parked" && (
+            <button
+              onClick={() => onChangeStatus("Complete")}
+              title="Mark this step complete and advance the project to the next step"
+              className="rounded-md border px-2 py-0.5 text-[11px] font-semibold"
+              style={{
+                borderColor: EMERALD,
+                color: EMERALD,
+                background: "oklch(0.7 0.14 160 / 0.08)",
+              }}
+            >
+              ✓ Mark complete →
+            </button>
+          )}
+          {handoff.status === "Complete" && (
+            <button
+              onClick={() => onChangeStatus("Working")}
+              title="Reopen this step (keeps saved Step Result)"
+              className="rounded-md border px-2 py-0.5 text-[11px]"
+              style={{ borderColor: AMBER_SOFT, color: "inherit" }}
+            >
+              ↺ Reopen
+            </button>
+          )}
           <select
             value={handoff.status}
             onChange={(e) => onChangeStatus(e.target.value as HandoffStatus)}
