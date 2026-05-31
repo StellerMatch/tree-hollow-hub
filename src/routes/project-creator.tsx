@@ -2548,7 +2548,12 @@ function SelectedStepDetail({
   useEffect(() => {
     setTab("output");
   }, [handoff.id, project.id]);
-  const { title: parsedTitle, phase } = splitStepTitle(handoff.mode);
+  const { title: parsedTitle } = splitStepTitle(handoff.mode);
+  // Phase label should reflect the actual workflow phase the step is
+  // grouped under in the rail, not whatever suffix the legacy mode
+  // string happens to carry (e.g. "Chief Intake Summary / Clarity"
+  // belongs to the Chief Review phase, not Clarity).
+  const phase = phaseForHandoff(handoff).label;
   const title = parsedTitle || "Untitled step";
   const stageColor =
     handoff.status === "Complete"
