@@ -141,11 +141,11 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   modes: [
     {
       mode: "Mode 0 / Raw Idea",
-      bot: "Boss",
+      bot: "Clarity",
       assignment:
         "Capture the plain-language idea exactly enough that it does not get lost. Voice, context, and any constraints Boss already has in mind.",
       authorityNotes:
-        "Boss + Clarity. Raw intake only — no shaping or filtering yet.",
+        "Clarity owns intake with Boss. Raw intake only — no shaping or filtering yet.",
       nextBot: "Chief",
       nextStep: "Project Type Confirmation / Clarity",
     },
