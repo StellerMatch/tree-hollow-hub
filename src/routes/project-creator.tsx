@@ -610,10 +610,11 @@ function normalizePersistedWorkflowRecords(projects: Project[]): {
 } {
   let changed = false;
   const normalized = projects.map((project) => {
+    let projectChanged = false;
     const renamed = project.handoffs.map((h) => {
       const nextMode = NESTED_STEP_RENAMES[workflowTextKey(h.mode)];
       if (!nextMode || nextMode === h.mode) return h;
-      changed = true;
+      projectChanged = true;
       return { ...h, mode: nextMode };
     });
 
@@ -628,7 +629,7 @@ function normalizePersistedWorkflowRecords(projects: Project[]): {
         continue;
       }
 
-      changed = true;
+      projectChanged = true;
       const merged = mergeDuplicateWorkflowHandoffs(existing, handoff);
       const idx = out.indexOf(existing);
       if (idx >= 0) out[idx] = merged;
@@ -638,13 +639,13 @@ function normalizePersistedWorkflowRecords(projects: Project[]): {
     const renumbered = out.map((h, idx) => {
       const step = idx + 1;
       if (h.step === step) return h;
-      changed = true;
+      projectChanged = true;
       return { ...h, step };
     });
 
-    return changed && renumbered !== project.handoffs
-      ? { ...project, handoffs: renumbered }
-      : project;
+    if (!projectChanged) return project;
+    changed = true;
+    return { ...project, handoffs: renumbered };
   });
 
   return { projects: normalized, changed };
