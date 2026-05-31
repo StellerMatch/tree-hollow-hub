@@ -175,6 +175,48 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v4: repair projects whose project-level currentMode/currentBot/nextAction
+  // were rewound by an earlier sync bug to "Project Type Confirmation /
+  // Clarity" even though the project already had real later-stage work.
+  // For known seed projects, restore from seed. For everything else,
+  // recompute from the corrected resolver (which now skips backfilled
+  // template steps).
+  if (stored < 4) {
+    next = next.map((p) => {
+      const rewound =
+        (p.currentMode ?? "").trim().toLowerCase() ===
+        "project type confirmation / clarity";
+      if (!rewound) return p;
+      const seed = SEED_PROJECTS.find((s) => s.id === p.id);
+      if (seed) {
+        changed = true;
+        return {
+          ...p,
+          currentMode: seed.currentMode,
+          currentBot: seed.currentBot,
+          nextAction: seed.nextAction,
+        };
+      }
+      const active = activeWorkflowEntry(p.handoffs)?.handoff;
+      // Only repair if the resolver disagrees with the stored value AND
+      // the active step is not Project Type Confirmation itself.
+      if (
+        active &&
+        (active.mode ?? "").trim().toLowerCase() !==
+          "project type confirmation / clarity"
+      ) {
+        changed = true;
+        return {
+          ...p,
+          currentMode: active.mode,
+          currentBot: active.bot || p.currentBot,
+          nextAction: requiredActionForHandoff(active, p.nextAction),
+        };
+      }
+      return p;
+    });
+  }
+
   try {
     localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
   } catch {
