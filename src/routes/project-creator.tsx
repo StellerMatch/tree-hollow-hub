@@ -699,8 +699,23 @@ function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): 
     nextBot: pickStr(base.nextBot, other.nextBot),
     nextStep: pickStr(base.nextStep, other.nextStep),
     authorityNotes: pickStr(base.authorityNotes, other.authorityNotes),
-    stepOutput: { ...(other.stepOutput ?? {}), ...(base.stepOutput ?? {}) },
+    stepOutput: mergeStepOutput(base.stepOutput, other.stepOutput),
   };
+}
+
+function mergeStepOutput(
+  primary?: Record<string, string>,
+  secondary?: Record<string, string>,
+): Record<string, string> | undefined {
+  const keys = new Set([...Object.keys(primary ?? {}), ...Object.keys(secondary ?? {})]);
+  if (keys.size === 0) return undefined;
+  const merged: Record<string, string> = {};
+  keys.forEach((key) => {
+    const primaryValue = primary?.[key];
+    const secondaryValue = secondary?.[key];
+    merged[key] = primaryValue && primaryValue.trim() ? primaryValue : secondaryValue || "";
+  });
+  return merged;
 }
 
 function isCanonicalWorkflowRecord(handoff: Handoff): boolean {
