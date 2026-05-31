@@ -105,6 +105,12 @@ function ProjectCreatorPage() {
     () => loadProjects()[0]?.id ?? "",
   );
   const [previewArtifact, setPreviewArtifact] = useState<Artifact | null>(null);
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [editingHandoff, setEditingHandoff] = useState<{
+    handoff: Handoff;
+    isNew: boolean;
+  } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     saveProjects(projects);
@@ -122,39 +128,104 @@ function ProjectCreatorPage() {
     );
   }
 
-  function createProject() {
+  function createProject(input: {
+    name: string;
+    summary: string;
+    status: ProjectStatus;
+    currentMode: string;
+    currentBot: string;
+    nextAction: string;
+    blocker: string;
+  }) {
     const id = uid();
+    const now = new Date().toISOString();
     const fresh: Project = {
       id,
-      name: "New Project",
-      summary: "",
-      status: "Draft",
-      currentMode: "Mode 0 / Clarity",
-      currentBot: "Boss",
-      nextAction: "Boss writes the clarity brief",
-      updatedAt: new Date().toISOString(),
+      name: input.name.trim() || "Untitled Project",
+      summary: input.summary,
+      status: input.status,
+      currentMode: input.currentMode || "Mode 0 / Clarity",
+      currentBot: input.currentBot || "Boss",
+      nextAction: input.nextAction,
+      blocker: input.blocker.trim() || undefined,
+      updatedAt: now,
       clarity: "",
       shapeNotes: "",
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [
-        {
-          id: uid(),
-          step: 1,
-          mode: "Mode 0 / Clarity Intake",
-          bot: "Boss",
-          assignment: "Write the plain-language ask.",
-          status: "Not Started",
-        },
-      ],
+      handoffs: [],
       artifacts: [],
       activity: [
-        { id: uid(), at: new Date().toISOString(), bot: "Boss", action: "opened project", status: "Draft" },
+        { id: uid(), at: now, bot: input.currentBot || "Boss", action: "opened project", status: input.status },
       ],
     };
     setProjects((prev) => [fresh, ...prev]);
     setSelectedId(id);
+    setShowNewProject(false);
+  }
+
+  function exportJSON() {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([JSON.stringify(projects, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dabottree-projects-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
+        // Basic shape check
+        for (const p of parsed) {
+          if (typeof p?.id !== "string" || typeof p?.name !== "string") {
+            throw new Error("Project entries missing id/name");
+          }
+        }
+        setProjects(parsed as Project[]);
+        setSelectedId((parsed[0] as Project)?.id ?? "");
+        setImportError(null);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : "Invalid JSON");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function openNewHandoff() {
+    if (!selected) return;
+    setEditingHandoff({
+      isNew: true,
+      handoff: {
+        id: uid(),
+        step: selected.handoffs.length + 1,
+        mode: "",
+        bot: "",
+        assignment: "",
+        status: "Not Started",
+      },
+    });
+  }
+
+  function saveHandoff(h: Handoff, isNew: boolean) {
+    if (!selected) return;
+    updateSelected((p) => ({
+      ...p,
+      handoffs: isNew
+        ? [...p.handoffs, h]
+        : p.handoffs.map((x) => (x.id === h.id ? h : x)),
+    }));
+    setEditingHandoff(null);
   }
 
   return (
@@ -191,17 +262,58 @@ function ProjectCreatorPage() {
               the operations room
             </div>
           </div>
-          <h1
-            className="font-display text-xl md:text-2xl font-semibold"
-            style={{ color: AMBER }}
-          >
-            DaBotTree Project Board
-          </h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportJSON}
+              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Export all projects as JSON"
+            >
+              ↓ export
+            </button>
+            <label
+              className="cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Import projects from JSON"
+            >
+              ↑ import
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importJSON(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <h1
+              className="ml-2 font-display text-xl md:text-2xl font-semibold"
+              style={{ color: AMBER }}
+            >
+              DaBotTree Project Board
+            </h1>
+          </div>
         </header>
 
-        <p className="mb-5 max-w-2xl text-sm text-muted-foreground">
-          Create and track projects from first idea through bot handoffs and finished artifacts.
-        </p>
+        <div className="mb-5 flex max-w-3xl items-start justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Create and track projects from first idea through bot handoffs and finished artifacts.
+          </p>
+          {importError && (
+            <div
+              className="rounded-md border px-2 py-1 text-xs"
+              style={{
+                borderColor: "oklch(0.65 0.22 25 / 0.5)",
+                background: "oklch(0.65 0.22 25 / 0.1)",
+                color: "oklch(0.85 0.12 25)",
+              }}
+            >
+              import failed: {importError}
+            </div>
+          )}
+        </div>
 
         {/* 3-column layout */}
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
@@ -215,7 +327,7 @@ function ProjectCreatorPage() {
                 Projects
               </div>
               <button
-                onClick={createProject}
+                onClick={() => setShowNewProject(true)}
                 className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
                 style={{ borderColor: AMBER_LINE, color: AMBER }}
               >
@@ -260,13 +372,27 @@ function ProjectCreatorPage() {
               project={selected}
               onChange={updateSelected}
               onPreviewArtifact={setPreviewArtifact}
+              onAddHandoff={openNewHandoff}
+              onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
             />
           ) : (
             <div
-              className="rounded-2xl border bark-texture p-8 text-center text-muted-foreground"
+              className="rounded-2xl border bark-texture p-8 text-center"
               style={{ borderColor: AMBER_SOFT }}
             >
-              No project selected. Create one in the sidebar.
+              <div className="font-display text-lg" style={{ color: AMBER }}>
+                No projects yet
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Open your first project in the operations room.
+              </p>
+              <button
+                onClick={() => setShowNewProject(true)}
+                className="mt-4 rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                + new project
+              </button>
             </div>
           )}
 
@@ -277,6 +403,22 @@ function ProjectCreatorPage() {
 
       {previewArtifact && (
         <ArtifactPreview artifact={previewArtifact} onClose={() => setPreviewArtifact(null)} />
+      )}
+
+      {showNewProject && (
+        <NewProjectModal
+          onClose={() => setShowNewProject(false)}
+          onCreate={createProject}
+        />
+      )}
+
+      {editingHandoff && (
+        <HandoffEditorModal
+          initial={editingHandoff.handoff}
+          isNew={editingHandoff.isNew}
+          onClose={() => setEditingHandoff(null)}
+          onSave={(h) => saveHandoff(h, editingHandoff.isNew)}
+        />
       )}
     </div>
   );
