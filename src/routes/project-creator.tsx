@@ -8,12 +8,14 @@ import type {
   Artifact,
   ArtifactType,
   ArtifactSource,
+  ProjectType,
 } from "@/components/project-board/types";
 import {
   ARTIFACT_TYPES,
   ARTIFACT_SOURCES,
   PROJECT_STATUSES,
   HANDOFF_STATUSES,
+  PROJECT_TYPES,
 } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 import {
@@ -104,6 +106,8 @@ type ProjectSettingsInput = {
   name: string;
   summary: string;
   status: ProjectStatus;
+  projectType: ProjectType;
+  projectTypeCustom: string;
   currentMode: string;
   currentBot: string;
   nextAction: string;
@@ -413,6 +417,12 @@ function ProjectCreatorPage() {
         if (input.name !== p.name) changed.push("name");
         if (input.summary !== p.summary) changed.push("summary");
         if (input.status !== p.status) changed.push("status");
+        if (input.projectType !== p.projectType) changed.push("project type");
+        if (
+          input.projectType === "Other / Custom" &&
+          (input.projectTypeCustom.trim() || undefined) !== p.projectTypeCustom
+        )
+          changed.push("custom type");
         if (input.currentMode !== p.currentMode) changed.push("mode");
         if (input.currentBot !== p.currentBot) changed.push("owner");
         if (input.nextAction !== p.nextAction) changed.push("next action");
@@ -422,6 +432,11 @@ function ProjectCreatorPage() {
           name: input.name.trim() || p.name,
           summary: input.summary,
           status: input.status,
+          projectType: input.projectType,
+          projectTypeCustom:
+            input.projectType === "Other / Custom"
+              ? input.projectTypeCustom.trim() || undefined
+              : undefined,
           currentMode: input.currentMode,
           currentBot: input.currentBot,
           nextAction: input.nextAction,
@@ -448,6 +463,11 @@ function ProjectCreatorPage() {
       name: input.name.trim() || "Untitled Project",
       summary: input.summary,
       status: input.status,
+      projectType: input.projectType,
+      projectTypeCustom:
+        input.projectType === "Other / Custom"
+          ? input.projectTypeCustom.trim() || undefined
+          : undefined,
       currentMode: fromPipeline
         ? DABOTTREE_PIPELINE[0].stage
         : input.currentMode || "Mode 0 / Clarity",
@@ -1155,6 +1175,14 @@ function ProjectMain({
         </div>
         <CurrentStageIndicator project={project} />
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+          <MetaItem
+            label="Type"
+            value={
+              project.projectType === "Other / Custom"
+                ? project.projectTypeCustom || "Other / Custom"
+                : project.projectType || "—"
+            }
+          />
           <MetaItem label="Mode" value={project.currentMode} />
           <MetaItem label="Owner" value={project.currentBot} />
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
@@ -2333,6 +2361,12 @@ function ProjectSettingsModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
+  const [projectType, setProjectType] = useState<ProjectType>(
+    initial?.projectType ?? "App / Software",
+  );
+  const [projectTypeCustom, setProjectTypeCustom] = useState(
+    initial?.projectTypeCustom ?? "",
+  );
   const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
   const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
   const [nextAction, setNextAction] = useState(
@@ -2361,7 +2395,17 @@ function ProjectSettingsModal({
               disabled={!canSave}
               onClick={() =>
                 onSave(
-                  { name, summary, status, currentMode, currentBot, nextAction, blocker },
+                  {
+                    name,
+                    summary,
+                    status,
+                    projectType,
+                    projectTypeCustom,
+                    currentMode,
+                    currentBot,
+                    nextAction,
+                    blocker,
+                  },
                   true,
                 )
               }
@@ -2372,7 +2416,17 @@ function ProjectSettingsModal({
           <ModalButton
             disabled={!canSave}
             onClick={() =>
-              onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+              onSave({
+                name,
+                summary,
+                status,
+                projectType,
+                projectTypeCustom,
+                currentMode,
+                currentBot,
+                nextAction,
+                blocker,
+              })
             }
           >
             {mode === "create" ? "create blank" : "save changes"}
@@ -2397,6 +2451,31 @@ function ProjectSettingsModal({
           placeholder="One sentence — what is this and who is it for?"
           onChange={(e) => setSummary(e.target.value)}
         />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Project type</ModalLabel>
+          <ModalSelect
+            value={projectType}
+            onChange={(e) => setProjectType(e.target.value as ProjectType)}
+          >
+            {PROJECT_TYPES.map((t) => (
+              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">
+                {t}
+              </option>
+            ))}
+          </ModalSelect>
+        </div>
+        {projectType === "Other / Custom" && (
+          <div>
+            <ModalLabel>Custom project type</ModalLabel>
+            <ModalInput
+              value={projectTypeCustom}
+              placeholder="e.g. Live event, Workshop, Course…"
+              onChange={(e) => setProjectTypeCustom(e.target.value)}
+            />
+          </div>
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

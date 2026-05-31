@@ -15,6 +15,20 @@ export type HandoffStatus =
   | "Blocked"
   | "Parked";
 
+export const PROJECT_TYPES = [
+  "App / Software",
+  "Website",
+  "AI System",
+  "Business / Offer",
+  "Book",
+  "TV / Film Idea",
+  "Podcast",
+  "Content / Social Media Project",
+  "Personal / Family Project",
+  "Other / Custom",
+] as const;
+export type ProjectType = (typeof PROJECT_TYPES)[number];
+
 export const PROJECT_STATUSES: ProjectStatus[] = [
   "Draft",
   "Active",
@@ -102,6 +116,8 @@ export type Project = {
   name: string;
   summary: string;
   status: ProjectStatus;
+  projectType?: ProjectType;
+  projectTypeCustom?: string;
   currentMode: string;
   currentBot: string;
   nextAction: string;
