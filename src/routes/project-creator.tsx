@@ -1714,7 +1714,7 @@ function WorkflowRail({
                     ? "·"
                     : isActive
                       ? "●"
-                      : String(idx + 1);
+                      : "○";
             const { title, phase } = splitStepTitle(h.mode);
             return (
               <li key={h.id}>
