@@ -235,16 +235,21 @@ function ProjectCreatorPage() {
     setEditingProjectId(null);
   }
 
-  function createProject(input: ProjectSettingsInput) {
+  function createProject(input: ProjectSettingsInput, fromPipeline = false) {
     const id = uid();
     const ts = new Date().toISOString();
+    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : [];
     const fresh: Project = {
       id,
       name: input.name.trim() || "Untitled Project",
       summary: input.summary,
       status: input.status,
-      currentMode: input.currentMode || "Mode 0 / Clarity",
-      currentBot: input.currentBot || "Boss",
+      currentMode: fromPipeline
+        ? DABOTTREE_PIPELINE[0].stage
+        : input.currentMode || "Mode 0 / Clarity",
+      currentBot: fromPipeline
+        ? DABOTTREE_PIPELINE[0].bot
+        : input.currentBot || "Boss",
       nextAction: input.nextAction,
       blocker: input.blocker.trim() || undefined,
       updatedAt: ts,
@@ -253,14 +258,16 @@ function ProjectCreatorPage() {
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [],
+      handoffs: pipelineHandoffs,
       artifacts: [],
       activity: [
         {
           id: uid(),
           at: ts,
           bot: input.currentBot || "Boss",
-          action: "created project",
+          action: fromPipeline
+            ? `created project from ${DABOTTREE_PIPELINE_NAME}`
+            : "created project",
           status: input.status,
         },
       ],
