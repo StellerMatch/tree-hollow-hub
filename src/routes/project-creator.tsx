@@ -862,11 +862,13 @@ function HandoffCard({
   handoff,
   onUpdate,
   onRemove,
+  onEdit,
   onPreview,
 }: {
   handoff: Handoff;
   onUpdate: (mut: (h: Handoff) => Handoff) => void;
   onRemove: () => void;
+  onEdit: () => void;
   onPreview: () => void;
 }) {
   const isComplete = handoff.status === "Complete";
@@ -1035,6 +1037,13 @@ function HandoffCard({
                   preview artifact
                 </button>
               )}
+              <button
+                onClick={onEdit}
+                className="rounded-md border px-2 py-0.5 text-[11px] transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                edit
+              </button>
               <button
                 onClick={onRemove}
                 className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground/70 transition hover:text-foreground"
