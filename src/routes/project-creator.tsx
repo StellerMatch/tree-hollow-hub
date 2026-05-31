@@ -1591,6 +1591,331 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// ---------- Workflow rail (right panel) ----------
+function WorkflowRail({
+  project,
+  selectedHandoffId,
+  onSelectHandoff,
+  onOpenCommandReceipt,
+}: {
+  project: Project;
+  selectedHandoffId: string | null;
+  onSelectHandoff: (id: string) => void;
+  onOpenCommandReceipt: () => void;
+}) {
+  const activeEntry = currentStageEntry(project);
+  const activeId = activeEntry?.handoff.id ?? null;
+
+  return (
+    <aside
+      className="rounded-2xl border bark-texture p-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+          Workflow
+        </div>
+        <button
+          type="button"
+          onClick={onOpenCommandReceipt}
+          className="rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-muted-foreground transition hover:text-foreground"
+          style={{ borderColor: AMBER_SOFT }}
+          title="Open command receipt"
+        >
+          🧾 receipt
+        </button>
+      </div>
+      <div className="mb-2 text-[10px] text-muted-foreground/70">
+        {project.handoffs.length} step{project.handoffs.length === 1 ? "" : "s"} · click to view
+      </div>
+      {project.handoffs.length === 0 ? (
+        <div
+          className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+          style={{ borderColor: AMBER_LINE }}
+        >
+          No handoffs yet.
+        </div>
+      ) : (
+        <ol className="relative space-y-1.5">
+          {project.handoffs.map((h, idx) => {
+            const isActive = h.id === activeId;
+            const isSelected = h.id === selectedHandoffId;
+            const stageColor =
+              h.status === "Complete"
+                ? EMERALD
+                : h.status === "Blocked"
+                  ? "oklch(0.65 0.22 25)"
+                  : h.status === "Parked"
+                    ? "oklch(0.6 0.03 80)"
+                    : isActive
+                      ? AMBER
+                      : "oklch(0.6 0.03 80)";
+            const dotChar =
+              h.status === "Complete"
+                ? "✓"
+                : h.status === "Blocked"
+                  ? "!"
+                  : h.status === "Parked"
+                    ? "·"
+                    : isActive
+                      ? "●"
+                      : String(idx + 1);
+            return (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelectHandoff(h.id)}
+                  className="flex w-full items-start gap-2 rounded-lg border px-2 py-1.5 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.35)]"
+                  style={{
+                    borderColor: isSelected ? AMBER : AMBER_SOFT,
+                    background: isSelected
+                      ? "oklch(0.78 0.18 50 / 0.1)"
+                      : isActive
+                        ? "oklch(0.78 0.18 50 / 0.04)"
+                        : "transparent",
+                  }}
+                  title={`${h.mode} · ${h.status}`}
+                >
+                  <span
+                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                    style={{ borderColor: stageColor, color: stageColor }}
+                  >
+                    {dotChar}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-medium leading-snug">
+                      {h.mode || <span className="italic opacity-60">untitled</span>}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span>{h.bot || "—"}</span>
+                      <span className="opacity-50">·</span>
+                      <span style={{ color: stageColor }}>{h.status}</span>
+                      {isActive && (
+                        <span
+                          className="ml-auto rounded border px-1 text-[9px] uppercase tracking-[0.14em]"
+                          style={{ borderColor: AMBER, color: AMBER }}
+                        >
+                          now
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      <div
+        className="mt-3 rounded-md border px-2 py-1.5 text-[10px] text-muted-foreground/80"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        Legend: <span style={{ color: AMBER }}>●</span> working · <span style={{ color: EMERALD }}>✓</span> complete · <span style={{ color: "oklch(0.65 0.22 25)" }}>!</span> blocked
+      </div>
+    </aside>
+  );
+}
+
+// ---------- Command receipt modal ----------
+function CommandReceiptModal({
+  project,
+  onChange,
+  onClose,
+}: {
+  project: Project;
+  onChange: (mut: (p: Project) => Project) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        onClick={onClose}
+        aria-label="close"
+        className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
+      />
+      <div
+        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border bark-texture p-4 animate-fade-up"
+        style={{ borderColor: AMBER, animationDuration: "0.2s" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <div className="font-display text-base font-semibold" style={{ color: AMBER }}>
+            Command Receipt
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full border text-muted-foreground transition hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+          >
+            ✕
+          </button>
+        </div>
+        <StatusPanel project={project} onChange={onChange} />
+      </div>
+    </div>
+  );
+}
+
+// ---------- Creator guidance strip ----------
+const CREATOR_MODES = [
+  {
+    key: "Good" as const,
+    label: "Good",
+    blurb: "Hands-off. Bots complete the process unless blocked.",
+  },
+  {
+    key: "Better" as const,
+    label: "Better",
+    blurb: "Guided. Bots pause at key checkpoints for creator review.",
+  },
+  {
+    key: "Best" as const,
+    label: "Best",
+    blurb: "Hands-on. Creator walks every major stage with the bots.",
+  },
+];
+
+function CreatorGuidance({
+  project,
+  onChange,
+}: {
+  project: Project;
+  onChange: (mut: (p: Project) => Project) => void;
+}) {
+  const mode = project.creatorMode ?? "Better";
+  const guidance = project.creatorGuidance ?? "";
+  const activeBlurb = CREATOR_MODES.find((m) => m.key === mode)?.blurb ?? "";
+
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+          style={{ borderColor: AMBER_LINE, color: AMBER }}
+        >
+          Creator Guidance
+        </span>
+        <div
+          className="inline-flex overflow-hidden rounded-md border text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+          role="radiogroup"
+          aria-label="Creator involvement"
+        >
+          {CREATOR_MODES.map((m) => {
+            const sel = m.key === mode;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                role="radio"
+                aria-checked={sel}
+                onClick={() =>
+                  onChange((p) => ({ ...p, creatorMode: m.key }))
+                }
+                title={m.blurb}
+                className="px-2.5 py-1 transition"
+                style={{
+                  background: sel ? "oklch(0.78 0.18 50 / 0.18)" : "transparent",
+                  color: sel ? AMBER : "inherit",
+                  fontWeight: sel ? 600 : 400,
+                }}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-[11px] text-muted-foreground">{activeBlurb}</span>
+      </div>
+      <input
+        value={guidance}
+        onChange={(e) =>
+          onChange((p) => ({ ...p, creatorGuidance: e.target.value || undefined }))
+        }
+        placeholder="Notes, warnings, or snags for the creator…"
+        className="mt-1.5 w-full rounded-md border bg-transparent px-2 py-1 text-[12px] outline-none focus:border-[oklch(0.78_0.18_50)]"
+        style={{ borderColor: AMBER_SOFT }}
+      />
+    </section>
+  );
+}
+
+// ---------- Selected step detail panel ----------
+function SelectedStepDetail({
+  handoff,
+  globalIndex,
+  total,
+  onEdit,
+  onMoveUp,
+  onMoveDown,
+  onRemove,
+  onChangeStatus,
+  onPreview,
+}: {
+  handoff: Handoff;
+  globalIndex: number;
+  total: number;
+  onEdit: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onRemove: () => void;
+  onChangeStatus: (s: HandoffStatus) => void;
+  onPreview: (a: Artifact) => void;
+}) {
+  return (
+    <section
+      className="rounded-2xl border bark-texture p-3 md:p-4"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+          style={{ borderColor: AMBER_LINE, color: AMBER }}
+        >
+          Selected step
+        </span>
+        <span className="text-[11px] text-muted-foreground">
+          step {globalIndex + 1} of {total}
+        </span>
+      </div>
+      <HandoffCard
+        handoff={handoff}
+        displayStep={globalIndex + 1}
+        isFirst={globalIndex <= 0}
+        isLast={globalIndex === -1 || globalIndex >= total - 1}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        onChangeStatus={onChangeStatus}
+        onRemove={onRemove}
+        onEdit={onEdit}
+        onPreview={() => {
+          if (handoff.artifactBody || handoff.artifactLink) {
+            onPreview({
+              id: handoff.id,
+              title: handoff.artifactTitle || `${handoff.mode} artifact`,
+              kind: handoff.mode,
+              type: "other",
+              source: "Handoff",
+              body: handoff.artifactBody,
+              link: handoff.artifactLink,
+              bot: handoff.bot,
+              createdAt: handoff.completedAt ?? new Date().toISOString(),
+            });
+          }
+        }}
+      />
+    </section>
+  );
+}
+
 // ---------- Main center column ----------
 function ProjectMain({
   project,
