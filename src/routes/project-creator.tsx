@@ -2868,6 +2868,22 @@ function StepResultPanel({
     );
   }
 
+  // Per-step structured output template (Chief Review, Lantern R&D,
+  // Knowledge Packet, Prototype, Design Polish, Final Package, Official
+  // Record & Memory). Falls back to free-form artifact body if no
+  // template matches.
+  const template = stepTemplateFor(handoff);
+  if (template) {
+    return (
+      <StepTemplateForm
+        handoff={handoff}
+        template={template}
+        onChange={onChange}
+        onPreview={onPreview}
+      />
+    );
+  }
+
   // Generic step output: artifact body / link / title
   return (
     <div className="space-y-2">
