@@ -1416,6 +1416,7 @@ function ProjectCreatorPage() {
             />
           )}
         </div>
+        )}
       </div>
 
       {previewArtifact && (
