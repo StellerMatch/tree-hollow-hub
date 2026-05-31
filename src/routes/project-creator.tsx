@@ -160,9 +160,7 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   // handoffs and their edits are preserved; only missing stages are appended.
   if (stored < 3) {
     next = next.map((p) => {
-      const present = new Set(
-        p.handoffs.map((h) => stageForHandoff(h).id),
-      );
+      const present = new Set(p.handoffs.map((h) => stageForHandoff(h).id));
       const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
       if (missing.length === 0) return p;
       const baseStep = p.handoffs.length;
@@ -181,8 +179,7 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   // saved project-level state because current-stage display is now read-only.
   if (stored < 4) {
     next = next.map((p) => {
-      const rewound =
-        workflowTextKey(p.currentMode) === "project type confirmation / clarity";
+      const rewound = workflowTextKey(p.currentMode) === "project type confirmation / clarity";
       if (!rewound) return p;
       const seed = SEED_PROJECTS.find((s) => s.id === p.id);
       if (!seed) return p;
@@ -276,10 +273,15 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         mutated = true;
         // Field-level merge: prefer non-empty/richer values from either record.
         const pickStr = (a?: string, b?: string) =>
-          (a && a.trim()) ? a : (b && b.trim()) ? b : a ?? b;
+          a && a.trim() ? a : b && b.trim() ? b : (a ?? b);
         const statusRank: Record<string, number> = {
-          "Complete": 6, "Needs Review": 5, "Working": 4, "Sent": 3,
-          "Blocked": 2, "Parked": 1, "Not Started": 0,
+          Complete: 6,
+          "Needs Review": 5,
+          Working: 4,
+          Sent: 3,
+          Blocked: 2,
+          Parked: 1,
+          "Not Started": 0,
         };
         const betterStatus =
           (statusRank[h.status] ?? 0) >= (statusRank[existing.status] ?? 0)
@@ -288,12 +290,11 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         const merged: Handoff = {
           ...existing,
           // Prefer canonical-looking mode (the one that contains " / ")
-          mode:
-            (existing.mode ?? "").includes(" / ")
-              ? existing.mode
-              : (h.mode ?? "").includes(" / ")
-                ? h.mode
-                : existing.mode,
+          mode: (existing.mode ?? "").includes(" / ")
+            ? existing.mode
+            : (h.mode ?? "").includes(" / ")
+              ? h.mode
+              : existing.mode,
           bot: pickStr(existing.bot, h.bot) ?? existing.bot,
           assignment: pickStr(existing.assignment, h.assignment) ?? existing.assignment,
           status: betterStatus,
@@ -372,9 +373,10 @@ function createRequiredStageHandoff(
 }
 
 function officialRecordHandoffCount(handoffs: Handoff[]): number {
-  return bucketHandoffs(handoffs).find(
-    (bucket) => bucket.stage.id === "official-record",
-  )?.items.length ?? 0;
+  return (
+    bucketHandoffs(handoffs).find((bucket) => bucket.stage.id === "official-record")?.items
+      .length ?? 0
+  );
 }
 
 function ensureOfficialRecordHandoff(project: Project): { project: Project; changed: boolean } {
@@ -418,10 +420,7 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
     const isLegacyTrunkContent = assignment.startsWith(
       "compass synthesis. gather past / present / future",
     );
-    if (
-      isLegacyTrunkContent &&
-      modeKey === "lantern team kickoff / r&d"
-    ) {
+    if (isLegacyTrunkContent && modeKey === "lantern team kickoff / r&d") {
       changed = true;
       return { ...h, mode: "Research Scope and Synthesis / R&D" };
     }
@@ -479,18 +478,11 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
     // When merging, prefer to keep the canonical mode string (one that
     // already matches a template) so the backfill recognizes the slot.
     const templates = STAGE_NESTED_STEPS[stageId] ?? [];
-    const matchesTemplate = (x: Handoff) =>
-      templates.some((t) => handoffMatchesNestedStep(x, t));
+    const matchesTemplate = (x: Handoff) => templates.some((t) => handoffMatchesNestedStep(x, t));
     const hCanon = matchesTemplate(h);
     const eCanon = matchesTemplate(existing);
     const winner =
-      hCanon !== eCanon
-        ? hCanon
-          ? h
-          : existing
-        : score(h) > score(existing)
-          ? h
-          : existing;
+      hCanon !== eCanon ? (hCanon ? h : existing) : score(h) > score(existing) ? h : existing;
     if (winner !== existing) {
       // Replace the existing entry with the richer one.
       const idx = deduped.indexOf(existing);
@@ -584,24 +576,23 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
 // handoff bucketing into each pipeline stage. Runs on every load regardless
 // of SCHEMA_VERSION so projects saved before a stage was required still get
 // the missing handoff appended (existing handoffs and edits are preserved).
-function ensureRequiredStages(
-  projects: Project[],
-): { projects: Project[]; changed: boolean } {
+function ensureRequiredStages(projects: Project[]): { projects: Project[]; changed: boolean } {
   let changed = false;
   const next = projects.map((p) => {
     const officialRecordRepair = ensureOfficialRecordHandoff(p);
     let repairedProject = officialRecordRepair.project;
     if (officialRecordRepair.changed) changed = true;
     const present = new Set(repairedProject.handoffs.map((h) => stageForHandoff(h).id));
-    const missing = PIPELINE_STAGES.filter(
-      (s) => s.id !== "official-record" && !present.has(s.id),
-    );
+    const missing = PIPELINE_STAGES.filter((s) => s.id !== "official-record" && !present.has(s.id));
     if (missing.length > 0) {
       const baseStep = repairedProject.handoffs.length;
       const appended: Handoff[] = missing.map((stage, idx) =>
         createRequiredStageHandoff(repairedProject.id, stage.id, baseStep + idx + 1, "ensure"),
       );
-      repairedProject = { ...repairedProject, handoffs: [...repairedProject.handoffs, ...appended] };
+      repairedProject = {
+        ...repairedProject,
+        handoffs: [...repairedProject.handoffs, ...appended],
+      };
       changed = true;
     }
     const nested = ensureNestedSteps(repairedProject);
@@ -613,9 +604,10 @@ function ensureRequiredStages(
   return { projects: next, changed };
 }
 
-function normalizePersistedWorkflowRecords(
-  projects: Project[],
-): { projects: Project[]; changed: boolean } {
+function normalizePersistedWorkflowRecords(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
   let changed = false;
   const normalized = projects.map((project) => {
     const renamed = project.handoffs.map((h) => {
@@ -667,16 +659,21 @@ function renderedWorkflowIdentityKey(handoff: Handoff): string {
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
   const existingCanonical = isCanonicalWorkflowRecord(existing);
   const duplicateCanonical = isCanonicalWorkflowRecord(duplicate);
-  const base = duplicateCanonical && !existingCanonical
-    ? duplicate
-    : existingCanonical && !duplicateCanonical
-      ? existing
-      : workflowRecordScore(duplicate) > workflowRecordScore(existing)
-        ? duplicate
-        : existing;
+  const base =
+    duplicateCanonical && !existingCanonical
+      ? duplicate
+      : existingCanonical && !duplicateCanonical
+        ? existing
+        : workflowRecordScore(duplicate) > workflowRecordScore(existing)
+          ? duplicate
+          : existing;
   const other = base === existing ? duplicate : existing;
   const pickStr = (primary?: string, secondary?: string) =>
-    primary && primary.trim() ? primary : secondary && secondary.trim() ? secondary : primary ?? secondary;
+    primary && primary.trim()
+      ? primary
+      : secondary && secondary.trim()
+        ? secondary
+        : (primary ?? secondary);
   const statusRank: Record<string, number> = {
     Complete: 6,
     "Needs Review": 5,
@@ -687,9 +684,7 @@ function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): 
     "Not Started": 0,
   };
   const status =
-    (statusRank[other.status] ?? 0) > (statusRank[base.status] ?? 0)
-      ? other.status
-      : base.status;
+    (statusRank[other.status] ?? 0) > (statusRank[base.status] ?? 0) ? other.status : base.status;
   return {
     ...base,
     status,
@@ -741,8 +736,18 @@ function fmtTime(iso: string) {
     const d = new Date(iso);
     // Deterministic UTC format to avoid SSR/client hydration mismatches.
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
     const m = months[d.getUTCMonth()];
     const day = d.getUTCDate();
@@ -821,7 +826,10 @@ function workflowEntries(handoffs: Handoff[]): WorkflowEntry[] {
 
 function activeWorkflowEntry(handoffs: Handoff[]): WorkflowEntry | null {
   const entries = workflowEntries(handoffs);
-  return entries.find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ?? null;
+  return (
+    entries.find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ??
+    null
+  );
 }
 
 function currentStageEntry(project: Project): WorkflowEntry | null {
@@ -842,7 +850,8 @@ function currentStageEntry(project: Project): WorkflowEntry | null {
   }
 
   const ownedInFlight = entries.find(
-    ({ handoff }) => inFlight.has(handoff.status) && (!botKey || workflowTextKey(handoff.bot) === botKey),
+    ({ handoff }) =>
+      inFlight.has(handoff.status) && (!botKey || workflowTextKey(handoff.bot) === botKey),
   );
   if (ownedInFlight) return ownedInFlight;
 
@@ -858,9 +867,11 @@ function nextOpenWorkflowEntryAfter(handoffs: Handoff[], id: string): WorkflowEn
   const entries = workflowEntries(handoffs);
   const start = entries.findIndex(({ handoff }) => handoff.id === id);
   if (start === -1) return null;
-  return entries
-    .slice(start + 1)
-    .find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ?? null;
+  return (
+    entries
+      .slice(start + 1)
+      .find(({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked") ?? null
+  );
 }
 
 function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
@@ -938,9 +949,7 @@ function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
       }
       continue;
     }
-    handoffs.push(
-      createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"),
-    );
+    handoffs.push(createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"));
   }
   return handoffs;
 }
@@ -1039,7 +1048,12 @@ function ProjectCreatorPage() {
     const q = query.trim().toLowerCase();
     if (!q) return projects;
     return projects.filter((p) =>
-      [p.name, p.status, p.currentBot, p.currentMode, p.summary,
+      [
+        p.name,
+        p.status,
+        p.currentBot,
+        p.currentMode,
+        p.summary,
         p.projectType === "Other / Custom"
           ? p.projectTypeCustom || "Other / Custom"
           : p.projectType || "Unclassified",
@@ -1051,7 +1065,14 @@ function ProjectCreatorPage() {
 
   function logActivity(
     p: Project,
-    entry: { bot?: string; action: string; status?: HandoffStatus | ProjectStatus; receipt?: string; blocker?: string; link?: string },
+    entry: {
+      bot?: string;
+      action: string;
+      status?: HandoffStatus | ProjectStatus;
+      receipt?: string;
+      blocker?: string;
+      link?: string;
+    },
   ): Project {
     return {
       ...p,
@@ -1074,7 +1095,9 @@ function ProjectCreatorPage() {
   function updateSelected(mut: (p: Project) => Project) {
     if (!selected) return;
     setProjects((prev) =>
-      prev.map((p) => (p.id === selected.id ? { ...mut(p), updatedAt: new Date().toISOString() } : p)),
+      prev.map((p) =>
+        p.id === selected.id ? { ...mut(p), updatedAt: new Date().toISOString() } : p,
+      ),
     );
   }
 
@@ -1127,7 +1150,9 @@ function ProjectCreatorPage() {
   function createProject(input: ProjectSettingsInput, fromPipeline = false) {
     const id = uid();
     const ts = new Date().toISOString();
-    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : createInitialWorkflowHandoffs(id);
+    const pipelineHandoffs = fromPipeline
+      ? createPipelineHandoffs(uid)
+      : createInitialWorkflowHandoffs(id);
     const initialWorkflow = activeWorkflowEntry(pipelineHandoffs)?.handoff ?? null;
     const fresh: Project = {
       id,
@@ -1145,7 +1170,9 @@ function ProjectCreatorPage() {
       currentBot: fromPipeline
         ? DABOTTREE_PIPELINE[0].bot
         : initialWorkflow?.bot || input.currentBot || "Boss",
-      nextAction: fromPipeline ? input.nextAction : requiredActionForHandoff(initialWorkflow, input.nextAction),
+      nextAction: fromPipeline
+        ? input.nextAction
+        : requiredActionForHandoff(initialWorkflow, input.nextAction),
       blocker: input.blocker.trim() || undefined,
       updatedAt: ts,
       clarity: "",
@@ -1363,9 +1390,7 @@ function ProjectCreatorPage() {
         // moves away from Complete so the card no longer shows a stale
         // "completed …" line under a Working / Blocked / etc. status.
         completedAt:
-          status === "Complete"
-            ? h.completedAt ?? new Date().toISOString()
-            : undefined,
+          status === "Complete" ? (h.completedAt ?? new Date().toISOString()) : undefined,
         stepOutput:
           status === "Complete" && Object.keys(snapshot).length > 0
             ? { ...snapshot, ...(h.stepOutput ?? {}) }
@@ -1388,9 +1413,7 @@ function ProjectCreatorPage() {
           .find((x) => x.status !== "Complete" && x.status !== "Parked");
         const before = after
           ? null
-          : next.handoffs.find(
-              (x) => x.status !== "Complete" && x.status !== "Parked",
-            );
+          : next.handoffs.find((x) => x.status !== "Complete" && x.status !== "Parked");
         const nextOpen = after ?? before;
         if (nextOpen) {
           setSelectedHandoffId(nextOpen.id);
@@ -1420,10 +1443,13 @@ function ProjectCreatorPage() {
       updatedAt: ts,
     };
     updateSelected((p) =>
-      logActivity({ ...p, artifacts: [...p.artifacts, a] }, {
-        bot: a.bot,
-        action: `added artifact "${a.title}"`,
-      }),
+      logActivity(
+        { ...p, artifacts: [...p.artifacts, a] },
+        {
+          bot: a.bot,
+          action: `added artifact "${a.title}"`,
+        },
+      ),
     );
     setEditingArtifactId(a.id);
   }
@@ -1553,157 +1579,160 @@ function ProjectCreatorPage() {
           </div>
         )}
         {hydrated && (
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
-          {/* LEFT — project list */}
-          <aside
-            className="rounded-2xl border bark-texture p-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
-            style={{ borderColor: AMBER_SOFT }}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-                Projects · {filteredProjects.length}/{projects.length}
-              </div>
-              <button
-                onClick={quickCreateProject}
-                className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                style={{ borderColor: AMBER_LINE, color: AMBER }}
-                title="Create a new draft project at Mode 0 / Raw Idea"
-              >
-                + new
-              </button>
-            </div>
-            <div className="relative mb-2">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="search name, status, bot, mode…"
-                className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
-                style={{ borderColor: AMBER_SOFT }}
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery("")}
-                  aria-label="clear search"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded px-1.5 text-xs text-muted-foreground/70 hover:text-foreground"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            {filteredProjects.length === 0 && (
-              <div className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
-                style={{ borderColor: AMBER_LINE }}>
-                no projects match
-              </div>
-            )}
-            <ul className="space-y-1.5">
-              {filteredProjects.map((p) => {
-                const active = selected?.id === p.id;
-                const workflow = currentStageEntry(p)?.handoff;
-                const rawMode = workflow?.mode || p.currentMode;
-                const split = splitStepTitle(rawMode);
-                const displayBot = workflow?.bot || p.currentBot;
-                const displayMode = split.title || rawMode;
-                const displayPhase = split.phase;
-                return (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => setSelectedId(p.id)}
-                      className="w-full rounded-xl border px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
-                      style={{
-                        borderColor: active ? AMBER : AMBER_SOFT,
-                        background: active ? `${AMBER_SOFT}` : "transparent",
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="truncate font-display text-sm font-semibold">
-                          {p.name}
-                        </div>
-                        <StatusPill status={p.status} />
-                      </div>
-                      <div className="mt-1 truncate text-[11px] text-muted-foreground">
-                        {p.projectType === "Other / Custom"
-                          ? p.projectTypeCustom || "Other / Custom"
-                          : p.projectType || "Unclassified"} · {displayMode} · {displayBot}
-                        {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
-                      </div>
-                      <div className="mt-0.5 text-[10px] text-muted-foreground/70">
-                        updated {fmtTime(p.updatedAt)}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </aside>
-
-          {/* CENTER — selected project */}
-          {selected ? (
-            <ProjectMain
-              project={selected}
-              onChange={updateSelected}
-              onPreviewArtifact={setPreviewArtifact}
-              onAddHandoff={openNewHandoff}
-              onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
-              onOpenSettings={() => setEditingProjectId(selected.id)}
-              onMoveHandoff={moveHandoff}
-              onRemoveHandoff={removeHandoff}
-              onChangeHandoffStatus={changeHandoffStatus}
-              onAddArtifact={addArtifact}
-              onEditArtifact={(id) => setEditingArtifactId(id)}
-              onRemoveArtifact={removeArtifact}
-              selectedHandoffId={selectedHandoffId}
-              selectedPhaseId={selectedPhaseId}
-              onSelectHandoff={(id) => {
-                setSelectedHandoffId(id);
-                setSelectedPhaseId(null);
-              }}
-              onSelectPhase={(id) => {
-                setSelectedPhaseId(id);
-                setSelectedHandoffId(null);
-              }}
-              onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
-            />
-          ) : (
-            <div
-              className="rounded-2xl border bark-texture p-8 text-center"
+          <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+            {/* LEFT — project list */}
+            <aside
+              className="rounded-2xl border bark-texture p-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
               style={{ borderColor: AMBER_SOFT }}
             >
-              <div className="font-display text-lg" style={{ color: AMBER }}>
-                No projects yet
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
+                  Projects · {filteredProjects.length}/{projects.length}
+                </div>
+                <button
+                  onClick={quickCreateProject}
+                  className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                  style={{ borderColor: AMBER_LINE, color: AMBER }}
+                  title="Create a new draft project at Mode 0 / Raw Idea"
+                >
+                  + new
+                </button>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Open your first project in the operations room.
-              </p>
-              <button
-                onClick={() => setShowNewProject(true)}
-                className="mt-4 rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                style={{ borderColor: AMBER_LINE, color: AMBER }}
-              >
-                + new project
-              </button>
-            </div>
-          )}
+              <div className="relative mb-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="search name, status, bot, mode…"
+                  className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
+                  style={{ borderColor: AMBER_SOFT }}
+                />
+                {query && (
+                  <button
+                    onClick={() => setQuery("")}
+                    aria-label="clear search"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded px-1.5 text-xs text-muted-foreground/70 hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              {filteredProjects.length === 0 && (
+                <div
+                  className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+                  style={{ borderColor: AMBER_LINE }}
+                >
+                  no projects match
+                </div>
+              )}
+              <ul className="space-y-1.5">
+                {filteredProjects.map((p) => {
+                  const active = selected?.id === p.id;
+                  const workflow = currentStageEntry(p)?.handoff;
+                  const rawMode = workflow?.mode || p.currentMode;
+                  const split = splitStepTitle(rawMode);
+                  const displayBot = workflow?.bot || p.currentBot;
+                  const displayMode = split.title || rawMode;
+                  const displayPhase = split.phase;
+                  return (
+                    <li key={p.id}>
+                      <button
+                        onClick={() => setSelectedId(p.id)}
+                        className="w-full rounded-xl border px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
+                        style={{
+                          borderColor: active ? AMBER : AMBER_SOFT,
+                          background: active ? `${AMBER_SOFT}` : "transparent",
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="truncate font-display text-sm font-semibold">
+                            {p.name}
+                          </div>
+                          <StatusPill status={p.status} />
+                        </div>
+                        <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                          {p.projectType === "Other / Custom"
+                            ? p.projectTypeCustom || "Other / Custom"
+                            : p.projectType || "Unclassified"}{" "}
+                          · {displayMode} · {displayBot}
+                          {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+                          updated {fmtTime(p.updatedAt)}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </aside>
 
-          {/* RIGHT — workflow rail */}
-          {selected && (
-            <WorkflowRail
-              project={selected}
-              selectedHandoffId={selectedHandoffId}
-              selectedPhaseId={selectedPhaseId}
-              onSelectHandoff={(id) => {
-                setSelectedHandoffId(id);
-                setSelectedPhaseId(null);
-              }}
-              onSelectPhase={(id) => {
-                setSelectedPhaseId(id);
-                setSelectedHandoffId(null);
-              }}
-              onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
-              onAddHandoff={openNewHandoff}
-            />
-          )}
-        </div>
+            {/* CENTER — selected project */}
+            {selected ? (
+              <ProjectMain
+                project={selected}
+                onChange={updateSelected}
+                onPreviewArtifact={setPreviewArtifact}
+                onAddHandoff={openNewHandoff}
+                onEditHandoff={(h) => setEditingHandoff({ handoff: h, isNew: false })}
+                onOpenSettings={() => setEditingProjectId(selected.id)}
+                onMoveHandoff={moveHandoff}
+                onRemoveHandoff={removeHandoff}
+                onChangeHandoffStatus={changeHandoffStatus}
+                onAddArtifact={addArtifact}
+                onEditArtifact={(id) => setEditingArtifactId(id)}
+                onRemoveArtifact={removeArtifact}
+                selectedHandoffId={selectedHandoffId}
+                selectedPhaseId={selectedPhaseId}
+                onSelectHandoff={(id) => {
+                  setSelectedHandoffId(id);
+                  setSelectedPhaseId(null);
+                }}
+                onSelectPhase={(id) => {
+                  setSelectedPhaseId(id);
+                  setSelectedHandoffId(null);
+                }}
+                onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
+              />
+            ) : (
+              <div
+                className="rounded-2xl border bark-texture p-8 text-center"
+                style={{ borderColor: AMBER_SOFT }}
+              >
+                <div className="font-display text-lg" style={{ color: AMBER }}>
+                  No projects yet
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Open your first project in the operations room.
+                </p>
+                <button
+                  onClick={() => setShowNewProject(true)}
+                  className="mt-4 rounded-md border px-3 py-1.5 text-sm font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+                  style={{ borderColor: AMBER_LINE, color: AMBER }}
+                >
+                  + new project
+                </button>
+              </div>
+            )}
+
+            {/* RIGHT — workflow rail */}
+            {selected && (
+              <WorkflowRail
+                project={selected}
+                selectedHandoffId={selectedHandoffId}
+                selectedPhaseId={selectedPhaseId}
+                onSelectHandoff={(id) => {
+                  setSelectedHandoffId(id);
+                  setSelectedPhaseId(null);
+                }}
+                onSelectPhase={(id) => {
+                  setSelectedPhaseId(id);
+                  setSelectedHandoffId(null);
+                }}
+                onOpenCommandReceipt={() => setCommandReceiptOpen(true)}
+                onAddHandoff={openNewHandoff}
+              />
+            )}
+          </div>
         )}
       </div>
 
@@ -1767,9 +1796,7 @@ function StatusPanel({
   const latestReceipt = [...project.handoffs]
     .filter((h) => h.status === "Complete")
     .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))[0];
-  const latestActivity = [...project.activity].sort((a, b) =>
-    b.at.localeCompare(a.at),
-  )[0];
+  const latestActivity = [...project.activity].sort((a, b) => b.at.localeCompare(a.at))[0];
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker;
@@ -1791,9 +1818,7 @@ function StatusPanel({
         className="rounded-xl border p-3"
         style={{
           borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
-          background: hasBlocker
-            ? "oklch(0.65 0.22 25 / 0.08)"
-            : "oklch(0.78 0.18 50 / 0.06)",
+          background: hasBlocker ? "oklch(0.65 0.22 25 / 0.08)" : "oklch(0.78 0.18 50 / 0.06)",
         }}
       >
         <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
@@ -1807,9 +1832,17 @@ function StatusPanel({
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
           {active && (
-            <> · phase <span className="text-foreground">{phaseForHandoff(active).label}</span></>
+            <>
+              {" "}
+              · phase <span className="text-foreground">{phaseForHandoff(active).label}</span>
+            </>
           )}
-          {active && <> · <StatusPill status={active.status} /></>}
+          {active && (
+            <>
+              {" "}
+              · <StatusPill status={active.status} />
+            </>
+          )}
         </div>
       </div>
 
@@ -1837,9 +1870,7 @@ function StatusPanel({
         <textarea
           value={project.blocker ?? ""}
           placeholder="None"
-          onChange={(e) =>
-            onChange((p) => ({ ...p, blocker: e.target.value || undefined }))
-          }
+          onChange={(e) => onChange((p) => ({ ...p, blocker: e.target.value || undefined }))}
           rows={2}
           className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2 py-1.5 text-sm outline-none focus:border-[oklch(0.78_0.18_50)]"
           style={{
@@ -1856,9 +1887,7 @@ function StatusPanel({
         <Field label="Status">
           <select
             value={project.status}
-            onChange={(e) =>
-              onChange((p) => ({ ...p, status: e.target.value as ProjectStatus }))
-            }
+            onChange={(e) => onChange((p) => ({ ...p, status: e.target.value as ProjectStatus }))}
             className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
             style={{ borderColor: AMBER_SOFT }}
           >
@@ -1969,23 +1998,19 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
   {
     id: "clarity",
     label: "Clarity",
-    blurb:
-      "Boss captures the raw idea, confirms project type, and shapes the project brief.",
+    blurb: "Boss captures the raw idea, confirms project type, and shapes the project brief.",
     purpose:
       "Turn a raw idea into a project Chief can actually open — clear ask, audience, done-state.",
     needsBefore: "A creator with an idea worth opening.",
     produces: "Project Type, Mode 1 shape, and Mode 2 project brief.",
     ownerTeam: "Boss, Clarity",
     match: (h) =>
-      /(mode 0|raw idea|project type|mode 1|\bshape\b|mode 2|project brief)/i.test(
-        h.mode,
-      ),
+      /(mode 0|raw idea|project type|mode 1|\bshape\b|mode 2|project brief)/i.test(h.mode),
   },
   {
     id: "chief-review",
     label: "Chief Review",
-    blurb:
-      "Chief reviews the brief and prepares the project for the lantern R&D team.",
+    blurb: "Chief reviews the brief and prepares the project for the lantern R&D team.",
     purpose:
       "Chief sanity-checks the brief, names open questions, and frames what R&D needs to find.",
     needsBefore: "A signed Mode 2 project brief from Clarity.",
@@ -2001,8 +2026,7 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     purpose:
       "Research the landscape across past, present, and future so Rook can build a real plan.",
     needsBefore: "Chief Intake Summary and a defined research question.",
-    produces:
-      "Lantern passes + Research Scope / Synthesis + Boss-facing R&D Highlight Brief.",
+    produces: "Lantern passes + Research Scope / Synthesis + Boss-facing R&D Highlight Brief.",
     ownerTeam: "Compass, Vault, Bloom, Luma",
     match: (h) =>
       /(lantern|r&d|past landscape|present landscape|future hooks|risks and unknowns|research scope|highlight brief|\btrunk\b)/i.test(
@@ -2042,15 +2066,13 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     needsBefore: "A working prototype from Tinker.",
     produces: "Design review notes + approval to package, or rework requests.",
     ownerTeam: "Luma",
-    match: (h) =>
-      /(design polish|design review)/i.test(h.mode) || /^luma$/i.test(h.bot ?? ""),
+    match: (h) => /(design polish|design review)/i.test(h.mode) || /^luma$/i.test(h.bot ?? ""),
   },
   {
     id: "final-package",
     label: "Final Package",
     blurb: "Weaver bundles the final handoff package.",
-    purpose:
-      "Bundle the prototype, assets, and handoff notes into the final deliverable.",
+    purpose: "Bundle the prototype, assets, and handoff notes into the final deliverable.",
     needsBefore: "Design Polish sign-off from Luma.",
     produces: "Final package: assets, manifest, readiness notes.",
     ownerTeam: "Weaver",
@@ -2059,8 +2081,7 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
   {
     id: "record-memory",
     label: "Official Record & Memory",
-    blurb:
-      "Ledger files the official record. Echo aligns what should be remembered.",
+    blurb: "Ledger files the official record. Echo aligns what should be remembered.",
     purpose:
       "Keep the official record up to date and align what should be remembered (or not) going forward.",
     needsBefore: "Final package delivered, or a milestone worth recording.",
@@ -2098,9 +2119,7 @@ function bucketHandoffsByPhase(handoffs: Handoff[]): PhaseBucket[] {
   for (const p of WORKFLOW_PHASES) buckets.set(p.id, { phase: p, items: [] });
   buckets.set(OTHER_PHASE.id, { phase: OTHER_PHASE, items: [] });
   handoffs.forEach((h, i) => {
-    buckets
-      .get(phaseForHandoff(h).id)!
-      .items.push({ handoff: h, globalIndex: i });
+    buckets.get(phaseForHandoff(h).id)!.items.push({ handoff: h, globalIndex: i });
   });
   const ordered: PhaseBucket[] = WORKFLOW_PHASES.map((p) => buckets.get(p.id)!).filter(
     (b) => b.items.length > 0,
@@ -2131,12 +2150,11 @@ function WorkflowRail({
   const activeId = activeEntry?.handoff.id ?? null;
   const phaseBuckets = bucketHandoffsByPhase(project.handoffs);
   const activePhaseId =
-    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === activeId))?.phase.id ??
-    null;
+    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === activeId))?.phase.id ?? null;
   const activePhaseIdx = phaseBuckets.findIndex((b) => b.phase.id === activePhaseId);
   const selectedHandoffPhaseId =
-    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === selectedHandoffId))
-      ?.phase.id ?? null;
+    phaseBuckets.find((b) => b.items.some((it) => it.handoff.id === selectedHandoffId))?.phase.id ??
+    null;
 
   // Phases auto-expand when active, when they contain the selected step, or
   // when they ARE the selected phase. Users can also toggle manually.
@@ -2145,8 +2163,7 @@ function WorkflowRail({
     if (id in manualExpanded) return manualExpanded[id];
     return id === activePhaseId || id === selectedHandoffPhaseId || id === selectedPhaseId;
   };
-  const togglePhase = (id: string) =>
-    setManualExpanded((m) => ({ ...m, [id]: !isExpanded(id) }));
+  const togglePhase = (id: string) => setManualExpanded((m) => ({ ...m, [id]: !isExpanded(id) }));
 
   return (
     <aside
@@ -2196,21 +2213,18 @@ function WorkflowRail({
             // final delivery yet. Render them in a quieter "on file" style
             // so the creator doesn't read the project as already done.
             const outOfOrderComplete =
-              allComplete &&
-              !isPhaseActive &&
-              activePhaseIdx !== -1 &&
-              phaseIdx > activePhaseIdx;
+              allComplete && !isPhaseActive && activePhaseIdx !== -1 && phaseIdx > activePhaseIdx;
             const NEUTRAL = "oklch(0.6 0.04 75)";
             const BLOCK = "oklch(0.65 0.22 25)";
             const phaseColor = isCustom
               ? NEUTRAL
               : blocked
-              ? BLOCK
-              : isPhaseActive
-                ? AMBER
-                : allComplete && !outOfOrderComplete
-                  ? EMERALD
-                  : NEUTRAL;
+                ? BLOCK
+                : isPhaseActive
+                  ? AMBER
+                  : allComplete && !outOfOrderComplete
+                    ? EMERALD
+                    : NEUTRAL;
             const headerBg = isPhaseSelected
               ? `color-mix(in oklab, ${phaseColor} 16%, oklch(0.28 0.035 70))`
               : isPhaseActive
@@ -2298,9 +2312,7 @@ function WorkflowRail({
                           style={{
                             fontWeight: isPhaseActive ? 700 : isPhaseSelected ? 600 : 500,
                             fontSize: isPhaseActive ? "13px" : "12.5px",
-                            color: isPhaseActive
-                              ? "oklch(0.96 0.04 80)"
-                              : "oklch(0.9 0.03 85)",
+                            color: isPhaseActive ? "oklch(0.96 0.04 80)" : "oklch(0.9 0.03 85)",
                           }}
                         >
                           {bucket.phase.label}
@@ -2330,13 +2342,22 @@ function WorkflowRail({
                       className="flex w-7 shrink-0 items-center justify-center text-xs text-muted-foreground transition hover:text-foreground"
                       title={expanded ? "Collapse" : "Expand"}
                     >
-                      <span style={{ transform: expanded ? "rotate(90deg)" : "none", display: "inline-block", transition: "transform 0.15s" }}>
+                      <span
+                        style={{
+                          transform: expanded ? "rotate(90deg)" : "none",
+                          display: "inline-block",
+                          transition: "transform 0.15s",
+                        }}
+                      >
                         ›
                       </span>
                     </button>
                   </div>
                   {expanded && total > 0 && (
-                    <ol className="space-y-1 border-t px-2 py-1.5" style={{ borderColor: AMBER_SOFT }}>
+                    <ol
+                      className="space-y-1 border-t px-2 py-1.5"
+                      style={{ borderColor: AMBER_SOFT }}
+                    >
                       {bucket.items.map(({ handoff: h, globalIndex }, itemIdx) => {
                         const isActive = h.id === activeId;
                         const isSelected = h.id === selectedHandoffId;
@@ -2369,9 +2390,7 @@ function WorkflowRail({
                               onClick={() => onSelectHandoff(h.id)}
                               className="flex w-full items-center gap-2 rounded-md border px-2 py-1 text-left transition hover:brightness-110"
                               style={{
-                                borderColor: isSelected
-                                  ? stepColor
-                                  : "oklch(0.42 0.04 70 / 0.4)",
+                                borderColor: isSelected ? stepColor : "oklch(0.42 0.04 70 / 0.4)",
                                 background: isSelected
                                   ? `color-mix(in oklab, ${stepColor} 14%, oklch(0.28 0.035 70))`
                                   : isActive
@@ -2404,9 +2423,7 @@ function WorkflowRail({
                                   style={{
                                     fontWeight: isActive ? 600 : isSelected ? 600 : 400,
                                     fontSize: "11.5px",
-                                    color: isActive
-                                      ? "oklch(0.94 0.04 80)"
-                                      : "oklch(0.85 0.03 85)",
+                                    color: isActive ? "oklch(0.94 0.04 80)" : "oklch(0.85 0.03 85)",
                                   }}
                                 >
                                   {title || <span className="italic opacity-60">untitled</span>}
@@ -2441,7 +2458,9 @@ function WorkflowRail({
         className="mt-3 rounded-md border px-2 py-1.5 text-[10px] text-muted-foreground/80"
         style={{ borderColor: AMBER_SOFT }}
       >
-        Legend: <span style={{ color: AMBER }}>●</span> working · <span style={{ color: EMERALD }}>✓</span> complete · <span style={{ color: "oklch(0.65 0.22 25)" }}>!</span> blocked
+        Legend: <span style={{ color: AMBER }}>●</span> working ·{" "}
+        <span style={{ color: EMERALD }}>✓</span> complete ·{" "}
+        <span style={{ color: "oklch(0.65 0.22 25)" }}>!</span> blocked
       </div>
     </aside>
   );
@@ -2472,18 +2491,12 @@ function PhaseOverview({
   const NEUTRAL = "oklch(0.6 0.04 75)";
   const BLOCK = "oklch(0.65 0.22 25)";
   return (
-    <div
-      className="rounded-2xl border bark-texture p-4 md:p-5"
-      style={{ borderColor: AMBER_SOFT }}
-    >
+    <div className="rounded-2xl border bark-texture p-4 md:p-5" style={{ borderColor: AMBER_SOFT }}>
       <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
         Phase {phaseNumber} overview
       </div>
       <div className="mt-1 flex flex-wrap items-baseline gap-2">
-        <h3
-          className="font-display text-xl font-semibold leading-tight"
-          style={{ color: AMBER }}
-        >
+        <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
           {bucket.phase.label}
         </h3>
         {isActivePhase && (
@@ -2507,7 +2520,10 @@ function PhaseOverview({
       <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
 
       {/* Phase facts */}
-      <div className="mt-3 grid gap-2 rounded-lg border p-3 text-[11.5px] sm:grid-cols-2" style={{ borderColor: AMBER_SOFT }}>
+      <div
+        className="mt-3 grid gap-2 rounded-lg border p-3 text-[11.5px] sm:grid-cols-2"
+        style={{ borderColor: AMBER_SOFT }}
+      >
         <PhaseFact label="Purpose" value={bucket.phase.purpose} />
         <PhaseFact label="Owner team" value={bucket.phase.ownerTeam} />
         <PhaseFact label="Needs before" value={bucket.phase.needsBefore} />
@@ -2612,7 +2628,10 @@ function PhaseOverview({
           );
         })}
         {bucket.items.length === 0 && (
-          <li className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+          <li
+            className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+          >
             No steps in this phase yet.
           </li>
         )}
@@ -2730,46 +2749,44 @@ function CreatorGuidance({
             >
               Creator Control
             </span>
-        <div
-          className="inline-flex overflow-hidden rounded-md border text-[11px]"
-          style={{ borderColor: AMBER_SOFT }}
-          role="radiogroup"
-          aria-label="Creator involvement"
-        >
-          {CREATOR_MODES.map((m) => {
-            const sel = m.key === mode;
-            return (
-              <button
-                key={m.key}
-                type="button"
-                role="radio"
-                aria-checked={sel}
-                onClick={() =>
-                  onChange((p) => ({ ...p, creatorMode: m.key }))
-                }
-                title={m.blurb}
-                className="px-2.5 py-1 transition"
-                style={{
-                  background: sel ? "oklch(0.78 0.18 50 / 0.18)" : "transparent",
-                  color: sel ? AMBER : "inherit",
-                  fontWeight: sel ? 600 : 400,
-                }}
-              >
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
+            <div
+              className="inline-flex overflow-hidden rounded-md border text-[11px]"
+              style={{ borderColor: AMBER_SOFT }}
+              role="radiogroup"
+              aria-label="Creator involvement"
+            >
+              {CREATOR_MODES.map((m) => {
+                const sel = m.key === mode;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={sel}
+                    onClick={() => onChange((p) => ({ ...p, creatorMode: m.key }))}
+                    title={m.blurb}
+                    className="px-2.5 py-1 transition"
+                    style={{
+                      background: sel ? "oklch(0.78 0.18 50 / 0.18)" : "transparent",
+                      color: sel ? AMBER : "inherit",
+                      fontWeight: sel ? 600 : 400,
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
             <span className="text-[11px] text-muted-foreground">{activeBlurb}</span>
           </div>
           <input
-        value={guidance}
-        onChange={(e) =>
-          onChange((p) => ({ ...p, creatorGuidance: e.target.value || undefined }))
-        }
+            value={guidance}
+            onChange={(e) =>
+              onChange((p) => ({ ...p, creatorGuidance: e.target.value || undefined }))
+            }
             placeholder="Creator notes, warnings, or snags…"
             className="w-full rounded-md border bg-transparent px-2 py-1.5 text-[12px] outline-none focus:border-[oklch(0.78_0.18_50)]"
-        style={{ borderColor: AMBER_SOFT }}
+            style={{ borderColor: AMBER_SOFT }}
           />
         </div>
       </div>
@@ -2809,9 +2826,7 @@ function SelectedStepDetail({
   onEditArtifact: (id: string) => void;
   onRemoveArtifact: (id: string) => void;
 }) {
-  const [tab, setTab] = useState<"output" | "details" | "artifacts" | "activity">(
-    "output",
-  );
+  const [tab, setTab] = useState<"output" | "details" | "artifacts" | "activity">("output");
   // Reset to Step Result whenever the selected step or project changes.
   useEffect(() => {
     setTab("output");
@@ -2841,19 +2856,25 @@ function SelectedStepDetail({
           <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
             <span>Selected step</span>
             <span className="opacity-40">·</span>
-            <span>{globalIndex + 1} of {total}</span>
+            <span>
+              {globalIndex + 1} of {total}
+            </span>
           </div>
           <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
             {title}
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-            <span><span className="opacity-60">Owner:</span> {handoff.bot || "—"}</span>
-            {phase && <span><span className="opacity-60">Phase:</span> {phase}</span>}
+            <span>
+              <span className="opacity-60">Owner:</span> {handoff.bot || "—"}
+            </span>
+            {phase && (
+              <span>
+                <span className="opacity-60">Phase:</span> {phase}
+              </span>
+            )}
             <StatusPill status={handoff.status} />
             <span>
-              {handoff.completedAt
-                ? `completed ${fmtTime(handoff.completedAt)}`
-                : "in flight"}
+              {handoff.completedAt ? `completed ${fmtTime(handoff.completedAt)}` : "in flight"}
             </span>
           </div>
         </div>
@@ -2901,22 +2922,23 @@ function SelectedStepDetail({
             title="Move up"
             className="rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-30"
             style={{ borderColor: AMBER_SOFT }}
-          >▲</button>
+          >
+            ▲
+          </button>
           <button
             onClick={onMoveDown}
             disabled={globalIndex === -1 || globalIndex >= total - 1}
             title="Move down"
             className="rounded border px-1.5 py-0.5 text-[10px] disabled:opacity-30"
             style={{ borderColor: AMBER_SOFT }}
-          >▼</button>
+          >
+            ▼
+          </button>
         </div>
       </div>
 
       {/* Tab strip */}
-      <div
-        className="mb-3 flex flex-wrap gap-1 border-b pb-2"
-        style={{ borderColor: AMBER_SOFT }}
-      >
+      <div className="mb-3 flex flex-wrap gap-1 border-b pb-2" style={{ borderColor: AMBER_SOFT }}>
         {(
           [
             { k: "output", label: "Step Result" },
@@ -2963,13 +2985,20 @@ function SelectedStepDetail({
 
       {tab === "output" && (
         <>
-          <CompletedReceiptBanner project={project} handoff={handoff} onChangeStatus={onChangeStatus} />
-          <StepResultPanel project={project} handoff={handoff} onChange={onChange} onPreview={onPreview} />
+          <CompletedReceiptBanner
+            project={project}
+            handoff={handoff}
+            onChangeStatus={onChangeStatus}
+          />
+          <StepResultPanel
+            project={project}
+            handoff={handoff}
+            onChange={onChange}
+            onPreview={onPreview}
+          />
         </>
       )}
-      {tab === "details" && (
-        <StepSummaryPanel handoff={handoff} />
-      )}
+      {tab === "details" && <StepSummaryPanel handoff={handoff} />}
       {tab === "artifacts" && (
         <ArtifactGrid
           project={project}
@@ -3013,7 +3042,12 @@ function StepSummaryPanel({ handoff }: { handoff: Handoff }) {
             }}
           >
             → <strong>{handoff.nextStep || "—"}</strong>
-            {handoff.nextBot && <> by <strong>{handoff.nextBot}</strong></>}
+            {handoff.nextBot && (
+              <>
+                {" "}
+                by <strong>{handoff.nextBot}</strong>
+              </>
+            )}
           </div>
         </LabelledBlock>
       )}
@@ -3045,7 +3079,10 @@ type StepTemplate = {
  * match wins. Mode 0 / 1 / 2 / Project Type Confirmation are handled
  * separately above because they map to project-level fields.
  */
-const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => boolean; template: StepTemplate }> = [
+const STEP_TEMPLATE_MATCHERS: Array<{
+  match: (mode: string, bot: string) => boolean;
+  template: StepTemplate;
+}> = [
   // ----- Chief Review -----
   {
     match: (m) => m.includes("chief intake"),
@@ -3053,16 +3090,34 @@ const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => bool
       id: "chief-intake",
       blurb: "Chief's readiness check before Lantern R&D kicks off.",
       fields: [
-        { key: "summary", label: "Intake summary", primary: true, multiline: true, rows: 4,
-          placeholder: "What is known, what is missing, what should happen next." },
-        { key: "readiness", label: "Readiness notes", multiline: true, rows: 3,
-          placeholder: "Is this ready for R&D? Anything blocking?" },
-        { key: "nextOwner", label: "Next owner",
-          placeholder: "e.g. Compass" },
-        { key: "nextAction", label: "Next required action",
-          placeholder: "e.g. Open Lantern Team Kickoff." },
-        { key: "concerns", label: "Concerns before Lantern R&D", multiline: true, rows: 3,
-          placeholder: "Risks, ambiguities, or unresolved questions." },
+        {
+          key: "summary",
+          label: "Intake summary",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "What is known, what is missing, what should happen next.",
+        },
+        {
+          key: "readiness",
+          label: "Readiness notes",
+          multiline: true,
+          rows: 3,
+          placeholder: "Is this ready for R&D? Anything blocking?",
+        },
+        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Compass" },
+        {
+          key: "nextAction",
+          label: "Next required action",
+          placeholder: "e.g. Open Lantern Team Kickoff.",
+        },
+        {
+          key: "concerns",
+          label: "Concerns before Lantern R&D",
+          multiline: true,
+          rows: 3,
+          placeholder: "Risks, ambiguities, or unresolved questions.",
+        },
       ],
     },
   },
@@ -3073,8 +3128,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => bool
       id: "lantern-kickoff",
       blurb: "Compass orchestrates the lantern team and names the research question.",
       fields: [
-        { key: "researchQuestion", label: "Research question", primary: true, multiline: true, rows: 3,
-          placeholder: "What are we trying to learn?" },
+        {
+          key: "researchQuestion",
+          label: "Research question",
+          primary: true,
+          multiline: true,
+          rows: 3,
+          placeholder: "What are we trying to learn?",
+        },
         { key: "compassAssignment", label: "Compass lane", multiline: true, rows: 2 },
         { key: "vaultAssignment", label: "Vault lane (money)", multiline: true, rows: 2 },
         { key: "bloomAssignment", label: "Bloom lane (audience)", multiline: true, rows: 2 },
@@ -3083,21 +3144,32 @@ const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => bool
     },
   },
   // ----- Lantern R&D: Past / Present / Future / Risks (4 lanes each) -----
-  ...(["past landscape", "present landscape", "future hooks", "risks and unknowns"].map((kw) => ({
+  ...["past landscape", "present landscape", "future hooks", "risks and unknowns"].map((kw) => ({
     match: (m: string) => m.includes(kw),
     template: {
       id: `lantern-${kw.replace(/\s+/g, "-")}`,
       blurb: "Each lantern reports its lane. Research-only — cite sources where possible.",
       fields: [
-        { key: "compass", label: "Compass — research lane", primary: true, multiline: true, rows: 3 },
+        {
+          key: "compass",
+          label: "Compass — research lane",
+          primary: true,
+          multiline: true,
+          rows: 3,
+        },
         { key: "vault", label: "Vault — money lane", multiline: true, rows: 3 },
         { key: "bloom", label: "Bloom — audience lane", multiline: true, rows: 3 },
         { key: "luma", label: "Luma — design lane", multiline: true, rows: 3 },
-        { key: "sources", label: "Sources / citations", multiline: true, rows: 2,
-          placeholder: "Links or references for these findings." },
+        {
+          key: "sources",
+          label: "Sources / citations",
+          multiline: true,
+          rows: 2,
+          placeholder: "Links or references for these findings.",
+        },
       ],
     } as StepTemplate,
-  }))),
+  })),
   // ----- Lantern R&D: Synthesis -----
   {
     match: (m) => m.includes("research scope") || m.includes("synthesis"),
@@ -3105,9 +3177,20 @@ const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => bool
       id: "rd-synthesis",
       blurb: "Compass narrows the lantern passes into the final research direction.",
       fields: [
-        { key: "scope", label: "In-scope research direction", primary: true, multiline: true, rows: 4 },
-        { key: "futureHooks", label: "Parked for the future", multiline: true, rows: 3,
-          placeholder: "Ideas worth remembering but out of current scope." },
+        {
+          key: "scope",
+          label: "In-scope research direction",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        {
+          key: "futureHooks",
+          label: "Parked for the future",
+          multiline: true,
+          rows: 3,
+          placeholder: "Ideas worth remembering but out of current scope.",
+        },
         { key: "keyFindings", label: "Key findings", multiline: true, rows: 3 },
         { key: "openQuestions", label: "Open questions", multiline: true, rows: 2 },
       ],
@@ -3120,105 +3203,173 @@ const STEP_TEMPLATE_MATCHERS: Array<{ match: (mode: string, bot: string) => bool
       id: "rd-highlight",
       blurb: "Boss-facing R&D summary that hands off to Knowledge Packet.",
       fields: [
-        { key: "keyFindings", label: "Most important findings", primary: true, multiline: true, rows: 4 },
+        {
+          key: "keyFindings",
+          label: "Most important findings",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
         { key: "risks", label: "Risks", multiline: true, rows: 3 },
         { key: "recommendations", label: "Recommendations", multiline: true, rows: 3 },
-        { key: "nextStepImplications", label: "Implications for next step", multiline: true, rows: 3 },
+        {
+          key: "nextStepImplications",
+          label: "Implications for next step",
+          multiline: true,
+          rows: 3,
+        },
       ],
     },
   },
   // ----- Knowledge Packet (Rook) -----
   {
-    match: (m, b) => m.includes("knowledge packet") || m.includes("rook") || b.toLowerCase() === "rook",
+    match: (m, b) =>
+      m.includes("knowledge packet") || m.includes("rook") || b.toLowerCase() === "rook",
     template: {
       id: "knowledge-packet",
       blurb: "Rook's build-ready packet. This is what Tinker will pick up.",
       fields: [
-        { key: "packetSummary", label: "Packet summary", primary: true, multiline: true, rows: 4,
-          placeholder: "One-paragraph description of what's being built." },
+        {
+          key: "packetSummary",
+          label: "Packet summary",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "One-paragraph description of what's being built.",
+        },
         { key: "requirements", label: "Requirements", multiline: true, rows: 4 },
         { key: "constraints", label: "Constraints", multiline: true, rows: 3 },
         { key: "audience", label: "Audience / use case notes", multiline: true, rows: 3 },
-        { key: "tinkerHandoff", label: "Tinker-ready handoff", multiline: true, rows: 3,
-          placeholder: "What Tinker needs to start building." },
+        {
+          key: "tinkerHandoff",
+          label: "Tinker-ready handoff",
+          multiline: true,
+          rows: 3,
+          placeholder: "What Tinker needs to start building.",
+        },
       ],
     },
   },
   // ----- Prototype (Tinker) -----
   {
-    match: (m, b) => m.includes("prototype") || m.includes("tinker") || b.toLowerCase() === "tinker",
+    match: (m, b) =>
+      m.includes("prototype") || m.includes("tinker") || b.toLowerCase() === "tinker",
     template: {
       id: "prototype",
       blurb: "Tinker delivers v1 prototype URL.",
       fields: [
-        { key: "prototypeUrl", label: "Prototype URL", primary: true,
-          placeholder: "https://…" },
-        { key: "status", label: "Build status",
-          placeholder: "e.g. v1 ready / blocked / in progress" },
+        { key: "prototypeUrl", label: "Prototype URL", primary: true, placeholder: "https://…" },
+        {
+          key: "status",
+          label: "Build status",
+          placeholder: "e.g. v1 ready / blocked / in progress",
+        },
         { key: "buildNotes", label: "Build notes", multiline: true, rows: 4 },
-        { key: "screenshots", label: "Screenshots / artifact links", multiline: true, rows: 2,
-          placeholder: "One URL per line." },
-        { key: "nextAction", label: "Next action",
-          placeholder: "e.g. Hand off to Luma for design polish." },
+        {
+          key: "screenshots",
+          label: "Screenshots / artifact links",
+          multiline: true,
+          rows: 2,
+          placeholder: "One URL per line.",
+        },
+        {
+          key: "nextAction",
+          label: "Next action",
+          placeholder: "e.g. Hand off to Luma for design polish.",
+        },
       ],
     },
   },
   // ----- Design Polish (Luma) -----
   {
-    match: (m, b) => m.includes("design polish") || m.includes("luma") || b.toLowerCase() === "luma",
+    match: (m, b) =>
+      m.includes("design polish") || m.includes("luma") || b.toLowerCase() === "luma",
     template: {
       id: "design-polish",
       blurb: "Luma reviews visual trust, readability, and accessibility.",
       fields: [
         { key: "reviewNotes", label: "Luma review notes", primary: true, multiline: true, rows: 4 },
         { key: "polishFindings", label: "Visual polish findings", multiline: true, rows: 3 },
-        { key: "accessibility", label: "Readability / accessibility / trust checks", multiline: true, rows: 3 },
+        {
+          key: "accessibility",
+          label: "Readability / accessibility / trust checks",
+          multiline: true,
+          rows: 3,
+        },
         { key: "recommendedFixes", label: "Recommended fixes", multiline: true, rows: 3 },
       ],
     },
   },
   // ----- Final Package (Weaver) -----
   {
-    match: (m, b) => m.includes("final package") || m.includes("weaver") || b.toLowerCase() === "weaver",
+    match: (m, b) =>
+      m.includes("final package") || m.includes("weaver") || b.toLowerCase() === "weaver",
     template: {
       id: "final-package",
       blurb: "Weaver bundles the final handoff package.",
       fields: [
-        { key: "finalLinks", label: "Final links", primary: true, multiline: true, rows: 3,
-          placeholder: "One URL per line." },
+        {
+          key: "finalLinks",
+          label: "Final links",
+          primary: true,
+          multiline: true,
+          rows: 3,
+          placeholder: "One URL per line.",
+        },
         { key: "files", label: "Files", multiline: true, rows: 3 },
         { key: "deliveryNotes", label: "Delivery notes", multiline: true, rows: 3 },
-        { key: "checklist", label: "Launch / package checklist", multiline: true, rows: 4,
-          placeholder: "One item per line." },
+        {
+          key: "checklist",
+          label: "Launch / package checklist",
+          multiline: true,
+          rows: 4,
+          placeholder: "One item per line.",
+        },
       ],
     },
   },
   // ----- Official Record (Ledger) -----
   {
-    match: (m, b) => m.includes("official record") || m.includes("ledger") || b.toLowerCase() === "ledger",
+    match: (m, b) =>
+      m.includes("official record") || m.includes("ledger") || b.toLowerCase() === "ledger",
     template: {
       id: "official-record",
       blurb: "Ledger files the immutable decision record.",
       fields: [
-        { key: "officialRecord", label: "Official record", primary: true, multiline: true, rows: 5,
-          placeholder: "Final decision, scope, owners, and date." },
+        {
+          key: "officialRecord",
+          label: "Official record",
+          primary: true,
+          multiline: true,
+          rows: 5,
+          placeholder: "Final decision, scope, owners, and date.",
+        },
         { key: "filedDecisions", label: "Filed decisions", multiline: true, rows: 3 },
-        { key: "receipts", label: "Receipts", multiline: true, rows: 3,
-          placeholder: "One receipt link per line." },
+        {
+          key: "receipts",
+          label: "Receipts",
+          multiline: true,
+          rows: 3,
+          placeholder: "One receipt link per line.",
+        },
       ],
     },
   },
   // ----- Memory Alignment (Echo) -----
   {
-    match: (m, b) => m.includes("memory alignment") || m.includes("echo") || b.toLowerCase() === "echo",
+    match: (m, b) =>
+      m.includes("memory alignment") || m.includes("echo") || b.toLowerCase() === "echo",
     template: {
       id: "memory-alignment",
       blurb: "Echo decides what gets remembered, and what does not.",
       fields: [
         { key: "remember", label: "Worth remembering", primary: true, multiline: true, rows: 4 },
         { key: "forget", label: "Should not be remembered", multiline: true, rows: 3 },
-        { key: "brainUpdate", label: "Brain / memory update needed?",
-          placeholder: "yes / no — and what to update" },
+        {
+          key: "brainUpdate",
+          label: "Brain / memory update needed?",
+          placeholder: "yes / no — and what to update",
+        },
         { key: "notes", label: "Notes", multiline: true, rows: 3 },
       ],
     },
@@ -3304,24 +3455,30 @@ function StepTemplateForm({
               style={{ borderColor: AMBER_SOFT }}
             />
           )}
-          {f.hint && (
-            <div className="mt-1 text-[10px] text-muted-foreground/70">{f.hint}</div>
-          )}
+          {f.hint && <div className="mt-1 text-[10px] text-muted-foreground/70">{f.hint}</div>}
         </Field>
       ))}
       {(handoff.receiptLink || handoff.artifactLink || handoff.artifactBody) && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
           {handoff.receiptLink && (
-            <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+            <a
+              href={handoff.receiptLink}
+              target="_blank"
+              rel="noreferrer"
               className="rounded-md border px-2 py-0.5"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}>
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+            >
               🧾 receipt
             </a>
           )}
           {handoff.artifactLink && (
-            <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+            <a
+              href={handoff.artifactLink}
+              target="_blank"
+              rel="noreferrer"
               className="rounded-md border px-2 py-0.5"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}>
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+            >
               🔗 artifact link
             </a>
           )}
@@ -3445,7 +3602,12 @@ function CompletedReceiptBanner({
       {nextEntry && (
         <div className="mt-1 text-foreground/85">
           Next up: <span className="font-medium">{nextTitle || "next step"}</span>
-          {nextOwner && <> · owner <span className="font-medium">{nextOwner}</span></>}
+          {nextOwner && (
+            <>
+              {" "}
+              · owner <span className="font-medium">{nextOwner}</span>
+            </>
+          )}
         </div>
       )}
       {!nextEntry && (
@@ -3535,7 +3697,11 @@ function StepResultPanel({
           </div>
           <div
             className="mt-1 inline-flex items-center rounded-md border px-2 py-1 font-display text-sm font-semibold"
-            style={{ borderColor: AMBER_LINE, color: AMBER, background: "oklch(0.78 0.18 50 / 0.06)" }}
+            style={{
+              borderColor: AMBER_LINE,
+              color: AMBER,
+              background: "oklch(0.78 0.18 50 / 0.06)",
+            }}
           >
             {typeLabel}
           </div>
@@ -3724,9 +3890,7 @@ function StepResultPanel({
           <input
             value={artifactVal}
             placeholder="https://…"
-            onChange={(e) =>
-              onChange((p) => ({ ...p, planArtifact: e.target.value || undefined }))
-            }
+            onChange={(e) => onChange((p) => ({ ...p, planArtifact: e.target.value || undefined }))}
             className="w-full rounded-md border bg-transparent px-3 py-2 text-sm"
             style={{ borderColor: AMBER_SOFT }}
           />
@@ -3772,21 +3936,30 @@ function StepResultPanel({
           className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground"
           style={{ borderColor: AMBER_LINE }}
         >
-          No result captured yet. Use <strong>✎ edit step</strong> to add the output this step delivered.
+          No result captured yet. Use <strong>✎ edit step</strong> to add the output this step
+          delivered.
         </div>
       )}
       <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
         {handoff.receiptLink && (
-          <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+          <a
+            href={handoff.receiptLink}
+            target="_blank"
+            rel="noreferrer"
             className="rounded-md border px-2 py-0.5"
-            style={{ borderColor: AMBER_LINE, color: AMBER }}>
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
             🧾 receipt
           </a>
         )}
         {handoff.artifactLink && (
-          <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+          <a
+            href={handoff.artifactLink}
+            target="_blank"
+            rel="noreferrer"
             className="rounded-md border px-2 py-0.5"
-            style={{ borderColor: AMBER_LINE, color: AMBER }}>
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
             🔗 link
           </a>
         )}
@@ -3875,8 +4048,7 @@ function ProjectMain({
   const activePhaseIdxForDetail = active
     ? phaseBucketsForDetail.findIndex((b) => b.items.some((it) => it.handoff.id === active.id))
     : -1;
-  const selectedPhaseIsActive =
-    !!selectedPhase && selectedPhaseIdx === activePhaseIdxForDetail;
+  const selectedPhaseIsActive = !!selectedPhase && selectedPhaseIdx === activePhaseIdxForDetail;
   const selectedPhaseHistoricalComplete =
     !!selectedPhase &&
     !selectedPhaseIsActive &&
@@ -3919,7 +4091,10 @@ function ProjectMain({
           </button>
         </div>
         <CurrentStageIndicator project={project} onClick={onOpenCommandReceipt} />
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+        <div
+          className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
           <MetaItem
             label="Type"
             value={
@@ -3989,38 +4164,20 @@ function ProjectMain({
   );
 }
 
-function MetaItem({
-  label,
-  value,
-  muted,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-}) {
+function MetaItem({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex min-w-0 items-baseline gap-1.5">
       <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60">
         {label}
       </span>
-      <span
-        className={
-          "truncate " + (muted ? "text-muted-foreground/80" : "text-foreground/90")
-        }
-      >
+      <span className={"truncate " + (muted ? "text-muted-foreground/80" : "text-foreground/90")}>
         {value || "—"}
       </span>
     </div>
   );
 }
 
-function CurrentStageIndicator({
-  project,
-  onClick,
-}: {
-  project: Project;
-  onClick?: () => void;
-}) {
+function CurrentStageIndicator({ project, onClick }: { project: Project; onClick?: () => void }) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker || active?.status === "Blocked";
@@ -4038,9 +4195,7 @@ function CurrentStageIndicator({
       className="mt-4 block w-full rounded-xl border p-3 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)] focus:outline-none focus-visible:ring-1 focus-visible:ring-[oklch(0.78_0.18_50)]"
       style={{
         borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.55)" : AMBER_LINE,
-        background: hasBlocker
-          ? "oklch(0.65 0.22 25 / 0.08)"
-          : "oklch(0.78 0.18 50 / 0.06)",
+        background: hasBlocker ? "oklch(0.65 0.22 25 / 0.08)" : "oklch(0.78 0.18 50 / 0.06)",
       }}
     >
       {active && (
@@ -4052,7 +4207,8 @@ function CurrentStageIndicator({
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {project.handoffs.indexOf(active) + 1}. {splitStepTitle(active.mode).title || "untitled stage"}
+            {project.handoffs.indexOf(active) + 1}.{" "}
+            {splitStepTitle(active.mode).title || "untitled stage"}
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
@@ -4085,7 +4241,10 @@ function CurrentStageIndicator({
           }}
         >
           <span className="mt-0.5">⚠</span>
-          <span><strong className="uppercase tracking-[0.14em] text-[10px] mr-1.5">Blocker</strong>{project.blocker}</span>
+          <span>
+            <strong className="uppercase tracking-[0.14em] text-[10px] mr-1.5">Blocker</strong>
+            {project.blocker}
+          </span>
         </div>
       )}
     </button>
@@ -4113,9 +4272,7 @@ function Section({
           <h2 className="font-display text-lg font-semibold" style={{ color: AMBER }}>
             {title}
           </h2>
-          {subtitle && (
-            <div className="text-xs text-muted-foreground">{subtitle}</div>
-          )}
+          {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
         </div>
         {headerRight}
       </div>
@@ -4164,9 +4321,7 @@ function HandoffChain({
     for (const b of buckets) {
       o[b.stage.id] =
         b.items.length > 0 &&
-        b.items.some(
-          (it) => it.handoff.status !== "Complete" && it.handoff.status !== "Parked",
-        );
+        b.items.some((it) => it.handoff.status !== "Complete" && it.handoff.status !== "Parked");
     }
     if (!Object.values(o).some(Boolean)) {
       const firstWithItems = buckets.find((b) => b.items.length > 0);
@@ -4371,8 +4526,8 @@ function StageGroup({
         >
           {count === 0 ? (
             <p className="text-xs italic text-muted-foreground/70">
-              No handoff has landed in this stage yet. Add one with “+ add handoff”
-              and use a matching name (e.g. “{stage.label}”).
+              No handoff has landed in this stage yet. Add one with “+ add handoff” and use a
+              matching name (e.g. “{stage.label}”).
             </p>
           ) : (
             <ol className="space-y-3">
@@ -4541,26 +4696,39 @@ function HandoffCard({
           )}
 
           {/* artifact / receipt */}
-          {(handoff.receiptLink || handoff.artifactLink || handoff.artifactTitle || hasArtifactPreview) && (
+          {(handoff.receiptLink ||
+            handoff.artifactLink ||
+            handoff.artifactTitle ||
+            hasArtifactPreview) && (
             <LabelledBlock label="Artifact / receipt">
               <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                 {handoff.artifactTitle && (
-                  <span className="rounded-md border px-2 py-0.5 text-foreground/80"
-                    style={{ borderColor: AMBER_SOFT }}>
+                  <span
+                    className="rounded-md border px-2 py-0.5 text-foreground/80"
+                    style={{ borderColor: AMBER_SOFT }}
+                  >
                     📎 {handoff.artifactTitle}
                   </span>
                 )}
                 {handoff.receiptLink && (
-                  <a href={handoff.receiptLink} target="_blank" rel="noreferrer"
+                  <a
+                    href={handoff.receiptLink}
+                    target="_blank"
+                    rel="noreferrer"
                     className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}
+                  >
                     🧾 receipt
                   </a>
                 )}
                 {handoff.artifactLink && (
-                  <a href={handoff.artifactLink} target="_blank" rel="noreferrer"
+                  <a
+                    href={handoff.artifactLink}
+                    target="_blank"
+                    rel="noreferrer"
                     className="rounded-md border px-2 py-0.5 transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-                    style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    style={{ borderColor: AMBER_LINE, color: AMBER }}
+                  >
                     🔗 link
                   </a>
                 )}
@@ -4591,14 +4759,21 @@ function HandoffCard({
                 }}
               >
                 → <strong>{handoff.nextStep || "—"}</strong>
-                {handoff.nextBot && <> by <strong>{handoff.nextBot}</strong></>}
+                {handoff.nextBot && (
+                  <>
+                    {" "}
+                    by <strong>{handoff.nextBot}</strong>
+                  </>
+                )}
               </div>
             </LabelledBlock>
           )}
 
           {/* footer: status select + meta + actions */}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground/80"
-            style={{ borderColor: AMBER_SOFT }}>
+          <div
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground/80"
+            style={{ borderColor: AMBER_SOFT }}
+          >
             <div className="flex items-center gap-2">
               <select
                 value={handoff.status}
@@ -4614,9 +4789,7 @@ function HandoffCard({
                 ))}
               </select>
               <span>
-                {handoff.completedAt
-                  ? `completed ${fmtTime(handoff.completedAt)}`
-                  : "in flight"}
+                {handoff.completedAt ? `completed ${fmtTime(handoff.completedAt)}` : "in flight"}
               </span>
             </div>
             <div className="flex gap-1">
@@ -4732,14 +4905,18 @@ function ArtifactGrid({
                 style={{ borderColor: AMBER_SOFT }}
               >
                 <button onClick={() => onPreview(a)} className="block w-full text-left">
-                  <div className="truncate pr-12 font-display text-sm font-semibold">
-                    {a.title}
-                  </div>
+                  <div className="truncate pr-12 font-display text-sm font-semibold">{a.title}</div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1 text-[10px]">
-                    <span className="rounded border px-1.5 py-0.5" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+                    <span
+                      className="rounded border px-1.5 py-0.5"
+                      style={{ borderColor: AMBER_LINE, color: AMBER }}
+                    >
                       {a.type ?? "other"}
                     </span>
-                    <span className="rounded border px-1.5 py-0.5 text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+                    <span
+                      className="rounded border px-1.5 py-0.5 text-muted-foreground"
+                      style={{ borderColor: AMBER_SOFT }}
+                    >
                       {a.source ?? (isHandoff ? "Handoff" : "Manual")}
                     </span>
                   </div>
@@ -4847,10 +5024,16 @@ function ArtifactPreview({ artifact, onClose }: { artifact: Artifact; onClose: (
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: AMBER_LINE, color: AMBER }}>
+              <span
+                className="rounded border px-1.5 py-0.5 text-[10px]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
                 {artifact.type ?? "other"}
               </span>
-              <span className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+              <span
+                className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                style={{ borderColor: AMBER_SOFT }}
+              >
                 source: {artifact.source ?? "Manual"}
               </span>
               {artifact.kind && (
@@ -4944,9 +5127,7 @@ function ModalShell({
             <h3 className="font-display text-xl font-semibold" style={{ color: AMBER }}>
               {title}
             </h3>
-            {subtitle && (
-              <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
-            )}
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
@@ -4958,7 +5139,10 @@ function ModalShell({
           </button>
         </div>
         <div className="space-y-4">{children}</div>
-        <div className="mt-6 flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: AMBER_SOFT }}>
+        <div
+          className="mt-6 flex flex-wrap justify-end gap-2 border-t pt-4"
+          style={{ borderColor: AMBER_SOFT }}
+        >
           {footer}
         </div>
       </div>
@@ -5060,17 +5244,11 @@ function ProjectSettingsModal({
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
   // Allow "Unclassified" (stored as undefined). Treat empty-string as the
   // Unclassified sentinel inside the modal state.
-  const [projectType, setProjectType] = useState<ProjectType | "">(
-    initial?.projectType ?? "",
-  );
-  const [projectTypeCustom, setProjectTypeCustom] = useState(
-    initial?.projectTypeCustom ?? "",
-  );
+  const [projectType, setProjectType] = useState<ProjectType | "">(initial?.projectType ?? "");
+  const [projectTypeCustom, setProjectTypeCustom] = useState(initial?.projectTypeCustom ?? "");
   const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Raw Idea");
   const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
-  const [nextAction, setNextAction] = useState(
-    initial?.nextAction ?? "Fill Mode 0 / Raw Idea",
-  );
+  const [nextAction, setNextAction] = useState(initial?.nextAction ?? "Fill Mode 0 / Raw Idea");
   const [blocker, setBlocker] = useState(initial?.blocker ?? "");
 
   const canSave = name.trim().length > 0;
@@ -5242,9 +5420,7 @@ function HandoffEditorModal({
 
   function save() {
     const completedAt =
-      status === "Complete"
-        ? initial.completedAt ?? new Date().toISOString()
-        : undefined;
+      status === "Complete" ? (initial.completedAt ?? new Date().toISOString()) : undefined;
     onSave({
       ...initial,
       mode: mode.trim(),
@@ -5401,7 +5577,9 @@ function ArtifactEditorModal({
       width="lg"
       footer={
         <>
-          <ModalButton variant="ghost" onClick={onClose}>cancel</ModalButton>
+          <ModalButton variant="ghost" onClick={onClose}>
+            cancel
+          </ModalButton>
           <ModalButton
             onClick={() =>
               onSave({
@@ -5430,7 +5608,9 @@ function ArtifactEditorModal({
           <ModalLabel>Type</ModalLabel>
           <ModalSelect value={type} onChange={(e) => setType(e.target.value as ArtifactType)}>
             {ARTIFACT_TYPES.map((t) => (
-              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">{t}</option>
+              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">
+                {t}
+              </option>
             ))}
           </ModalSelect>
         </div>
@@ -5438,7 +5618,9 @@ function ArtifactEditorModal({
           <ModalLabel>Source</ModalLabel>
           <ModalSelect value={source} onChange={(e) => setSource(e.target.value as ArtifactSource)}>
             {ARTIFACT_SOURCES.map((s) => (
-              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">{s}</option>
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
             ))}
           </ModalSelect>
         </div>
@@ -5448,12 +5630,20 @@ function ArtifactEditorModal({
         </div>
         <div>
           <ModalLabel>Label (free text)</ModalLabel>
-          <ModalInput value={kind} placeholder="e.g. master prompt" onChange={(e) => setKind(e.target.value)} />
+          <ModalInput
+            value={kind}
+            placeholder="e.g. master prompt"
+            onChange={(e) => setKind(e.target.value)}
+          />
         </div>
       </div>
       <div>
         <ModalLabel>Link</ModalLabel>
-        <ModalInput value={link} placeholder="https://…" onChange={(e) => setLink(e.target.value)} />
+        <ModalInput
+          value={link}
+          placeholder="https://…"
+          onChange={(e) => setLink(e.target.value)}
+        />
       </div>
       <div>
         <ModalLabel>Body / pasted text</ModalLabel>
