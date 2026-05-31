@@ -657,6 +657,121 @@ function renderedWorkflowIdentityKey(handoff: Handoff): string {
   return `${phaseId}::${title || workflowTextKey(handoff.mode)}`;
 }
 
+// Canonical 43-step repair. Runs on every load regardless of schemaVersion.
+// If a saved project has more than the canonical step count, rebuild its
+// handoffs strictly from STAGE_NESTED_STEPS in PIPELINE_STAGES order and
+// merge any existing per-step data (status, receipts, artifacts, step
+// outputs, completion timestamps) into the matching canonical slot.
+//
+// Matching strategy per existing handoff:
+//   1. exact creator-facing title match within the same pipeline stage
+//   2. fallback: first canonical slot in the same stage (collapses legacy
+//      rows like seed "Memory alignment" / "Official record" into the
+//      first canonical step of their phase so their data is preserved
+//      but the duplicate row is dropped).
+// Project-level fields (name, status, currentBot, nextAction, etc.) are
+// preserved verbatim.
+function canonicalHandoffCount(): number {
+  return PIPELINE_STAGES.reduce((sum, stage) => {
+    const tpls = STAGE_NESTED_STEPS[stage.id];
+    return sum + (tpls ? tpls.length : 1);
+  }, 0);
+}
+
+function repairToCanonicalWorkflow(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  const target = canonicalHandoffCount();
+  let changed = false;
+  const statusRank: Record<string, number> = {
+    Complete: 6,
+    "Needs Review": 5,
+    Working: 4,
+    Sent: 3,
+    Blocked: 2,
+    Parked: 1,
+    "Not Started": 0,
+  };
+  const titleKey = (mode?: string | null) =>
+    splitStepTitle(mode ?? "").title.trim().toLowerCase();
+
+  const next = projects.map((project) => {
+    if (project.handoffs.length <= target) return project;
+
+    // Build canonical handoffs in PIPELINE_STAGES order.
+    const canonical: Handoff[] = [];
+    for (const stage of PIPELINE_STAGES) {
+      const tpls = STAGE_NESTED_STEPS[stage.id];
+      if (tpls && tpls.length > 0) {
+        tpls.forEach((tpl, i) => {
+          canonical.push({
+            id: `canonical-${project.id}-${stage.id}-${i + 1}`,
+            step: canonical.length + 1,
+            mode: tpl.mode,
+            bot: tpl.bot,
+            assignment: tpl.assignment,
+            status: "Not Started",
+            authorityNotes: tpl.authorityNotes,
+            nextBot: tpl.nextBot,
+            nextStep: tpl.nextStep,
+          });
+        });
+      } else {
+        canonical.push(
+          createRequiredStageHandoff(
+            project.id,
+            stage.id,
+            canonical.length + 1,
+            "canonical",
+          ),
+        );
+      }
+    }
+
+    // Merge data from existing handoffs into the matching canonical slot.
+    for (const existing of project.handoffs) {
+      const stageId = stageForHandoff(existing).id;
+      const exTitle = titleKey(existing.mode);
+      const slotIdx =
+        canonical.findIndex(
+          (c) => stageForHandoff(c).id === stageId && titleKey(c.mode) === exTitle,
+        );
+      const fallbackIdx =
+        slotIdx >= 0
+          ? slotIdx
+          : canonical.findIndex((c) => stageForHandoff(c).id === stageId);
+      if (fallbackIdx < 0) continue;
+      const slot = canonical[fallbackIdx];
+      const betterStatus =
+        (statusRank[existing.status] ?? 0) > (statusRank[slot.status] ?? 0)
+          ? existing.status
+          : slot.status;
+      canonical[fallbackIdx] = {
+        ...slot,
+        status: betterStatus,
+        receiptLink: slot.receiptLink || existing.receiptLink,
+        artifactLink: slot.artifactLink || existing.artifactLink,
+        artifactBody: slot.artifactBody || existing.artifactBody,
+        artifactTitle: slot.artifactTitle || existing.artifactTitle,
+        completedAt: slot.completedAt || existing.completedAt,
+        stepOutput: {
+          ...(existing.stepOutput ?? {}),
+          ...(slot.stepOutput ?? {}),
+        },
+      };
+    }
+
+    changed = true;
+    return {
+      ...project,
+      handoffs: canonical.map((h, i) => ({ ...h, step: i + 1 })),
+    };
+  });
+
+  return { projects: next, changed };
+}
+
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
   const existingCanonical = isCanonicalWorkflowRecord(existing);
   const duplicateCanonical = isCanonicalWorkflowRecord(duplicate);
