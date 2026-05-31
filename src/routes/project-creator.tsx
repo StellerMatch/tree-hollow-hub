@@ -196,6 +196,48 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   return { projects: next, changed };
 }
 
+// Version-independent safety net: every project must have at least one
+// handoff bucketing into each pipeline stage. Runs on every load regardless
+// of SCHEMA_VERSION so projects saved before a stage was required still get
+// the missing handoff appended (existing handoffs and edits are preserved).
+function ensureRequiredStages(
+  projects: Project[],
+): { projects: Project[]; changed: boolean } {
+  let changed = false;
+  const next = projects.map((p) => {
+    const present = new Set(p.handoffs.map((h) => stageForHandoff(h).id));
+    const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
+    if (missing.length === 0) return p;
+    const baseStep = p.handoffs.length;
+    const appended: Handoff[] = missing.map((stage, idx) => {
+      const tpl = DABOTTREE_PIPELINE.find(
+        (t) =>
+          stageForHandoff({
+            id: "tpl",
+            step: 0,
+            mode: t.stage,
+            bot: t.bot,
+            status: "Not Started",
+          } as Handoff).id === stage.id,
+      );
+      return {
+        id: `ensure-${p.id}-${stage.id}-${Date.now()}-${idx}`,
+        step: baseStep + idx + 1,
+        mode: tpl?.stage ?? stage.label,
+        bot: tpl?.bot ?? stage.bot,
+        assignment: tpl?.assignment ?? "",
+        status: "Not Started",
+        authorityNotes: tpl?.authorityNotes,
+        nextBot: tpl?.nextBot,
+        nextStep: tpl?.nextStep,
+      };
+    });
+    changed = true;
+    return { ...p, handoffs: [...p.handoffs, ...appended] };
+  });
+  return { projects: next, changed };
+}
+
 function saveProjects(projects: Project[]) {
   if (typeof window === "undefined") return;
   try {
@@ -275,8 +317,9 @@ function ProjectCreatorPage() {
   useEffect(() => {
     const stored = loadProjects();
     const { projects: migrated } = migrateProjects(stored);
-    setProjects(migrated);
-    setSelectedId(migrated[0]?.id ?? "");
+    const { projects: ensured } = ensureRequiredStages(migrated);
+    setProjects(ensured);
+    setSelectedId(ensured[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
