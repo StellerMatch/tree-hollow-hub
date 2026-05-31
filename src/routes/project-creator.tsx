@@ -1311,30 +1311,82 @@ function HandoffChain({
   onRemoveHandoff: (id: string) => void;
   onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
 }) {
+  const buckets = useMemo(() => bucketHandoffs(project.handoffs), [project.handoffs]);
+
+  const initialOpen = useMemo(() => {
+    const o: Record<string, boolean> = {};
+    for (const b of buckets) {
+      o[b.stage.id] =
+        b.items.length > 0 &&
+        b.items.some(
+          (it) => it.handoff.status !== "Complete" && it.handoff.status !== "Parked",
+        );
+    }
+    if (!Object.values(o).some(Boolean)) {
+      const firstWithItems = buckets.find((b) => b.items.length > 0);
+      if (firstWithItems) o[firstWithItems.stage.id] = true;
+    }
+    return o;
+  }, [buckets]);
+  const [openStages, setOpenStages] = useState<Record<string, boolean>>(initialOpen);
+
+  useEffect(() => {
+    setOpenStages((prev) => {
+      const next = { ...prev };
+      for (const b of buckets) {
+        if (!(b.stage.id in next)) next[b.stage.id] = initialOpen[b.stage.id] ?? false;
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buckets.length]);
+
+  const total = project.handoffs.length;
+
   return (
     <section
       className="rounded-2xl border bark-texture p-4 md:p-5"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-3 flex items-center justify-between">
-        <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
           <h2 className="font-display text-lg font-semibold" style={{ color: AMBER }}>
             Handoff Chain
           </h2>
           <div className="text-xs text-muted-foreground">
-            One card per step. Reorder with ↑↓, edit details with edit.
+            Grouped by pipeline stage. Click a stage to expand its handoff cards.
           </div>
         </div>
-        <button
-          onClick={onAddHandoff}
-          className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-          style={{ borderColor: AMBER_LINE, color: AMBER }}
-        >
-          + add handoff
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            onClick={() =>
+              setOpenStages(Object.fromEntries(buckets.map((b) => [b.stage.id, true])))
+            }
+            className="rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+          >
+            expand all
+          </button>
+          <button
+            onClick={() =>
+              setOpenStages(Object.fromEntries(buckets.map((b) => [b.stage.id, false])))
+            }
+            className="rounded-md border px-2 py-1 text-[11px] text-muted-foreground transition hover:text-foreground"
+            style={{ borderColor: AMBER_SOFT }}
+          >
+            collapse all
+          </button>
+          <button
+            onClick={onAddHandoff}
+            className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+            style={{ borderColor: AMBER_LINE, color: AMBER }}
+          >
+            + add handoff
+          </button>
+        </div>
       </div>
 
-      {project.handoffs.length === 0 ? (
+      {total === 0 ? (
         <div
           className="rounded-xl border border-dashed p-6 text-center"
           style={{ borderColor: AMBER_LINE }}
@@ -1354,45 +1406,164 @@ function HandoffChain({
           </button>
         </div>
       ) : (
-      <ol className="space-y-3">
-        {project.handoffs.map((h, idx) => (
-          <li key={h.id} className="relative">
-            {idx < project.handoffs.length - 1 && (
-              <div
-                className="absolute left-4 top-12 h-[calc(100%-1rem)] w-px"
-                style={{ background: AMBER_LINE }}
-              />
-            )}
-            <HandoffCard
-              handoff={h}
-              isFirst={idx === 0}
-              isLast={idx === project.handoffs.length - 1}
-              onMoveUp={() => onMoveHandoff(h.id, -1)}
-              onMoveDown={() => onMoveHandoff(h.id, 1)}
-              onChangeStatus={(s) => onChangeHandoffStatus(h.id, s)}
-              onRemove={() => onRemoveHandoff(h.id)}
-              onEdit={() => onEditHandoff(h)}
-              onPreview={() => {
-                if (h.artifactBody || h.artifactLink) {
-                  onPreviewArtifact({
-                    id: h.id,
-                    title: h.artifactTitle || `${h.mode} artifact`,
-                    kind: h.mode,
-                    type: "other",
-                    source: "Handoff",
-                    body: h.artifactBody,
-                    link: h.artifactLink,
-                    bot: h.bot,
-                    createdAt: h.completedAt ?? new Date().toISOString(),
-                  });
-                }
-              }}
+        <div className="space-y-3">
+          {buckets.map((bucket, stageIdx) => (
+            <StageGroup
+              key={bucket.stage.id}
+              bucket={bucket}
+              stageNumber={stageIdx + 1}
+              open={!!openStages[bucket.stage.id]}
+              onToggle={() =>
+                setOpenStages((s) => ({ ...s, [bucket.stage.id]: !s[bucket.stage.id] }))
+              }
+              totalHandoffs={total}
+              onPreviewArtifact={onPreviewArtifact}
+              onEditHandoff={onEditHandoff}
+              onMoveHandoff={onMoveHandoff}
+              onRemoveHandoff={onRemoveHandoff}
+              onChangeHandoffStatus={onChangeHandoffStatus}
             />
-          </li>
-        ))}
-      </ol>
+          ))}
+        </div>
       )}
     </section>
+  );
+}
+
+function StageGroup({
+  bucket,
+  stageNumber,
+  open,
+  onToggle,
+  totalHandoffs,
+  onPreviewArtifact,
+  onEditHandoff,
+  onMoveHandoff,
+  onRemoveHandoff,
+  onChangeHandoffStatus,
+}: {
+  bucket: StageBucket;
+  stageNumber: number;
+  open: boolean;
+  onToggle: () => void;
+  totalHandoffs: number;
+  onPreviewArtifact: (a: Artifact) => void;
+  onEditHandoff: (h: Handoff) => void;
+  onMoveHandoff: (id: string, dir: -1 | 1) => void;
+  onRemoveHandoff: (id: string) => void;
+  onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
+}) {
+  const { stage, items } = bucket;
+  const count = items.length;
+  const completeCount = items.filter((it) => it.handoff.status === "Complete").length;
+  const blocked = items.some((it) => it.handoff.status === "Blocked");
+  const allComplete = count > 0 && completeCount === count;
+
+  const accent = blocked
+    ? "oklch(0.65 0.22 25)"
+    : allComplete
+      ? EMERALD
+      : count === 0
+        ? "oklch(0.6 0.03 80)"
+        : AMBER;
+  const borderColor = blocked
+    ? "oklch(0.65 0.22 25 / 0.45)"
+    : allComplete
+      ? "oklch(0.7 0.14 160 / 0.4)"
+      : AMBER_LINE;
+
+  return (
+    <div
+      className="overflow-hidden rounded-xl border"
+      style={{
+        borderColor,
+        background: count === 0 ? "oklch(0.18 0.02 60 / 0.25)" : "transparent",
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 p-3 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.25)]"
+      >
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border font-display text-sm font-semibold"
+          style={{ borderColor: accent, color: accent }}
+        >
+          {stageNumber}
+        </span>
+        {stage.bot && <BotAvatar name={stage.bot} size={40} ring={accent} />}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <span
+              className="font-display text-base font-semibold leading-tight"
+              style={{ color: accent }}
+            >
+              {stage.label}
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              {count === 0
+                ? "no handoffs yet"
+                : `${completeCount}/${count} complete${blocked ? " · blocked" : ""}`}
+            </span>
+          </div>
+          <div className="truncate text-xs text-muted-foreground/85">{stage.blurb}</div>
+        </div>
+        <span
+          aria-hidden
+          className="shrink-0 text-base text-muted-foreground transition"
+          style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
+        >
+          ›
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="border-t p-3 md:p-4"
+          style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.35)" }}
+        >
+          {count === 0 ? (
+            <p className="text-xs italic text-muted-foreground/70">
+              No handoff has landed in this stage yet. Add one with “+ add handoff”
+              and use a matching name (e.g. “{stage.label}”).
+            </p>
+          ) : (
+            <ol className="space-y-3">
+              {items.map(({ handoff: h, globalIndex }) => (
+                <li key={h.id} className="relative">
+                  <HandoffCard
+                    handoff={h}
+                    isFirst={globalIndex === 0}
+                    isLast={globalIndex === totalHandoffs - 1}
+                    onMoveUp={() => onMoveHandoff(h.id, -1)}
+                    onMoveDown={() => onMoveHandoff(h.id, 1)}
+                    onChangeStatus={(s) => onChangeHandoffStatus(h.id, s)}
+                    onRemove={() => onRemoveHandoff(h.id)}
+                    onEdit={() => onEditHandoff(h)}
+                    onPreview={() => {
+                      if (h.artifactBody || h.artifactLink) {
+                        onPreviewArtifact({
+                          id: h.id,
+                          title: h.artifactTitle || `${h.mode} artifact`,
+                          kind: h.mode,
+                          type: "other",
+                          source: "Handoff",
+                          body: h.artifactBody,
+                          link: h.artifactLink,
+                          bot: h.bot,
+                          createdAt: h.completedAt ?? new Date().toISOString(),
+                        });
+                      }
+                    }}
+                  />
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
