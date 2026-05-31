@@ -755,17 +755,86 @@ function StatusPanel({
   const latestReceipt = [...project.handoffs]
     .filter((h) => h.status === "Complete")
     .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))[0];
+  const latestActivity = [...project.activity].sort((a, b) =>
+    b.at.localeCompare(a.at),
+  )[0];
+  const active = activeHandoff(project.handoffs);
+  const hasBlocker = !!project.blocker;
 
   return (
     <aside
       className="rounded-2xl border bark-texture p-4 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
       style={{ borderColor: AMBER_SOFT }}
     >
-      <div className="mb-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-        Live status
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+          Command receipt
+        </div>
+        <StatusPill status={project.status} />
       </div>
 
-      <div className="space-y-3">
+      {/* Stage callout */}
+      <div
+        className="rounded-xl border p-3"
+        style={{
+          borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
+          background: hasBlocker
+            ? "oklch(0.65 0.22 25 / 0.08)"
+            : "oklch(0.78 0.18 50 / 0.06)",
+        }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/70">
+          Current stage
+        </div>
+        <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
+          {active ? `${active.step}. ${active.mode || "untitled"}` : project.currentMode || "—"}
+        </div>
+        <div className="mt-0.5 text-[11px] text-muted-foreground">
+          owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          {active && <> · <StatusPill status={active.status} /></>}
+        </div>
+      </div>
+
+      {/* Next action */}
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          Next required action
+        </div>
+        <textarea
+          value={project.nextAction}
+          onChange={(e) => onChange((p) => ({ ...p, nextAction: e.target.value }))}
+          rows={2}
+          placeholder="What is the very next thing?"
+          className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2 py-1.5 text-sm leading-relaxed outline-none focus:border-[oklch(0.78_0.18_50)]"
+          style={{ borderColor: AMBER_LINE }}
+        />
+      </div>
+
+      {/* Blocker */}
+      <div className="mt-3">
+        <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
+          <span className="text-muted-foreground/70">Blocker</span>
+          {hasBlocker && <span style={{ color: "oklch(0.85 0.12 25)" }}>⚠ active</span>}
+        </div>
+        <textarea
+          value={project.blocker ?? ""}
+          placeholder="None"
+          onChange={(e) =>
+            onChange((p) => ({ ...p, blocker: e.target.value || undefined }))
+          }
+          rows={2}
+          className="w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2 py-1.5 text-sm outline-none focus:border-[oklch(0.78_0.18_50)]"
+          style={{
+            borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.6)" : AMBER_SOFT,
+          }}
+        />
+      </div>
+
+      {/* Editable fields collapsed */}
+      <div className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: AMBER_SOFT }}>
+        <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Quick edit
+        </div>
         <Field label="Status">
           <select
             value={project.status}
@@ -782,85 +851,66 @@ function StatusPanel({
             ))}
           </select>
         </Field>
-
-        <Field label="Current owner / bot">
-          <input
-            value={project.currentBot}
-            onChange={(e) => onChange((p) => ({ ...p, currentBot: e.target.value }))}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Current mode / step">
-          <input
-            value={project.currentMode}
-            onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Next action">
-          <textarea
-            value={project.nextAction}
-            onChange={(e) => onChange((p) => ({ ...p, nextAction: e.target.value }))}
-            rows={2}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{ borderColor: AMBER_SOFT }}
-          />
-        </Field>
-
-        <Field label="Blocker">
-          <textarea
-            value={project.blocker ?? ""}
-            placeholder="None"
-            onChange={(e) =>
-              onChange((p) => ({ ...p, blocker: e.target.value || undefined }))
-            }
-            rows={2}
-            className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
-            style={{
-              borderColor: project.blocker ? "oklch(0.65 0.22 25)" : AMBER_SOFT,
-            }}
-          />
-          {project.blocker && (
-            <div
-              className="mt-1 rounded-md border px-2 py-1 text-[11px]"
-              style={{
-                borderColor: "oklch(0.65 0.22 25 / 0.5)",
-                background: "oklch(0.65 0.22 25 / 0.1)",
-                color: "oklch(0.85 0.12 25)",
-              }}
-            >
-              ⚠ {project.blocker}
-            </div>
-          )}
-        </Field>
-
-        <div>
-          <div className="mb-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-            Latest receipt
-          </div>
-          {latestReceipt ? (
-            <div
-              className="rounded-md border px-2 py-2 text-xs"
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Owner">
+            <input
+              value={project.currentBot}
+              onChange={(e) => onChange((p) => ({ ...p, currentBot: e.target.value }))}
+              className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
               style={{ borderColor: AMBER_SOFT }}
-            >
-              <div className="font-medium">{latestReceipt.mode}</div>
-              <div className="text-muted-foreground">
-                by {latestReceipt.bot} · {latestReceipt.completedAt && fmtTime(latestReceipt.completedAt)}
-              </div>
-              {latestReceipt.artifactTitle && (
-                <div className="mt-1 truncate text-[11px]" style={{ color: AMBER }}>
-                  📎 {latestReceipt.artifactTitle}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground">No receipts yet.</div>
-          )}
+            />
+          </Field>
+          <Field label="Mode">
+            <input
+              value={project.currentMode}
+              onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
+              className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
+              style={{ borderColor: AMBER_SOFT }}
+            />
+          </Field>
         </div>
+      </div>
+
+      {/* Latest activity */}
+      <div className="mt-4 border-t pt-3" style={{ borderColor: AMBER_SOFT }}>
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Latest activity
+        </div>
+        {latestActivity ? (
+          <div className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: AMBER_SOFT }}>
+            <div className="text-foreground/90">
+              <strong>{latestActivity.bot}</strong> {latestActivity.action}
+            </div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+              {fmtTime(latestActivity.at)}
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">Nothing logged yet.</div>
+        )}
+      </div>
+
+      {/* Latest receipt */}
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+          Latest receipt
+        </div>
+        {latestReceipt ? (
+          <div className="rounded-md border px-2 py-2 text-xs" style={{ borderColor: AMBER_SOFT }}>
+            <div className="font-medium">{latestReceipt.mode}</div>
+            <div className="text-muted-foreground">
+              by {latestReceipt.bot}
+              {latestReceipt.completedAt && <> · {fmtTime(latestReceipt.completedAt)}</>}
+            </div>
+            {latestReceipt.artifactTitle && (
+              <div className="mt-1 truncate text-[11px]" style={{ color: AMBER }}>
+                📎 {latestReceipt.artifactTitle}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">No receipts yet.</div>
+        )}
       </div>
     </aside>
   );
