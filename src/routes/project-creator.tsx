@@ -252,6 +252,74 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v6: dedupe persisted handoffs by (stage, creator-facing title). Earlier
+  // backfill/rename passes could leave two cards in the same phase rendering
+  // with the same title ("Business Plan Draft", "Memory Decisions") when one
+  // came from a legacy seed and another from a templated nested-* slot. Merge
+  // their fields so receipts, completedAt, stepOutput, artifact links, and
+  // status survive on the surviving record. Runs once per project.
+  if (stored < 6) {
+    next = next.map((p) => {
+      const seen = new Map<string, Handoff>();
+      const out: Handoff[] = [];
+      let mutated = false;
+      for (const h of p.handoffs) {
+        const stageId = stageForHandoff(h).id;
+        const title = splitStepTitle(h.mode).title.trim().toLowerCase();
+        const rawKey = (h.mode ?? "").trim().toLowerCase();
+        const key = title ? `${stageId}::${title}` : `raw::${rawKey}`;
+        const existing = seen.get(key);
+        if (!existing) {
+          seen.set(key, h);
+          out.push(h);
+          continue;
+        }
+        mutated = true;
+        // Field-level merge: prefer non-empty/richer values from either record.
+        const pickStr = (a?: string, b?: string) =>
+          (a && a.trim()) ? a : (b && b.trim()) ? b : a ?? b;
+        const statusRank: Record<string, number> = {
+          "Complete": 6, "Needs Review": 5, "Working": 4, "Sent": 3,
+          "Blocked": 2, "Parked": 1, "Not Started": 0,
+        };
+        const betterStatus =
+          (statusRank[h.status] ?? 0) >= (statusRank[existing.status] ?? 0)
+            ? h.status
+            : existing.status;
+        const merged: Handoff = {
+          ...existing,
+          // Prefer canonical-looking mode (the one that contains " / ")
+          mode:
+            (existing.mode ?? "").includes(" / ")
+              ? existing.mode
+              : (h.mode ?? "").includes(" / ")
+                ? h.mode
+                : existing.mode,
+          bot: pickStr(existing.bot, h.bot) ?? existing.bot,
+          assignment: pickStr(existing.assignment, h.assignment) ?? existing.assignment,
+          status: betterStatus,
+          receiptLink: pickStr(existing.receiptLink, h.receiptLink),
+          artifactLink: pickStr(existing.artifactLink, h.artifactLink),
+          artifactBody: pickStr(existing.artifactBody, h.artifactBody),
+          artifactTitle: pickStr(existing.artifactTitle, h.artifactTitle),
+          completedAt: pickStr(existing.completedAt, h.completedAt),
+          nextBot: pickStr(existing.nextBot, h.nextBot),
+          nextStep: pickStr(existing.nextStep, h.nextStep),
+          authorityNotes: pickStr(existing.authorityNotes, h.authorityNotes),
+          stepOutput: { ...(h.stepOutput ?? {}), ...(existing.stepOutput ?? {}) },
+        };
+        const idx = out.indexOf(existing);
+        if (idx >= 0) out[idx] = merged;
+        seen.set(key, merged);
+      }
+      if (!mutated) return p;
+      changed = true;
+      // Re-number step ordinals so they remain a simple 1..N sequence.
+      const renum = out.map((h, i) => ({ ...h, step: i + 1 }));
+      return { ...p, handoffs: renum };
+    });
+  }
+
   try {
     localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
   } catch {
