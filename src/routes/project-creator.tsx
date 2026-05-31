@@ -22,7 +22,6 @@ import {
   DABOTTREE_PIPELINE,
   DABOTTREE_PIPELINE_NAME,
   createPipelineHandoffs,
-  activeHandoff,
 } from "@/components/project-board/pipeline";
 import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
 import {
@@ -345,13 +344,17 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
       changed = true;
     }
     // Backfill default next-step chain hints onto existing handoffs that
-    // match a template but have no nextBot/nextStep saved yet. Never
-    // overwrite user-edited values.
+    // match a template. Preserve real user edits, but repair known legacy
+    // chain hints that still point Mode 0 straight to Trunk / R&D.
     handoffs = handoffs.map((h) => {
       const tpl = templates.find((t) => handoffMatchesNestedStep(h, t));
       if (!tpl) return h;
-      const wantNextBot = tpl.nextBot && !h.nextBot;
-      const wantNextStep = tpl.nextStep && !h.nextStep;
+      const legacyMode0Next =
+        (h.mode ?? "").trim().toLowerCase() === "mode 0 / raw idea" &&
+        ((h.nextStep ?? "").trim().toLowerCase() === "trunk / r&d" ||
+          (h.nextBot ?? "").trim().toLowerCase() === "compass");
+      const wantNextBot = tpl.nextBot && (!h.nextBot || legacyMode0Next);
+      const wantNextStep = tpl.nextStep && (!h.nextStep || legacyMode0Next);
       if (!wantNextBot && !wantNextStep) return h;
       changed = true;
       return {
@@ -453,6 +456,64 @@ function fmtTime(iso: string) {
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function activeWorkflowEntry(handoffs: Handoff[]): { handoff: Handoff; displayStep: number } | null {
+  for (const bucket of bucketHandoffs(handoffs)) {
+    const idx = bucket.items.findIndex(
+      ({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked",
+    );
+    if (idx !== -1) {
+      return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
+    }
+  }
+  return null;
+}
+
+function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
+  const mode = (handoff?.mode ?? "").trim().toLowerCase();
+  if (mode === "mode 0 / raw idea") return "Fill Mode 0 / Raw Idea";
+  if (mode === "project type confirmation / clarity") return "Confirm Project Type";
+  if (!handoff) return fallback;
+  return `Complete ${handoff.mode || "current step"}`;
+}
+
+function syncProjectCurrentWorkflow(project: Project): Project {
+  const active = activeWorkflowEntry(project.handoffs)?.handoff ?? null;
+  if (!active) return project;
+  return {
+    ...project,
+    currentMode: active.mode,
+    currentBot: active.bot || project.currentBot,
+    nextAction: requiredActionForHandoff(active, project.nextAction),
+  };
+}
+
+function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
+  const handoffs: Handoff[] = [];
+  for (const stage of PIPELINE_STAGES) {
+    const templates = STAGE_NESTED_STEPS[stage.id];
+    if (templates) {
+      for (const tpl of templates) {
+        handoffs.push({
+          id: `nested-${projectId}-${stage.id}-${handoffs.length + 1}`,
+          step: handoffs.length + 1,
+          mode: tpl.mode,
+          bot: tpl.bot,
+          assignment: tpl.assignment,
+          status: "Not Started",
+          authorityNotes: tpl.authorityNotes,
+          nextBot: tpl.nextBot,
+          nextStep: tpl.nextStep,
+        });
+      }
+      continue;
+    }
+    handoffs.push(
+      createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"),
+    );
+  }
+  return handoffs;
 }
 
 // ---------- Status pill ----------
@@ -619,7 +680,8 @@ function ProjectCreatorPage() {
   function createProject(input: ProjectSettingsInput, fromPipeline = false) {
     const id = uid();
     const ts = new Date().toISOString();
-    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : [];
+    const pipelineHandoffs = fromPipeline ? createPipelineHandoffs(uid) : createInitialWorkflowHandoffs(id);
+    const initialWorkflow = activeWorkflowEntry(pipelineHandoffs)?.handoff ?? null;
     const fresh: Project = {
       id,
       name: input.name.trim() || "Untitled Project",
@@ -632,11 +694,11 @@ function ProjectCreatorPage() {
           : undefined,
       currentMode: fromPipeline
         ? DABOTTREE_PIPELINE[0].stage
-        : input.currentMode || "Mode 0 / Clarity",
+        : initialWorkflow?.mode || input.currentMode || "Mode 0 / Raw Idea",
       currentBot: fromPipeline
         ? DABOTTREE_PIPELINE[0].bot
-        : input.currentBot || "Boss",
-      nextAction: input.nextAction,
+        : initialWorkflow?.bot || input.currentBot || "Boss",
+      nextAction: fromPipeline ? input.nextAction : requiredActionForHandoff(initialWorkflow, input.nextAction),
       blocker: input.blocker.trim() || undefined,
       updatedAt: ts,
       clarity: "",
@@ -669,6 +731,7 @@ function ProjectCreatorPage() {
   function quickCreateProject() {
     const id = uid();
     const ts = new Date().toISOString();
+    const handoffs = createInitialWorkflowHandoffs(id);
     const fresh: Project = {
       id,
       name: "Untitled Project",
@@ -686,7 +749,7 @@ function ProjectCreatorPage() {
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [],
+      handoffs,
       artifacts: [],
       activity: [
         {
@@ -769,8 +832,9 @@ function ProjectCreatorPage() {
         ...p,
         handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
       };
+      const synced = syncProjectCurrentWorkflow(next);
       if (isNew) {
-        return logActivity(next, {
+        return logActivity(synced, {
           bot: h.bot || p.currentBot,
           action: `added handoff "${h.mode || "untitled"}"`,
           status: h.status,
@@ -779,7 +843,7 @@ function ProjectCreatorPage() {
       const events: string[] = [];
       if (prev && prev.status !== h.status) events.push(`status → ${h.status}`);
       events.push("edited");
-      return logActivity(next, {
+      return logActivity(synced, {
         bot: h.bot || p.currentBot,
         action: `handoff "${h.mode || "untitled"}" ${events.join(", ")}`,
         status: h.status,
@@ -832,21 +896,8 @@ function ProjectCreatorPage() {
       };
       const nextHandoffs = p.handoffs.map((x) => (x.id === id ? updated : x));
       // Advance the project's current stage/owner/next-action to the next
-      // incomplete handoff in actual order. Use the same definition as
-      // activeHandoff (anything not Complete and not Parked).
-      const nextActive =
-        nextHandoffs.find(
-          (x) => x.status !== "Complete" && x.status !== "Parked",
-        ) ?? null;
-      const next: Project = {
-        ...p,
-        handoffs: nextHandoffs,
-        currentMode: nextActive ? nextActive.mode : p.currentMode,
-        currentBot: nextActive ? nextActive.bot || p.currentBot : p.currentBot,
-        nextAction: nextActive
-          ? `${nextActive.mode}${nextActive.bot ? ` — ${nextActive.bot}` : ""}`
-          : p.nextAction,
-      };
+      // incomplete workflow step in displayed stage/template order.
+      const next = syncProjectCurrentWorkflow({ ...p, handoffs: nextHandoffs });
       return logActivity(next, {
         bot: h.bot,
         action: `handoff "${h.mode || "untitled"}" status → ${status}`,
@@ -1040,6 +1091,9 @@ function ProjectCreatorPage() {
             <ul className="space-y-1.5">
               {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
+                const workflow = activeWorkflowEntry(p.handoffs)?.handoff;
+                const displayMode = workflow?.mode || p.currentMode;
+                const displayBot = workflow?.bot || p.currentBot;
                 return (
                   <li key={p.id}>
                     <button
@@ -1059,7 +1113,7 @@ function ProjectCreatorPage() {
                       <div className="mt-1 truncate text-[11px] text-muted-foreground">
                         {p.projectType === "Other / Custom"
                           ? p.projectTypeCustom || "Other / Custom"
-                          : p.projectType || "Unclassified"} · {p.currentMode} · {p.currentBot}
+                          : p.projectType || "Unclassified"} · {displayMode} · {displayBot}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                         updated {fmtTime(p.updatedAt)}
@@ -1168,7 +1222,8 @@ function StatusPanel({
   const latestActivity = [...project.activity].sort((a, b) =>
     b.at.localeCompare(a.at),
   )[0];
-  const active = activeHandoff(project.handoffs);
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker;
 
   return (
@@ -1197,7 +1252,9 @@ function StatusPanel({
           Current stage
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
-          {active ? `${active.step}. ${active.mode || "untitled"}` : project.currentMode || "—"}
+          {active
+            ? `${activeEntry?.displayStep ?? active.step}. ${active.mode || "untitled"}`
+            : project.currentMode || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
@@ -1365,6 +1422,11 @@ function ProjectMain({
   onEditArtifact: (id: string) => void;
   onRemoveArtifact: (id: string) => void;
 }) {
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
+  const displayMode = active?.mode || project.currentMode;
+  const displayBot = active?.bot || project.currentBot;
+
   return (
     <div className="space-y-4 min-w-0">
       {/* header */}
@@ -1408,8 +1470,8 @@ function ProjectMain({
                 : project.projectType || "—"
             }
           />
-          <MetaItem label="Mode" value={project.currentMode} />
-          <MetaItem label="Owner" value={project.currentBot} />
+          <MetaItem label="Mode" value={displayMode} />
+          <MetaItem label="Owner" value={displayBot} />
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
       </div>
@@ -1559,7 +1621,8 @@ function MetaItem({
 }
 
 function CurrentStageIndicator({ project }: { project: Project }) {
-  const active = activeHandoff(project.handoffs);
+  const activeEntry = activeWorkflowEntry(project.handoffs);
+  const active = activeEntry?.handoff ?? null;
   const hasBlocker = !!project.blocker || active?.status === "Blocked";
   const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
   const nextAction = project.nextAction?.trim();
@@ -1585,7 +1648,7 @@ function CurrentStageIndicator({ project }: { project: Project }) {
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {active.step}. {active.mode || "untitled stage"}
+            {activeEntry?.displayStep ?? active.step}. {active.mode || "untitled stage"}
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
