@@ -2097,6 +2097,126 @@ function WorkflowRail({
   );
 }
 
+// ---------- Phase overview (shown when a top-level phase is selected) ----------
+function PhaseOverview({
+  bucket,
+  activeId,
+  onSelectHandoff,
+}: {
+  bucket: PhaseBucket;
+  activeId: string | null;
+  onSelectHandoff: (id: string) => void;
+}) {
+  const total = bucket.items.length;
+  const complete = bucket.items.filter((it) => it.handoff.status === "Complete").length;
+  const activeItem = bucket.items.find((it) => it.handoff.id === activeId) ?? null;
+  const allComplete = total > 0 && complete === total;
+  const NEUTRAL = "oklch(0.6 0.04 75)";
+  const BLOCK = "oklch(0.65 0.22 25)";
+  return (
+    <div
+      className="rounded-2xl border bark-texture p-4 md:p-5"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+        Phase overview
+      </div>
+      <h3
+        className="mt-1 font-display text-xl font-semibold leading-tight"
+        style={{ color: AMBER }}
+      >
+        {bucket.phase.label}
+      </h3>
+      <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
+        <span>
+          <span className="opacity-60">Progress: </span>
+          <span className="text-foreground">
+            {complete} of {total} complete
+          </span>
+        </span>
+        {activeItem && (
+          <span>
+            <span className="opacity-60">Current step: </span>
+            <span className="text-foreground">
+              {splitStepTitle(activeItem.handoff.mode).title || "—"}
+            </span>
+          </span>
+        )}
+        {allComplete && !activeItem && (
+          <span style={{ color: EMERALD }}>All steps complete in this phase.</span>
+        )}
+      </div>
+      <ol className="mt-4 space-y-1.5">
+        {bucket.items.map(({ handoff: h, globalIndex }) => {
+          const isActive = h.id === activeId;
+          const stepColor =
+            h.status === "Complete"
+              ? EMERALD
+              : h.status === "Blocked"
+                ? BLOCK
+                : h.status === "Parked"
+                  ? NEUTRAL
+                  : isActive
+                    ? AMBER
+                    : NEUTRAL;
+          const { title } = splitStepTitle(h.mode);
+          return (
+            <li key={h.id}>
+              <button
+                type="button"
+                onClick={() => onSelectHandoff(h.id)}
+                className="flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left transition hover:brightness-110"
+                style={{
+                  borderColor: isActive ? AMBER : "oklch(0.42 0.04 70 / 0.5)",
+                  background: isActive
+                    ? `color-mix(in oklab, ${AMBER} 10%, oklch(0.26 0.035 65))`
+                    : "oklch(0.28 0.035 70 / 0.4)",
+                }}
+              >
+                <span
+                  className="shrink-0 text-[11px] font-mono tabular-nums text-muted-foreground"
+                  style={{ minWidth: "1.5rem", textAlign: "right" }}
+                >
+                  {globalIndex + 1}
+                </span>
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold"
+                  style={{ borderColor: stepColor, color: stepColor }}
+                >
+                  {h.status === "Complete"
+                    ? "✓"
+                    : h.status === "Blocked"
+                      ? "!"
+                      : isActive
+                        ? "●"
+                        : "○"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {title || <span className="italic opacity-60">untitled</span>}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {h.bot || "—"} · {h.status}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
+                  open ›
+                </span>
+              </button>
+            </li>
+          );
+        })}
+        {bucket.items.length === 0 && (
+          <li className="rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground" style={{ borderColor: AMBER_SOFT }}>
+            No steps in this phase yet.
+          </li>
+        )}
+      </ol>
+    </div>
+  );
+}
+
 // ---------- Command receipt modal ----------
 function CommandReceiptModal({
   project,
