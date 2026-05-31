@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 3; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 4; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -172,6 +172,48 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
       );
       changed = true;
       return { ...p, handoffs: [...p.handoffs, ...appended] };
+    });
+  }
+
+  // v4: repair projects whose project-level currentMode/currentBot/nextAction
+  // were rewound by an earlier sync bug to "Project Type Confirmation /
+  // Clarity" even though the project already had real later-stage work.
+  // For known seed projects, restore from seed. For everything else,
+  // recompute from the corrected resolver (which now skips backfilled
+  // template steps).
+  if (stored < 4) {
+    next = next.map((p) => {
+      const rewound =
+        (p.currentMode ?? "").trim().toLowerCase() ===
+        "project type confirmation / clarity";
+      if (!rewound) return p;
+      const seed = SEED_PROJECTS.find((s) => s.id === p.id);
+      if (seed) {
+        changed = true;
+        return {
+          ...p,
+          currentMode: seed.currentMode,
+          currentBot: seed.currentBot,
+          nextAction: seed.nextAction,
+        };
+      }
+      const active = activeWorkflowEntry(p.handoffs)?.handoff;
+      // Only repair if the resolver disagrees with the stored value AND
+      // the active step is not Project Type Confirmation itself.
+      if (
+        active &&
+        (active.mode ?? "").trim().toLowerCase() !==
+          "project type confirmation / clarity"
+      ) {
+        changed = true;
+        return {
+          ...p,
+          currentMode: active.mode,
+          currentBot: active.bot || p.currentBot,
+          nextAction: requiredActionForHandoff(active, p.nextAction),
+        };
+      }
+      return p;
     });
   }
 
@@ -460,28 +502,27 @@ function uid() {
 
 function activeWorkflowEntry(handoffs: Handoff[]): { handoff: Handoff; displayStep: number } | null {
   const buckets = bucketHandoffs(handoffs);
-  // "Established stage floor": the highest stage index that already has
-  // real user activity (a touched status, artifact, receipt, content, or
-  // completion timestamp). The resolver never returns a step earlier than
-  // this floor — so existing projects that already moved past Modes are
-  // not rewound to Project Type Confirmation just because a backfilled
-  // template step in an earlier stage is still "Not Started".
-  const hasActivity = (h: Handoff) => {
-    if (h.status && h.status !== "Not Started") return true;
-    if (h.completedAt) return true;
-    if (h.artifactLink || h.receiptLink) return true;
-    if ((h.artifactBody ?? "").trim() || (h.artifactTitle ?? "").trim()) return true;
-    return false;
-  };
-  let floor = 0;
-  buckets.forEach((bucket, idx) => {
-    if (bucket.items.some(({ handoff }) => hasActivity(handoff))) floor = idx;
-  });
-  for (let i = floor; i < buckets.length; i++) {
-    const bucket = buckets[i];
+  // Auto-backfilled template steps (created by ensureNestedSteps with an
+  // id starting with `nested-`) must never rewind an established project
+  // backward. They only become the active step when no real user handoff
+  // is still open. Real handoffs (legacy or hand-edited) take priority in
+  // pipeline order; the backfilled steps act as an optional checklist.
+  const isBackfill = (h: Handoff) => h.id.startsWith("nested-");
+  const isOpen = (h: Handoff) =>
+    h.status !== "Complete" && h.status !== "Parked";
+  // Pass 1 — first open user handoff in pipeline order.
+  for (const bucket of buckets) {
     const idx = bucket.items.findIndex(
-      ({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked",
+      ({ handoff }) => isOpen(handoff) && !isBackfill(handoff),
     );
+    if (idx !== -1) {
+      return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
+    }
+  }
+  // Pass 2 — fall back to any open step (covers brand-new projects that
+  // only contain backfilled template steps, e.g. fresh Mode 0).
+  for (const bucket of buckets) {
+    const idx = bucket.items.findIndex(({ handoff }) => isOpen(handoff));
     if (idx !== -1) {
       return { handoff: bucket.items[idx].handoff, displayStep: idx + 1 };
     }
@@ -493,6 +534,10 @@ function requiredActionForHandoff(handoff: Handoff | null, fallback = "") {
   const mode = (handoff?.mode ?? "").trim().toLowerCase();
   if (mode === "mode 0 / raw idea") return "Fill Mode 0 / Raw Idea";
   if (mode === "project type confirmation / clarity") return "Confirm Project Type";
+  // Preserve an existing project-level next-action (e.g. "Tinker delivers
+  // v1 prototype URL", "Resolve parts catalog access") instead of
+  // overwriting it with a generic "Complete X" string.
+  if (fallback && fallback.trim()) return fallback;
   if (!handoff) return fallback;
   return `Complete ${handoff.mode || "current step"}`;
 }
