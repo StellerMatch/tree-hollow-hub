@@ -606,9 +606,125 @@ function ensureRequiredStages(
     }
     const nested = ensureNestedSteps(repairedProject);
     if (nested.changed) changed = true;
-    return nested.project;
+    const normalized = normalizePersistedWorkflowRecords([nested.project]);
+    if (normalized.changed) changed = true;
+    return normalized.projects[0] ?? nested.project;
   });
   return { projects: next, changed };
+}
+
+function normalizePersistedWorkflowRecords(
+  projects: Project[],
+): { projects: Project[]; changed: boolean } {
+  let changed = false;
+  const normalized = projects.map((project) => {
+    const renamed = project.handoffs.map((h) => {
+      const nextMode = NESTED_STEP_RENAMES[workflowTextKey(h.mode)];
+      if (!nextMode || nextMode === h.mode) return h;
+      changed = true;
+      return { ...h, mode: nextMode };
+    });
+
+    const seen = new Map<string, Handoff>();
+    const out: Handoff[] = [];
+    for (const handoff of renamed) {
+      const key = renderedWorkflowIdentityKey(handoff);
+      const existing = seen.get(key);
+      if (!existing) {
+        seen.set(key, handoff);
+        out.push(handoff);
+        continue;
+      }
+
+      changed = true;
+      const merged = mergeDuplicateWorkflowHandoffs(existing, handoff);
+      const idx = out.indexOf(existing);
+      if (idx >= 0) out[idx] = merged;
+      seen.set(key, merged);
+    }
+
+    const renumbered = out.map((h, idx) => {
+      const step = idx + 1;
+      if (h.step === step) return h;
+      changed = true;
+      return { ...h, step };
+    });
+
+    return changed && renumbered !== project.handoffs
+      ? { ...project, handoffs: renumbered }
+      : project;
+  });
+
+  return { projects: normalized, changed };
+}
+
+function renderedWorkflowIdentityKey(handoff: Handoff): string {
+  const phaseId = phaseForHandoff(handoff).id;
+  const title = splitStepTitle(handoff.mode).title.trim().toLowerCase();
+  return `${phaseId}::${title || workflowTextKey(handoff.mode)}`;
+}
+
+function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
+  const existingCanonical = isCanonicalWorkflowRecord(existing);
+  const duplicateCanonical = isCanonicalWorkflowRecord(duplicate);
+  const base = duplicateCanonical && !existingCanonical
+    ? duplicate
+    : existingCanonical && !duplicateCanonical
+      ? existing
+      : workflowRecordScore(duplicate) > workflowRecordScore(existing)
+        ? duplicate
+        : existing;
+  const other = base === existing ? duplicate : existing;
+  const pickStr = (primary?: string, secondary?: string) =>
+    primary && primary.trim() ? primary : secondary && secondary.trim() ? secondary : primary ?? secondary;
+  const statusRank: Record<string, number> = {
+    Complete: 6,
+    "Needs Review": 5,
+    Working: 4,
+    Sent: 3,
+    Blocked: 2,
+    Parked: 1,
+    "Not Started": 0,
+  };
+  const status =
+    (statusRank[other.status] ?? 0) > (statusRank[base.status] ?? 0)
+      ? other.status
+      : base.status;
+  return {
+    ...base,
+    status,
+    bot: pickStr(base.bot, other.bot) ?? base.bot,
+    assignment: pickStr(base.assignment, other.assignment) ?? base.assignment,
+    receiptLink: pickStr(base.receiptLink, other.receiptLink),
+    artifactLink: pickStr(base.artifactLink, other.artifactLink),
+    artifactBody: pickStr(base.artifactBody, other.artifactBody),
+    artifactTitle: pickStr(base.artifactTitle, other.artifactTitle),
+    completedAt: pickStr(base.completedAt, other.completedAt),
+    nextBot: pickStr(base.nextBot, other.nextBot),
+    nextStep: pickStr(base.nextStep, other.nextStep),
+    authorityNotes: pickStr(base.authorityNotes, other.authorityNotes),
+    stepOutput: { ...(other.stepOutput ?? {}), ...(base.stepOutput ?? {}) },
+  };
+}
+
+function isCanonicalWorkflowRecord(handoff: Handoff): boolean {
+  return Object.values(STAGE_NESTED_STEPS).some((templates) =>
+    templates.some((template) => handoffMatchesNestedStep(handoff, template)),
+  );
+}
+
+function workflowRecordScore(handoff: Handoff): number {
+  let score = 0;
+  if (handoff.status && handoff.status !== "Not Started") score += 8;
+  if (handoff.completedAt) score += 4;
+  if (handoff.receiptLink) score += 3;
+  if (handoff.artifactLink) score += 3;
+  if (handoff.artifactBody) score += 3;
+  if (handoff.artifactTitle) score += 2;
+  if (handoff.stepOutput && Object.keys(handoff.stepOutput).length > 0) score += 4;
+  if (isCanonicalWorkflowRecord(handoff)) score += 5;
+  if (!handoff.id.startsWith("nested-")) score += 1;
+  return score;
 }
 
 function saveProjects(projects: Project[]) {
