@@ -2984,9 +2984,23 @@ function ProjectMain({
   const selectedGlobalIndex = selectedHandoff
     ? project.handoffs.findIndex((h) => h.id === selectedHandoff.id)
     : -1;
-  const selectedPhase = selectedPhaseId
-    ? bucketHandoffsByPhase(project.handoffs).find((b) => b.phase.id === selectedPhaseId) ?? null
-    : null;
+  const phaseBucketsForDetail = bucketHandoffsByPhase(project.handoffs);
+  const selectedPhaseIdx = selectedPhaseId
+    ? phaseBucketsForDetail.findIndex((b) => b.phase.id === selectedPhaseId)
+    : -1;
+  const selectedPhase = selectedPhaseIdx >= 0 ? phaseBucketsForDetail[selectedPhaseIdx] : null;
+  const activePhaseIdxForDetail = active
+    ? phaseBucketsForDetail.findIndex((b) => b.items.some((it) => it.handoff.id === active.id))
+    : -1;
+  const selectedPhaseIsActive =
+    !!selectedPhase && selectedPhaseIdx === activePhaseIdxForDetail;
+  const selectedPhaseHistoricalComplete =
+    !!selectedPhase &&
+    !selectedPhaseIsActive &&
+    activePhaseIdxForDetail !== -1 &&
+    selectedPhaseIdx > activePhaseIdxForDetail &&
+    selectedPhase.items.length > 0 &&
+    selectedPhase.items.every((it) => it.handoff.status === "Complete");
 
   return (
     <div className="space-y-4 min-w-0">
@@ -3072,7 +3086,11 @@ function ProjectMain({
         />
       ) : selectedPhase ? (
         <PhaseOverview
+          project={project}
           bucket={selectedPhase}
+          phaseNumber={selectedPhaseIdx + 1}
+          isActivePhase={selectedPhaseIsActive}
+          isHistoricalComplete={selectedPhaseHistoricalComplete}
           activeId={active?.id ?? null}
           onSelectHandoff={(id: string) => onSelectHandoff(id)}
         />
