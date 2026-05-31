@@ -2353,6 +2353,12 @@ function ProjectSettingsModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
   const [status, setStatus] = useState<ProjectStatus>(initial?.status ?? "Draft");
+  const [projectType, setProjectType] = useState<ProjectType>(
+    initial?.projectType ?? "App / Software",
+  );
+  const [projectTypeCustom, setProjectTypeCustom] = useState(
+    initial?.projectTypeCustom ?? "",
+  );
   const [currentMode, setCurrentMode] = useState(initial?.currentMode ?? "Mode 0 / Clarity");
   const [currentBot, setCurrentBot] = useState(initial?.currentBot ?? "Boss");
   const [nextAction, setNextAction] = useState(
@@ -2381,7 +2387,17 @@ function ProjectSettingsModal({
               disabled={!canSave}
               onClick={() =>
                 onSave(
-                  { name, summary, status, currentMode, currentBot, nextAction, blocker },
+                  {
+                    name,
+                    summary,
+                    status,
+                    projectType,
+                    projectTypeCustom,
+                    currentMode,
+                    currentBot,
+                    nextAction,
+                    blocker,
+                  },
                   true,
                 )
               }
@@ -2392,7 +2408,17 @@ function ProjectSettingsModal({
           <ModalButton
             disabled={!canSave}
             onClick={() =>
-              onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
+              onSave({
+                name,
+                summary,
+                status,
+                projectType,
+                projectTypeCustom,
+                currentMode,
+                currentBot,
+                nextAction,
+                blocker,
+              })
             }
           >
             {mode === "create" ? "create blank" : "save changes"}
@@ -2417,6 +2443,31 @@ function ProjectSettingsModal({
           placeholder="One sentence — what is this and who is it for?"
           onChange={(e) => setSummary(e.target.value)}
         />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Project type</ModalLabel>
+          <ModalSelect
+            value={projectType}
+            onChange={(e) => setProjectType(e.target.value as ProjectType)}
+          >
+            {PROJECT_TYPES.map((t) => (
+              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">
+                {t}
+              </option>
+            ))}
+          </ModalSelect>
+        </div>
+        {projectType === "Other / Custom" && (
+          <div>
+            <ModalLabel>Custom project type</ModalLabel>
+            <ModalInput
+              value={projectTypeCustom}
+              placeholder="e.g. Live event, Workshop, Course…"
+              onChange={(e) => setProjectTypeCustom(e.target.value)}
+            />
+          </div>
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
