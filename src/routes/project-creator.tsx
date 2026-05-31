@@ -742,13 +742,11 @@ function StatusPanel({
             className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
             style={{ borderColor: AMBER_SOFT }}
           >
-            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map(
-              (s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ),
-            )}
+            {PROJECT_STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
           </select>
         </Field>
 
@@ -1257,13 +1255,11 @@ function HandoffCard({
               style={{ borderColor: AMBER_SOFT }}
               aria-label="status"
             >
-              {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
-                (s) => (
-                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                    {s}
-                  </option>
-                ),
-              )}
+              {HANDOFF_STATUSES.map((s) => (
+                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                  {s}
+                </option>
+              ))}
             </select>
             <StatusPill status={handoff.status} />
           </div>
@@ -1805,7 +1801,7 @@ function ProjectSettingsModal({
         <div>
           <ModalLabel>Status</ModalLabel>
           <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
-            {(["Draft", "Active", "Waiting", "Blocked", "Complete"] as ProjectStatus[]).map((s) => (
+            {PROJECT_STATUSES.map((s) => (
               <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
                 {s}
               </option>
@@ -1913,13 +1909,11 @@ function HandoffEditorModal({
         <div>
           <ModalLabel>Status</ModalLabel>
           <ModalSelect value={status} onChange={(e) => setStatus(e.target.value as HandoffStatus)}>
-            {(["Not Started", "Sent", "Working", "Complete", "Blocked"] as HandoffStatus[]).map(
-              (s) => (
-                <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
-                  {s}
-                </option>
-              ),
-            )}
+            {HANDOFF_STATUSES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                {s}
+              </option>
+            ))}
           </ModalSelect>
         </div>
       </div>
