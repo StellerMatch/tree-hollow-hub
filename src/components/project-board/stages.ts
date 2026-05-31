@@ -179,51 +179,76 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   ],
   rd: [
     {
-      mode: "Research Scope / R&D",
+      mode: "Lantern Team Kickoff / R&D",
       bot: "Compass",
       assignment:
-        "Define what needs to be researched before building. Name the questions, not the answers.",
-      authorityNotes: "Compass scopes research; does not decide outcomes.",
-    },
-    {
-      mode: "Past Landscape / R&D",
-      bot: "Compass",
-      assignment:
-        "Capture relevant history, similar attempts, prior examples, and lessons.",
-      authorityNotes: "Research-only. Cite sources where possible.",
-    },
-    {
-      mode: "Present Landscape / R&D",
-      bot: "Compass",
-      assignment:
-        "Capture current competitors, patterns, tools, audience expectations, and constraints.",
-      authorityNotes: "Research-only. Cite sources where possible.",
-    },
-    {
-      mode: "Future Hooks / R&D",
-      bot: "Compass",
-      assignment:
-        "Capture future possibilities without adding them to current scope too early.",
+        "Name the research question, assign the lantern passes, and clarify what each lane (Compass, Vault, Bloom, Luma) should look for.",
       authorityNotes:
-        "Park forward-looking ideas here; do not let them expand current scope.",
+        "Compass leads the lantern team. Each lantern owns its own pass; Compass orchestrates.",
     },
     {
-      mode: "Risks and Unknowns / R&D",
+      mode: "Past Landscape Pass / R&D",
       bot: "Compass",
       assignment:
-        "Name missing information, risks, blockers, and assumptions.",
+        "Each lantern captures the past in its lane — Compass: prior examples and lessons; Vault: money history and prior pricing; Bloom: audience history and prior launches; Luma: design history and prior visual patterns.",
       authorityNotes:
-        "Compass surfaces risk; Boss decides whether to proceed.",
+        "Lanterns: Compass / Vault / Bloom / Luma. Research-only. Cite sources where possible.",
+    },
+    {
+      mode: "Present Landscape Pass / R&D",
+      bot: "Compass",
+      assignment:
+        "Each lantern captures the present — Compass: current market and tools; Vault: current money realities and pricing; Bloom: current audience expectations and channels; Luma: current design expectations and active constraints.",
+      authorityNotes:
+        "Lanterns: Compass / Vault / Bloom / Luma. Research-only. Cite sources where possible.",
+    },
+    {
+      mode: "Future Hooks Pass / R&D",
+      bot: "Compass",
+      assignment:
+        "Each lantern captures future possibilities — Compass: future framing; Vault: future money paths and revenue models; Bloom: future growth and distribution paths; Luma: future design and product opportunities. Park forward-looking ideas without expanding current scope.",
+      authorityNotes:
+        "Lanterns: Compass / Vault / Bloom / Luma. Park futures here; do not let them expand current scope.",
+    },
+    {
+      mode: "Risks and Unknowns Pass / R&D",
+      bot: "Compass",
+      assignment:
+        "Each lantern names missing information, risks, blockers, and assumptions — Compass: research gaps; Vault: financial concerns; Bloom: audience concerns; Luma: design concerns.",
+      authorityNotes:
+        "Lanterns: Compass / Vault / Bloom / Luma. Surface risk; Boss decides whether to proceed.",
+    },
+    {
+      mode: "Research Scope and Synthesis / R&D",
+      bot: "Compass",
+      assignment:
+        "Compass reviews the lantern passes, narrows what matters, separates current scope from future hooks, and prepares the final research direction.",
+      authorityNotes:
+        "Compass synthesizes. Decisions about scope vs. future hooks happen here.",
     },
     {
       mode: "R&D Highlight Brief",
       bot: "Compass",
       assignment:
-        "Create a short Boss-facing summary of the most important research findings.",
+        "Create a short Boss-facing summary of the most important findings, risks, recommendations, and next-step implications.",
       authorityNotes:
         "Highlight brief is the handoff packet out of R&D into Knowledge Packet.",
     },
   ],
+};
+
+/**
+ * One-time renames so handoffs created under the previous R&D nested-step
+ * names migrate cleanly into the new lantern-team names instead of being
+ * left behind as legacy duplicates next to the freshly-backfilled steps.
+ * Key: old mode text (case-insensitive, trimmed). Value: new mode text.
+ */
+export const NESTED_STEP_RENAMES: Record<string, string> = {
+  "research scope / r&d": "Research Scope and Synthesis / R&D",
+  "past landscape / r&d": "Past Landscape Pass / R&D",
+  "present landscape / r&d": "Present Landscape Pass / R&D",
+  "future hooks / r&d": "Future Hooks Pass / R&D",
+  "risks and unknowns / r&d": "Risks and Unknowns Pass / R&D",
 };
 
 /** True if any existing handoff's mode matches the template's mode (case-insensitive, trimmed). */
