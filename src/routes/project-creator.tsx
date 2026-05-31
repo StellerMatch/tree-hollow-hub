@@ -1053,16 +1053,27 @@ function ProjectMain({
   );
 }
 
-function Tag({ label, value }: { label: string; value: string }) {
+function MetaItem({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
   return (
-    <div
-      className="rounded-md border px-2 py-1.5"
-      style={{ borderColor: AMBER_SOFT }}
-    >
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+    <div className="flex min-w-0 items-baseline gap-1.5">
+      <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/60">
         {label}
-      </div>
-      <div className="truncate text-sm">{value || "—"}</div>
+      </span>
+      <span
+        className={
+          "truncate " + (muted ? "text-muted-foreground/80" : "text-foreground/90")
+        }
+      >
+        {value || "—"}
+      </span>
     </div>
   );
 }
