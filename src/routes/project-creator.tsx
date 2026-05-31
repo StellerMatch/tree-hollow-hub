@@ -6,7 +6,10 @@ import type {
   HandoffStatus,
   ProjectStatus,
   Artifact,
+  ArtifactType,
+  ArtifactSource,
 } from "@/components/project-board/types";
+import { ARTIFACT_TYPES, ARTIFACT_SOURCES } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 
 export const Route = createFileRoute("/project-creator")({
@@ -100,25 +103,336 @@ function StatusPill({ status }: { status: ProjectStatus | HandoffStatus }) {
 }
 
 function ProjectCreatorPage() {
-  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
-  const [selectedId, setSelectedId] = useState<string>(
-    () => loadProjects()[0]?.id ?? "",
-  );
+  // Initialize with deterministic seed so SSR and client first render match.
+  // localStorage is read after mount in a useEffect.
+  const [projects, setProjects] = useState<Project[]>(SEED_PROJECTS);
+  const [selectedId, setSelectedId] = useState<string>(SEED_PROJECTS[0]?.id ?? "");
+  const [hydrated, setHydrated] = useState(false);
   const [previewArtifact, setPreviewArtifact] = useState<Artifact | null>(null);
   const [showNewProject, setShowNewProject] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editingHandoff, setEditingHandoff] = useState<{
     handoff: Handoff;
     isNew: boolean;
   } | null>(null);
+  const [editingArtifactId, setEditingArtifactId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
+  // Load from localStorage after mount.
   useEffect(() => {
-    saveProjects(projects);
-  }, [projects]);
+    const stored = loadProjects();
+    setProjects(stored);
+    setSelectedId(stored[0]?.id ?? "");
+    setHydrated(true);
+  }, []);
+
+  // Persist only after hydration so we never overwrite stored data with seed.
+  useEffect(() => {
+    if (hydrated) saveProjects(projects);
+  }, [projects, hydrated]);
 
   const selected = useMemo(
     () => projects.find((p) => p.id === selectedId) ?? projects[0] ?? null,
     [projects, selectedId],
+  );
+
+  const filteredProjects = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter((p) =>
+      [p.name, p.status, p.currentBot, p.currentMode, p.summary]
+        .filter(Boolean)
+        .some((v) => v.toLowerCase().includes(q)),
+    );
+  }, [projects, query]);
+
+  function logActivity(
+    p: Project,
+    entry: { bot?: string; action: string; status?: HandoffStatus | ProjectStatus; receipt?: string; blocker?: string; link?: string },
+  ): Project {
+    return {
+      ...p,
+      activity: [
+        ...p.activity,
+        {
+          id: uid(),
+          at: new Date().toISOString(),
+          bot: entry.bot ?? p.currentBot ?? "—",
+          action: entry.action,
+          status: entry.status,
+          receipt: entry.receipt,
+          blocker: entry.blocker,
+          link: entry.link,
+        },
+      ],
+    };
+  }
+
+  function updateSelected(mut: (p: Project) => Project) {
+    if (!selected) return;
+    setProjects((prev) =>
+      prev.map((p) => (p.id === selected.id ? { ...mut(p), updatedAt: new Date().toISOString() } : p)),
+    );
+  }
+
+  function saveProjectSettings(input: ProjectSettingsInput) {
+    if (!editingProjectId) return;
+    setProjects((prev) =>
+      prev.map((p) => {
+        if (p.id !== editingProjectId) return p;
+        const changed: string[] = [];
+        if (input.name !== p.name) changed.push("name");
+        if (input.summary !== p.summary) changed.push("summary");
+        if (input.status !== p.status) changed.push("status");
+        if (input.currentMode !== p.currentMode) changed.push("mode");
+        if (input.currentBot !== p.currentBot) changed.push("owner");
+        if (input.nextAction !== p.nextAction) changed.push("next action");
+        if ((input.blocker.trim() || undefined) !== p.blocker) changed.push("blocker");
+        const next: Project = {
+          ...p,
+          name: input.name.trim() || p.name,
+          summary: input.summary,
+          status: input.status,
+          currentMode: input.currentMode,
+          currentBot: input.currentBot,
+          nextAction: input.nextAction,
+          blocker: input.blocker.trim() || undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        if (changed.length === 0) return next;
+        return logActivity(next, {
+          action: `updated project settings (${changed.join(", ")})`,
+          status: next.status,
+          blocker: next.blocker,
+        });
+      }),
+    );
+    setEditingProjectId(null);
+  }
+
+  function createProject(input: ProjectSettingsInput) {
+    const id = uid();
+    const ts = new Date().toISOString();
+    const fresh: Project = {
+      id,
+      name: input.name.trim() || "Untitled Project",
+      summary: input.summary,
+      status: input.status,
+      currentMode: input.currentMode || "Mode 0 / Clarity",
+      currentBot: input.currentBot || "Boss",
+      nextAction: input.nextAction,
+      blocker: input.blocker.trim() || undefined,
+      updatedAt: ts,
+      clarity: "",
+      shapeNotes: "",
+      shapeBotOutput: "",
+      planNotes: "",
+      planBotOutput: "",
+      handoffs: [],
+      artifacts: [],
+      activity: [
+        {
+          id: uid(),
+          at: ts,
+          bot: input.currentBot || "Boss",
+          action: "created project",
+          status: input.status,
+        },
+      ],
+    };
+    setProjects((prev) => [fresh, ...prev]);
+    setSelectedId(id);
+    setShowNewProject(false);
+  }
+
+  function exportJSON() {
+    if (typeof window === "undefined") return;
+    const blob = new Blob([JSON.stringify(projects, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dabottree-projects-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
+        for (const p of parsed) {
+          if (typeof p?.id !== "string" || typeof p?.name !== "string") {
+            throw new Error("Project entries missing id/name");
+          }
+        }
+        const ts = new Date().toISOString();
+        const stamped = (parsed as Project[]).map((p) => ({
+          ...p,
+          activity: [
+            ...(p.activity ?? []),
+            { id: uid(), at: ts, bot: "—", action: "data imported" },
+          ],
+        }));
+        setProjects(stamped);
+        setSelectedId(stamped[0]?.id ?? "");
+        setImportError(null);
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : "Invalid JSON");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function openNewHandoff() {
+    if (!selected) return;
+    setEditingHandoff({
+      isNew: true,
+      handoff: {
+        id: uid(),
+        step: selected.handoffs.length + 1,
+        mode: "",
+        bot: "",
+        assignment: "",
+        status: "Not Started",
+      },
+    });
+  }
+
+  function saveHandoff(h: Handoff, isNew: boolean) {
+    if (!selected) return;
+    const prev = selected.handoffs.find((x) => x.id === h.id);
+    updateSelected((p) => {
+      const next: Project = {
+        ...p,
+        handoffs: isNew ? [...p.handoffs, h] : p.handoffs.map((x) => (x.id === h.id ? h : x)),
+      };
+      if (isNew) {
+        return logActivity(next, {
+          bot: h.bot || p.currentBot,
+          action: `added handoff "${h.mode || "untitled"}"`,
+          status: h.status,
+        });
+      }
+      const events: string[] = [];
+      if (prev && prev.status !== h.status) events.push(`status → ${h.status}`);
+      events.push("edited");
+      return logActivity(next, {
+        bot: h.bot || p.currentBot,
+        action: `handoff "${h.mode || "untitled"}" ${events.join(", ")}`,
+        status: h.status,
+      });
+    });
+    setEditingHandoff(null);
+  }
+
+  function moveHandoff(id: string, dir: -1 | 1) {
+    updateSelected((p) => {
+      const idx = p.handoffs.findIndex((h) => h.id === id);
+      if (idx < 0) return p;
+      const target = idx + dir;
+      if (target < 0 || target >= p.handoffs.length) return p;
+      const next = [...p.handoffs];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      const renumbered = next.map((h, i) => ({ ...h, step: i + 1 }));
+      return { ...p, handoffs: renumbered };
+    });
+  }
+
+  function removeHandoff(id: string) {
+    updateSelected((p) => {
+      const h = p.handoffs.find((x) => x.id === id);
+      const next = {
+        ...p,
+        handoffs: p.handoffs.filter((x) => x.id !== id).map((x, i) => ({ ...x, step: i + 1 })),
+      };
+      return logActivity(next, {
+        bot: h?.bot,
+        action: `removed handoff "${h?.mode || "untitled"}"`,
+      });
+    });
+  }
+
+  function changeHandoffStatus(id: string, status: HandoffStatus) {
+    updateSelected((p) => {
+      const h = p.handoffs.find((x) => x.id === id);
+      if (!h || h.status === status) return p;
+      const updated: Handoff = {
+        ...h,
+        status,
+        completedAt:
+          status === "Complete" ? h.completedAt ?? new Date().toISOString() : h.completedAt,
+      };
+      const next = { ...p, handoffs: p.handoffs.map((x) => (x.id === id ? updated : x)) };
+      return logActivity(next, {
+        bot: h.bot,
+        action: `handoff "${h.mode || "untitled"}" status → ${status}`,
+        status,
+      });
+    });
+  }
+
+  function addArtifact() {
+    if (!selected) return;
+    const ts = new Date().toISOString();
+    const a: Artifact = {
+      id: uid(),
+      title: "Untitled artifact",
+      kind: "note",
+      type: "other",
+      source: "Manual",
+      body: "",
+      bot: selected.currentBot || "—",
+      createdAt: ts,
+      updatedAt: ts,
+    };
+    updateSelected((p) =>
+      logActivity({ ...p, artifacts: [...p.artifacts, a] }, {
+        bot: a.bot,
+        action: `added artifact "${a.title}"`,
+      }),
+    );
+    setEditingArtifactId(a.id);
+  }
+
+  function saveArtifact(updated: Artifact) {
+    updateSelected((p) =>
+      logActivity(
+        {
+          ...p,
+          artifacts: p.artifacts.map((a) =>
+            a.id === updated.id ? { ...updated, updatedAt: new Date().toISOString() } : a,
+          ),
+        },
+        { bot: updated.bot, action: `updated artifact "${updated.title}"` },
+      ),
+    );
+    setEditingArtifactId(null);
+  }
+
+  function removeArtifact(id: string) {
+    updateSelected((p) => {
+      const a = p.artifacts.find((x) => x.id === id);
+      return logActivity(
+        { ...p, artifacts: p.artifacts.filter((x) => x.id !== id) },
+        { bot: a?.bot, action: `removed artifact "${a?.title ?? "untitled"}"` },
+      );
+    });
+  }
+
+  const editingProject = useMemo(
+    () => projects.find((p) => p.id === editingProjectId) ?? null,
+    [projects, editingProjectId],
+  );
+  const editingArtifact = useMemo(
+    () => selected?.artifacts.find((a) => a.id === editingArtifactId) ?? null,
+    [selected, editingArtifactId],
   );
 
   function updateSelected(mut: (p: Project) => Project) {
