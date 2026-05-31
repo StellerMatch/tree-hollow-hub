@@ -432,10 +432,14 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
           (h.nextBot ?? "").trim().toLowerCase() === "compass");
       const wantNextBot = tpl.nextBot && (!h.nextBot || legacyMode0Next);
       const wantNextStep = tpl.nextStep && (!h.nextStep || legacyMode0Next);
-      if (!wantNextBot && !wantNextStep) return h;
+      const legacyMode0Owner =
+        (h.mode ?? "").trim().toLowerCase() === "mode 0 / raw idea" &&
+        (h.bot ?? "").trim().toLowerCase() === "boss";
+      if (!wantNextBot && !wantNextStep && !legacyMode0Owner) return h;
       changed = true;
       return {
         ...h,
+        bot: legacyMode0Owner ? tpl.bot : h.bot,
         nextBot: wantNextBot ? tpl.nextBot : h.nextBot,
         nextStep: wantNextStep ? tpl.nextStep : h.nextStep,
       };
