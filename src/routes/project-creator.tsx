@@ -1032,6 +1032,69 @@ function Tag({ label, value }: { label: string; value: string }) {
   );
 }
 
+function CurrentStageIndicator({ project }: { project: Project }) {
+  const active = activeHandoff(project.handoffs);
+  if (!active) return null;
+  const isBlocked = active.status === "Blocked" || !!project.blocker;
+  const accent = isBlocked ? "oklch(0.65 0.22 25)" : AMBER;
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+      style={{
+        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
+        background: isBlocked
+          ? "oklch(0.65 0.22 25 / 0.08)"
+          : "oklch(0.78 0.18 50 / 0.06)",
+      }}
+    >
+      <span
+        className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+        style={{ borderColor: accent, color: accent }}
+      >
+        Current stage
+      </span>
+      <span className="font-display text-sm font-semibold" style={{ color: accent }}>
+        {active.step}. {active.mode || "untitled stage"}
+      </span>
+      <span className="text-muted-foreground">
+        owner: <strong className="text-foreground">{active.bot || "—"}</strong>
+      </span>
+      <StatusPill status={active.status} />
+      {active.nextStep && (
+        <span className="text-muted-foreground">
+          → next: <strong className="text-foreground">{active.nextStep}</strong>
+          {active.nextBot && <> by <strong className="text-foreground">{active.nextBot}</strong></>}
+        </span>
+      )}
+      {project.blocker && (
+        <span
+          className="ml-auto rounded border px-2 py-0.5 text-[11px]"
+          style={{
+            borderColor: "oklch(0.65 0.22 25 / 0.5)",
+            color: "oklch(0.85 0.12 25)",
+          }}
+        >
+          ⚠ {project.blocker}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TagOld({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="rounded-md border px-2 py-1.5"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+        {label}
+      </div>
+      <div className="truncate text-sm">{value || "—"}</div>
+    </div>
+  );
+}
+
 function Section({
   title,
   subtitle,
