@@ -2807,7 +2807,7 @@ function ProjectMain({
         <PhaseOverview
           bucket={selectedPhase}
           activeId={active?.id ?? null}
-          onSelectHandoff={(id) => onSelectHandoff(id)}
+          onSelectHandoff={(id: string) => onSelectHandoff(id)}
         />
       ) : (
         <div
