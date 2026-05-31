@@ -862,6 +862,10 @@ function saveProjects(projects: Project[]) {
   }
 }
 
+function samePersistedProjects(a: Project[], b: Project[]) {
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+}
+
 function fmtTime(iso: string) {
   try {
     const d = new Date(iso);
@@ -1155,7 +1159,7 @@ function ProjectCreatorPage() {
       repairToCanonicalWorkflow(ensured);
     if (changed || repairedChanged) {
       saveProjects(repaired);
-      setProjects(repaired);
+      if (!samePersistedProjects(projects, repaired)) setProjects(repaired);
       return;
     }
     saveProjects(projects);
