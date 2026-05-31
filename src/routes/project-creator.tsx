@@ -564,10 +564,14 @@ function ProjectMain({
   project,
   onChange,
   onPreviewArtifact,
+  onAddHandoff,
+  onEditHandoff,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
+  onAddHandoff: () => void;
+  onEditHandoff: (h: Handoff) => void;
 }) {
   return (
     <div className="space-y-4 min-w-0">
@@ -682,7 +686,13 @@ function ProjectMain({
       </Section>
 
       {/* Handoffs */}
-      <HandoffChain project={project} onChange={onChange} onPreviewArtifact={onPreviewArtifact} />
+      <HandoffChain
+        project={project}
+        onChange={onChange}
+        onPreviewArtifact={onPreviewArtifact}
+        onAddHandoff={onAddHandoff}
+        onEditHandoff={onEditHandoff}
+      />
 
       {/* Artifacts */}
       <ArtifactGrid project={project} onChange={onChange} onPreview={onPreviewArtifact} />
