@@ -2179,6 +2179,7 @@ function StepResultPanel({
   }
 
   if (isMode1) {
+    // placeholder anchor (no change)
     return (
       <div className="space-y-3">
         <Field label="Structured shape notes">
