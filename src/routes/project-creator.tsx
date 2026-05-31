@@ -23,6 +23,7 @@ import {
   activeHandoff,
 } from "@/components/project-board/pipeline";
 import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
+import { bucketHandoffs, type StageBucket } from "@/components/project-board/stages";
 
 function BotAvatar({
   name,
