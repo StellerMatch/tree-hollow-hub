@@ -832,12 +832,26 @@ function ProjectMain({
   onPreviewArtifact,
   onAddHandoff,
   onEditHandoff,
+  onOpenSettings,
+  onMoveHandoff,
+  onRemoveHandoff,
+  onChangeHandoffStatus,
+  onAddArtifact,
+  onEditArtifact,
+  onRemoveArtifact,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
   onPreviewArtifact: (a: Artifact) => void;
   onAddHandoff: () => void;
   onEditHandoff: (h: Handoff) => void;
+  onOpenSettings: () => void;
+  onMoveHandoff: (id: string, dir: -1 | 1) => void;
+  onRemoveHandoff: (id: string) => void;
+  onChangeHandoffStatus: (id: string, status: HandoffStatus) => void;
+  onAddArtifact: () => void;
+  onEditArtifact: (id: string) => void;
+  onRemoveArtifact: (id: string) => void;
 }) {
   return (
     <div className="space-y-4 min-w-0">
@@ -848,21 +862,27 @@ function ProjectMain({
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <input
-              value={project.name}
-              onChange={(e) => onChange((p) => ({ ...p, name: e.target.value }))}
-              className="w-full bg-transparent font-display text-2xl font-semibold leading-tight outline-none md:text-3xl"
+            <h2
+              className="font-display text-2xl font-semibold leading-tight md:text-3xl"
               style={{ color: AMBER }}
-            />
-            <textarea
-              value={project.summary}
-              placeholder="Short summary…"
-              onChange={(e) => onChange((p) => ({ ...p, summary: e.target.value }))}
-              rows={1}
-              className="mt-1 w-full resize-none bg-transparent text-sm text-muted-foreground outline-none"
-            />
+            >
+              {project.name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {project.summary || <span className="italic opacity-60">no summary yet</span>}
+            </p>
           </div>
-          <StatusPill status={project.status} />
+          <div className="flex items-center gap-2">
+            <StatusPill status={project.status} />
+            <button
+              onClick={onOpenSettings}
+              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              title="Edit project settings"
+            >
+              ⚙ settings
+            </button>
+          </div>
         </div>
         <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
           <Tag label="Mode" value={project.currentMode} />
@@ -958,10 +978,19 @@ function ProjectMain({
         onPreviewArtifact={onPreviewArtifact}
         onAddHandoff={onAddHandoff}
         onEditHandoff={onEditHandoff}
+        onMoveHandoff={onMoveHandoff}
+        onRemoveHandoff={onRemoveHandoff}
+        onChangeHandoffStatus={onChangeHandoffStatus}
       />
 
       {/* Artifacts */}
-      <ArtifactGrid project={project} onChange={onChange} onPreview={onPreviewArtifact} />
+      <ArtifactGrid
+        project={project}
+        onPreview={onPreviewArtifact}
+        onAdd={onAddArtifact}
+        onEdit={onEditArtifact}
+        onRemove={onRemoveArtifact}
+      />
 
       {/* Activity */}
       <ActivityLog project={project} />
