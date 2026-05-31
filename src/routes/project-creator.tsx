@@ -525,32 +525,37 @@ function ProjectCreatorPage() {
 
       <div className="relative mx-auto max-w-[1400px] px-3 py-5 md:px-6 md:py-7">
         {/* header */}
-        <header className="mb-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+        <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
             <Link
               to="/"
-              className="group inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+              className="group inline-flex items-center gap-2 text-xs text-muted-foreground/80 transition hover:text-foreground"
             >
               <span className="transition group-hover:-translate-x-0.5">←</span>
-              <span className="font-hand text-base">back to the lobby</span>
+              <span className="font-hand text-sm">back to the lobby</span>
             </Link>
-            <span className="opacity-30">·</span>
-            <div className="font-hand text-sm" style={{ color: AMBER }}>
-              the operations room
+            <h1
+              className="mt-1 font-display text-2xl md:text-3xl font-semibold leading-tight"
+              style={{ color: AMBER }}
+            >
+              DaBotTree Project Board
+            </h1>
+            <div className="mt-0.5 font-hand text-sm" style={{ color: AMBER }}>
+              the operations room — one source of truth per project
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={exportJSON}
-              className="rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              className="rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_SOFT }}
               title="Export all projects as JSON"
             >
               ↓ export
             </button>
             <label
-              className="cursor-pointer rounded-md border px-2 py-1 text-xs font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
-              style={{ borderColor: AMBER_LINE, color: AMBER }}
+              className="cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground transition hover:text-foreground hover:bg-[oklch(0.3_0.03_60_/_0.4)]"
+              style={{ borderColor: AMBER_SOFT }}
               title="Import projects from JSON"
             >
               ↑ import
@@ -565,32 +570,21 @@ function ProjectCreatorPage() {
                 }}
               />
             </label>
-            <h1
-              className="ml-2 font-display text-xl md:text-2xl font-semibold"
-              style={{ color: AMBER }}
-            >
-              DaBotTree Project Board
-            </h1>
           </div>
         </header>
 
-        <div className="mb-5 flex max-w-3xl items-start justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Create and track projects from first idea through bot handoffs and finished artifacts.
-          </p>
-          {importError && (
-            <div
-              className="rounded-md border px-2 py-1 text-xs"
-              style={{
-                borderColor: "oklch(0.65 0.22 25 / 0.5)",
-                background: "oklch(0.65 0.22 25 / 0.1)",
-                color: "oklch(0.85 0.12 25)",
-              }}
-            >
-              import failed: {importError}
-            </div>
-          )}
-        </div>
+        {importError && (
+          <div
+            className="mb-4 rounded-md border px-3 py-1.5 text-xs"
+            style={{
+              borderColor: "oklch(0.65 0.22 25 / 0.5)",
+              background: "oklch(0.65 0.22 25 / 0.1)",
+              color: "oklch(0.85 0.12 25)",
+            }}
+          >
+            import failed: {importError}
+          </div>
+        )}
 
         {/* 3-column layout */}
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
