@@ -344,13 +344,17 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
       changed = true;
     }
     // Backfill default next-step chain hints onto existing handoffs that
-    // match a template but have no nextBot/nextStep saved yet. Never
-    // overwrite user-edited values.
+    // match a template. Preserve real user edits, but repair known legacy
+    // chain hints that still point Mode 0 straight to Trunk / R&D.
     handoffs = handoffs.map((h) => {
       const tpl = templates.find((t) => handoffMatchesNestedStep(h, t));
       if (!tpl) return h;
-      const wantNextBot = tpl.nextBot && !h.nextBot;
-      const wantNextStep = tpl.nextStep && !h.nextStep;
+      const legacyMode0Next =
+        (h.mode ?? "").trim().toLowerCase() === "mode 0 / raw idea" &&
+        ((h.nextStep ?? "").trim().toLowerCase() === "trunk / r&d" ||
+          (h.nextBot ?? "").trim().toLowerCase() === "compass");
+      const wantNextBot = tpl.nextBot && (!h.nextBot || legacyMode0Next);
+      const wantNextStep = tpl.nextStep && (!h.nextStep || legacyMode0Next);
       if (!wantNextBot && !wantNextStep) return h;
       changed = true;
       return {
@@ -715,6 +719,7 @@ function ProjectCreatorPage() {
   function quickCreateProject() {
     const id = uid();
     const ts = new Date().toISOString();
+    const handoffs = createInitialWorkflowHandoffs(id);
     const fresh: Project = {
       id,
       name: "Untitled Project",
@@ -732,7 +737,7 @@ function ProjectCreatorPage() {
       shapeBotOutput: "",
       planNotes: "",
       planBotOutput: "",
-      handoffs: [],
+      handoffs,
       artifacts: [],
       activity: [
         {
