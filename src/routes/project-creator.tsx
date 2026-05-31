@@ -2495,10 +2495,13 @@ function CurrentStageIndicator({
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {activeEntry?.displayStep ?? active.step}. {active.mode || "untitled stage"}
+            {project.handoffs.indexOf(active) + 1}. {splitStepTitle(active.mode).title || "untitled stage"}
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
+            {splitStepTitle(active.mode).phase && (
+              <> · phase <strong className="text-foreground">{splitStepTitle(active.mode).phase}</strong></>
+            )}
           </span>
           <StatusPill status={active.status} />
           <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
