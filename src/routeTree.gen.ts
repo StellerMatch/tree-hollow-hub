@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProjectCreatorRouteImport } from './routes/project-creator'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ProjectCreatorRoute = ProjectCreatorRouteImport.update({
+  id: '/project-creator',
+  path: '/project-creator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OpenclawRoute = OpenclawRouteImport.update({
   id: '/openclaw',
   path: '/openclaw',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/openclaw': typeof OpenclawRoute
+  '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/openclaw': typeof OpenclawRoute
+  '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/openclaw': typeof OpenclawRoute
+  '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/openclaw'
+  fullPaths: '/' | '/openclaw' | '/project-creator'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/openclaw'
-  id: '__root__' | '/' | '/openclaw'
+  to: '/' | '/openclaw' | '/project-creator'
+  id: '__root__' | '/' | '/openclaw' | '/project-creator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OpenclawRoute: typeof OpenclawRoute
+  ProjectCreatorRoute: typeof ProjectCreatorRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/project-creator': {
+      id: '/project-creator'
+      path: '/project-creator'
+      fullPath: '/project-creator'
+      preLoaderRoute: typeof ProjectCreatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/openclaw': {
       id: '/openclaw'
       path: '/openclaw'
@@ -71,17 +88,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OpenclawRoute: OpenclawRoute,
+  ProjectCreatorRoute: ProjectCreatorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
