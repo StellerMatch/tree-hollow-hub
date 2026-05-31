@@ -2708,11 +2708,18 @@ function ProjectMain({
   const active = activeEntry?.handoff ?? null;
   const displayBot = active?.bot || project.currentBot;
 
-  const selectedHandoff =
-    project.handoffs.find((h) => h.id === selectedHandoffId) ?? active ?? null;
+  // If the user explicitly selected a phase header, show the phase overview
+  // instead of any step detail (even the active default).
+  const showingPhase = !!selectedPhaseId && !selectedHandoffId;
+  const selectedHandoff = showingPhase
+    ? null
+    : (project.handoffs.find((h) => h.id === selectedHandoffId) ?? active ?? null);
   const selectedGlobalIndex = selectedHandoff
     ? project.handoffs.findIndex((h) => h.id === selectedHandoff.id)
     : -1;
+  const selectedPhase = selectedPhaseId
+    ? bucketHandoffsByPhase(project.handoffs).find((b) => b.phase.id === selectedPhaseId) ?? null
+    : null;
 
   return (
     <div className="space-y-4 min-w-0">
@@ -2795,6 +2802,12 @@ function ProjectMain({
           onAddArtifact={onAddArtifact}
           onEditArtifact={onEditArtifact}
           onRemoveArtifact={onRemoveArtifact}
+        />
+      ) : selectedPhase ? (
+        <PhaseOverview
+          bucket={selectedPhase}
+          activeId={active?.id ?? null}
+          onSelectHandoff={(id) => onSelectHandoff(id)}
         />
       ) : (
         <div
