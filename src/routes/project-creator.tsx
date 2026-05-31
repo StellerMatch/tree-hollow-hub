@@ -44,6 +44,9 @@ const AMBER_LINE = "oklch(0.78 0.18 50 / 0.35)";
 const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
+const SCHEMA_KEY = "dabottree.projects.schemaVersion";
+const SCHEMA_VERSION = 2; // bump when adding new seeded projects / migrations
+const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
   name: string;
@@ -66,6 +69,41 @@ function loadProjects(): Project[] {
   } catch {
     return SEED_PROJECTS;
   }
+}
+
+// Apply forward-only migrations to existing localStorage data.
+// Never wipes or overwrites user-edited projects.
+function migrateProjects(existing: Project[]): { projects: Project[]; changed: boolean } {
+  if (typeof window === "undefined") return { projects: existing, changed: false };
+  let stored = 0;
+  try {
+    stored = Number(localStorage.getItem(SCHEMA_KEY) ?? "1");
+  } catch {
+    stored = 1;
+  }
+  if (stored >= SCHEMA_VERSION) return { projects: existing, changed: false };
+
+  let next = existing;
+  let changed = false;
+
+  // v2: add seeded "DaBotTree Project Board" if it's missing.
+  if (stored < 2) {
+    const hasBoard = next.some((p) => p.id === DABOTTREE_BOARD_ID);
+    if (!hasBoard) {
+      const seeded = SEED_PROJECTS.find((p) => p.id === DABOTTREE_BOARD_ID);
+      if (seeded) {
+        next = [seeded, ...next];
+        changed = true;
+      }
+    }
+  }
+
+  try {
+    localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
+  } catch {
+    /* ignore */
+  }
+  return { projects: next, changed };
 }
 
 function saveProjects(projects: Project[]) {
@@ -146,8 +184,9 @@ function ProjectCreatorPage() {
   // Load from localStorage after mount.
   useEffect(() => {
     const stored = loadProjects();
-    setProjects(stored);
-    setSelectedId(stored[0]?.id ?? "");
+    const { projects: migrated } = migrateProjects(stored);
+    setProjects(migrated);
+    setSelectedId(migrated[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
