@@ -1799,10 +1799,11 @@ function StageGroup({
             </p>
           ) : (
             <ol className="space-y-3">
-              {items.map(({ handoff: h, globalIndex }) => (
+              {items.map(({ handoff: h, globalIndex }, localIdx) => (
                 <li key={h.id} className="relative">
                   <HandoffCard
                     handoff={h}
+                    displayStep={localIdx + 1}
                     isFirst={globalIndex === 0}
                     isLast={globalIndex === totalHandoffs - 1}
                     onMoveUp={() => onMoveHandoff(h.id, -1)}
