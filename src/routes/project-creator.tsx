@@ -561,10 +561,32 @@ function splitStepTitle(mode?: string | null): { title: string; phase: string } 
   if (!m) return { title: "", phase: "" };
   const idx = m.indexOf("/");
   if (idx === -1) return { title: m, phase: "" };
-  const title = m.slice(0, idx).trim();
-  const phase = m.slice(idx + 1).trim();
-  return { title: title || m, phase };
+  const left = m.slice(0, idx).trim();
+  const right = m.slice(idx + 1).trim();
+  // If the leading segment is a bot/team name (e.g. "Rook / Knowledge Packet"),
+  // swap so the human-readable work step becomes the title and the bot moves
+  // to the metadata row (the rail also renders handoff.bot separately).
+  if (left && right && KNOWN_BOT_NAMES.has(left.toLowerCase())) {
+    return { title: right, phase: "" };
+  }
+  return { title: left || m, phase: right };
 }
+
+const KNOWN_BOT_NAMES = new Set<string>([
+  "boss",
+  "chief",
+  "clarity",
+  "compass",
+  "vault",
+  "bloom",
+  "luma",
+  "rook",
+  "tinker",
+  "weaver",
+  "ledger",
+  "echo",
+  "squirrels",
+]);
 
 type WorkflowEntry = { handoff: Handoff; displayStep: number };
 
