@@ -1478,11 +1478,14 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
           {active
-            ? `${activeEntry?.displayStep ?? active.step}. ${active.mode || "untitled"}`
+            ? `${project.handoffs.indexOf(active) + 1}. ${splitStepTitle(active.mode).title || "untitled"}`
             : project.currentMode || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          {active && splitStepTitle(active.mode).phase && (
+            <> · phase <span className="text-foreground">{splitStepTitle(active.mode).phase}</span></>
+          )}
           {active && <> · <StatusPill status={active.status} /></>}
         </div>
       </div>
