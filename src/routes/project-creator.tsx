@@ -3072,17 +3072,47 @@ function StepResultPanel({
 
   if (isMode0) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground/70">
           Raw idea / intake — collected by Boss
         </div>
-        <textarea
-          value={project.clarity}
-          onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
-          rows={8}
-          placeholder="What are we building? Who is it for? What does done look like?"
-          className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
-          style={{ borderColor: AMBER_SOFT }}
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              <span>Raw idea (in Boss's words)</span>
+              <span
+                className="rounded-sm border px-1 text-[9px] uppercase tracking-[0.14em]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                primary
+              </span>
+            </span>
+          }
+        >
+          <textarea
+            value={project.clarity}
+            onChange={(e) => onChange((p) => ({ ...p, clarity: e.target.value }))}
+            rows={6}
+            placeholder="What are we building? Who is it for? What does done look like?"
+            className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
+            style={{ borderColor: AMBER_SOFT }}
+          />
+        </Field>
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="context"
+          label="Context & constraints Boss already knows"
+          multiline
+          rows={3}
+          placeholder="Background, audience hints, hard constraints already in mind."
+        />
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="sourceMoment"
+          label="Where / when this idea showed up"
+          placeholder="e.g. shower thought, customer call, recurring frustration."
         />
       </div>
     );
@@ -3106,7 +3136,7 @@ function StepResultPanel({
             {typeLabel}
           </div>
         </div>
-        <Field label="Reasoning / classification notes">
+        <Field label="Why this project type (Chief's reasoning)">
           <textarea
             value={handoff.artifactBody ?? ""}
             onChange={(e) =>
@@ -3123,6 +3153,22 @@ function StepResultPanel({
             style={{ borderColor: AMBER_SOFT }}
           />
         </Field>
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="confidence"
+          label="Classification confidence"
+          placeholder="confident / tentative / likely to change"
+        />
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="likelyReclassification"
+          label="Likely re-classification (if any)"
+          multiline
+          rows={2}
+          placeholder="What might this become if the idea evolves?"
+        />
       </div>
     );
   }
@@ -3130,25 +3176,57 @@ function StepResultPanel({
   if (isMode1) {
     return (
       <div className="space-y-3">
-        <Field label="Structured shape notes">
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              <span>Shaped project direction</span>
+              <span
+                className="rounded-sm border px-1 text-[9px] uppercase tracking-[0.14em]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                primary
+              </span>
+            </span>
+          }
+        >
           <textarea
             value={project.shapeNotes}
             onChange={(e) => onChange((p) => ({ ...p, shapeNotes: e.target.value }))}
-            rows={4}
+            rows={5}
+            placeholder="Clear one-paragraph direction: audience, goal, rough boundaries."
             className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
             style={{ borderColor: AMBER_SOFT }}
           />
         </Field>
-        <Field label="Bot output">
+        <Field label="Key decisions made while shaping">
           <textarea
             value={project.shapeBotOutput}
             onChange={(e) => onChange((p) => ({ ...p, shapeBotOutput: e.target.value }))}
-            rows={3}
+            rows={4}
+            placeholder="One decision per line — what was chosen and why."
             className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
             style={{ borderColor: AMBER_SOFT }}
           />
         </Field>
-        <Field label="Artifact link">
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="creatorNotes"
+          label="Creator notes"
+          multiline
+          rows={3}
+          placeholder="Boss's own notes, reactions, or asides about the shape."
+        />
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="openQuestions"
+          label="Open questions for Chief"
+          multiline
+          rows={3}
+          placeholder="One question per line — what still needs answering before the brief?"
+        />
+        <Field label="Shape artifact link">
           <input
             value={project.shapeArtifact ?? ""}
             placeholder="https://…"
@@ -3166,25 +3244,64 @@ function StepResultPanel({
   if (isMode2) {
     return (
       <div className="space-y-3">
-        <Field label="Planning notes">
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              <span>Project brief</span>
+              <span
+                className="rounded-sm border px-1 text-[9px] uppercase tracking-[0.14em]"
+                style={{ borderColor: AMBER_LINE, color: AMBER }}
+              >
+                primary
+              </span>
+            </span>
+          }
+        >
           <textarea
             value={project.planNotes}
             onChange={(e) => onChange((p) => ({ ...p, planNotes: e.target.value }))}
-            rows={4}
+            rows={5}
+            placeholder="The brief Chief can act on — what is being built and why."
             className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
             style={{ borderColor: AMBER_SOFT }}
           />
         </Field>
-        <Field label="Bot output">
+        <Field label="Scope (in scope vs. out of scope)">
           <textarea
             value={project.planBotOutput}
             onChange={(e) => onChange((p) => ({ ...p, planBotOutput: e.target.value }))}
-            rows={3}
+            rows={4}
+            placeholder="What is included in v1, and what is explicitly not."
             className="w-full rounded-md border bg-transparent px-3 py-2 text-sm leading-relaxed"
             style={{ borderColor: AMBER_SOFT }}
           />
         </Field>
-        <Field label="Artifact link">
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="constraints"
+          label="Constraints"
+          multiline
+          rows={3}
+          placeholder="Time, budget, technical, audience, or trust constraints."
+        />
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="successCriteria"
+          label="Success criteria"
+          multiline
+          rows={3}
+          placeholder="How will we know this brief was right? One criterion per line."
+        />
+        <StepOutputField
+          handoff={handoff}
+          onChange={onChange}
+          fieldKey="nextOwner"
+          label="Next owner"
+          placeholder="e.g. Chief → Compass for Lantern Team Kickoff."
+        />
+        <Field label="Brief artifact link">
           <input
             value={project.planArtifact ?? ""}
             placeholder="https://…"
