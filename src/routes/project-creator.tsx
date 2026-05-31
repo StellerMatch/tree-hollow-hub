@@ -459,7 +459,26 @@ function uid() {
 }
 
 function activeWorkflowEntry(handoffs: Handoff[]): { handoff: Handoff; displayStep: number } | null {
-  for (const bucket of bucketHandoffs(handoffs)) {
+  const buckets = bucketHandoffs(handoffs);
+  // "Established stage floor": the highest stage index that already has
+  // real user activity (a touched status, artifact, receipt, content, or
+  // completion timestamp). The resolver never returns a step earlier than
+  // this floor — so existing projects that already moved past Modes are
+  // not rewound to Project Type Confirmation just because a backfilled
+  // template step in an earlier stage is still "Not Started".
+  const hasActivity = (h: Handoff) => {
+    if (h.status && h.status !== "Not Started") return true;
+    if (h.completedAt) return true;
+    if (h.artifactLink || h.receiptLink) return true;
+    if ((h.artifactBody ?? "").trim() || (h.artifactTitle ?? "").trim()) return true;
+    return false;
+  };
+  let floor = 0;
+  buckets.forEach((bucket, idx) => {
+    if (bucket.items.some(({ handoff }) => hasActivity(handoff))) floor = idx;
+  });
+  for (let i = floor; i < buckets.length; i++) {
+    const bucket = buckets[i];
     const idx = bucket.items.findIndex(
       ({ handoff }) => handoff.status !== "Complete" && handoff.status !== "Parked",
     );
