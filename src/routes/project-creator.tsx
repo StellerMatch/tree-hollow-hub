@@ -1965,3 +1965,96 @@ function HandoffEditorModal({
     </ModalShell>
   );
 }
+
+// ---------- Artifact editor modal ----------
+function ArtifactEditorModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial: Artifact;
+  onClose: () => void;
+  onSave: (a: Artifact) => void;
+}) {
+  const [title, setTitle] = useState(initial.title);
+  const [type, setType] = useState<ArtifactType>(initial.type ?? "other");
+  const [source, setSource] = useState<ArtifactSource>(initial.source ?? "Manual");
+  const [bot, setBot] = useState(initial.bot);
+  const [link, setLink] = useState(initial.link ?? "");
+  const [body, setBody] = useState(initial.body ?? "");
+  const [kind, setKind] = useState(initial.kind ?? "");
+
+  return (
+    <ModalShell
+      title="Edit artifact"
+      subtitle="Strengthen the metadata so it's findable later."
+      onClose={onClose}
+      footer={
+        <>
+          <ModalButton variant="ghost" onClick={onClose}>cancel</ModalButton>
+          <ModalButton
+            onClick={() =>
+              onSave({
+                ...initial,
+                title: title.trim() || "Untitled artifact",
+                type,
+                source,
+                bot: bot.trim() || "—",
+                link: link.trim() || undefined,
+                body: body.trim() || undefined,
+                kind: kind.trim() || type,
+              })
+            }
+          >
+            save changes
+          </ModalButton>
+        </>
+      }
+    >
+      <div>
+        <ModalLabel>Title</ModalLabel>
+        <ModalInput value={title} autoFocus onChange={(e) => setTitle(e.target.value)} />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <ModalLabel>Type</ModalLabel>
+          <ModalSelect value={type} onChange={(e) => setType(e.target.value as ArtifactType)}>
+            {ARTIFACT_TYPES.map((t) => (
+              <option key={t} value={t} className="bg-[oklch(0.18_0.02_60)]">{t}</option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Source</ModalLabel>
+          <ModalSelect value={source} onChange={(e) => setSource(e.target.value as ArtifactSource)}>
+            {ARTIFACT_SOURCES.map((s) => (
+              <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">{s}</option>
+            ))}
+          </ModalSelect>
+        </div>
+        <div>
+          <ModalLabel>Owner / bot</ModalLabel>
+          <ModalInput value={bot} onChange={(e) => setBot(e.target.value)} />
+        </div>
+        <div>
+          <ModalLabel>Label (free text)</ModalLabel>
+          <ModalInput value={kind} placeholder="e.g. master prompt" onChange={(e) => setKind(e.target.value)} />
+        </div>
+      </div>
+      <div>
+        <ModalLabel>Link</ModalLabel>
+        <ModalInput value={link} placeholder="https://…" onChange={(e) => setLink(e.target.value)} />
+      </div>
+      <div>
+        <ModalLabel>Body / pasted text</ModalLabel>
+        <ModalTextarea value={body} rows={6} onChange={(e) => setBody(e.target.value)} />
+      </div>
+      <div className="text-[11px] text-muted-foreground/70">
+        created {fmtTime(initial.createdAt)}
+        {initial.updatedAt && initial.updatedAt !== initial.createdAt && (
+          <> · last updated {fmtTime(initial.updatedAt)}</>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
