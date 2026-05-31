@@ -1740,7 +1740,7 @@ function ProjectSettingsModal({
   mode: "create" | "edit";
   initial?: Project;
   onClose: () => void;
-  onSave: (input: ProjectSettingsInput) => void;
+  onSave: (input: ProjectSettingsInput, fromPipeline?: boolean) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [summary, setSummary] = useState(initial?.summary ?? "");
@@ -1759,7 +1759,7 @@ function ProjectSettingsModal({
       title={mode === "create" ? "New project" : "Project settings"}
       subtitle={
         mode === "create"
-          ? "Mode 0 / Clarity, Mode 1 / Shape, and Mode 2 / Plan start empty."
+          ? "Start blank, or use the DaBotTree Project Pipeline to seed the full Boss → Echo stage chain."
           : "Edit project name, summary, status, mode, owner, next action, and blocker."
       }
       onClose={onClose}
@@ -1768,13 +1768,26 @@ function ProjectSettingsModal({
           <ModalButton variant="ghost" onClick={onClose}>
             cancel
           </ModalButton>
+          {mode === "create" && (
+            <ModalButton
+              disabled={!canSave}
+              onClick={() =>
+                onSave(
+                  { name, summary, status, currentMode, currentBot, nextAction, blocker },
+                  true,
+                )
+              }
+            >
+              create from DaBotTree Pipeline
+            </ModalButton>
+          )}
           <ModalButton
             disabled={!canSave}
             onClick={() =>
               onSave({ name, summary, status, currentMode, currentBot, nextAction, blocker })
             }
           >
-            {mode === "create" ? "create project" : "save changes"}
+            {mode === "create" ? "create blank" : "save changes"}
           </ModalButton>
         </>
       }
