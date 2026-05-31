@@ -1605,6 +1605,9 @@ function ProjectMain({
   onAddArtifact,
   onEditArtifact,
   onRemoveArtifact,
+  selectedHandoffId,
+  onSelectHandoff,
+  onOpenCommandReceipt,
 }: {
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
@@ -1618,10 +1621,19 @@ function ProjectMain({
   onAddArtifact: () => void;
   onEditArtifact: (id: string) => void;
   onRemoveArtifact: (id: string) => void;
+  selectedHandoffId: string | null;
+  onSelectHandoff: (id: string | null) => void;
+  onOpenCommandReceipt: () => void;
 }) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
   const displayBot = active?.bot || project.currentBot;
+
+  const selectedHandoff =
+    project.handoffs.find((h) => h.id === selectedHandoffId) ?? active ?? null;
+  const selectedGlobalIndex = selectedHandoff
+    ? project.handoffs.findIndex((h) => h.id === selectedHandoff.id)
+    : -1;
 
   return (
     <div className="space-y-4 min-w-0">
@@ -1656,7 +1668,7 @@ function ProjectMain({
             ⚙ settings
           </button>
         </div>
-        <CurrentStageIndicator project={project} />
+        <CurrentStageIndicator project={project} onClick={onOpenCommandReceipt} />
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 border-t pt-3 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
           <MetaItem
             label="Type"
@@ -1671,6 +1683,22 @@ function ProjectMain({
           <MetaItem label="Updated" value={fmtTime(project.updatedAt)} muted />
         </div>
       </div>
+
+      <CreatorGuidance project={project} onChange={onChange} />
+
+      {selectedHandoff && (
+        <SelectedStepDetail
+          handoff={selectedHandoff}
+          globalIndex={selectedGlobalIndex}
+          total={project.handoffs.length}
+          onEdit={() => onEditHandoff(selectedHandoff)}
+          onMoveUp={() => onMoveHandoff(selectedHandoff.id, -1)}
+          onMoveDown={() => onMoveHandoff(selectedHandoff.id, 1)}
+          onRemove={() => onRemoveHandoff(selectedHandoff.id)}
+          onChangeStatus={(s) => onChangeHandoffStatus(selectedHandoff.id, s)}
+          onPreview={onPreviewArtifact}
+        />
+      )}
 
       {/* Mode 0 */}
       <Section
