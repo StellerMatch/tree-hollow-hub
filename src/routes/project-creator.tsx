@@ -2650,7 +2650,7 @@ function ProjectSettingsModal({
                 name,
                 summary,
                 status,
-                projectType: (projectType || undefined) as ProjectType,
+                projectType: projectType || undefined,
                 projectTypeCustom,
                 currentMode,
                 currentBot,
