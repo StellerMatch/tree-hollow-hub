@@ -23,7 +23,12 @@ import {
   activeHandoff,
 } from "@/components/project-board/pipeline";
 import { botImageFor, botInitials } from "@/components/project-board/bot-avatars";
-import { bucketHandoffs, type StageBucket } from "@/components/project-board/stages";
+import {
+  bucketHandoffs,
+  PIPELINE_STAGES,
+  stageForHandoff,
+  type StageBucket,
+} from "@/components/project-board/stages";
 
 function BotAvatar({
   name,
@@ -92,7 +97,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 2; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 3; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -143,6 +148,44 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         changed = true;
       }
     }
+  }
+
+  // v3: backfill missing pipeline stages so every staged workflow card has
+  // at least one editable handoff (Modes → Memory Alignment). Existing
+  // handoffs and their edits are preserved; only missing stages are appended.
+  if (stored < 3) {
+    next = next.map((p) => {
+      const present = new Set(
+        p.handoffs.map((h) => stageForHandoff(h).id),
+      );
+      const missing = PIPELINE_STAGES.filter((s) => !present.has(s.id));
+      if (missing.length === 0) return p;
+      const baseStep = p.handoffs.length;
+      const appended: Handoff[] = missing.map((stage, idx) => {
+        const tpl = DABOTTREE_PIPELINE.find(
+          (t) => stageForHandoff({
+            id: "tpl",
+            step: 0,
+            mode: t.stage,
+            bot: t.bot,
+            status: "Not Started",
+          } as Handoff).id === stage.id,
+        );
+        return {
+          id: `backfill-${p.id}-${stage.id}`,
+          step: baseStep + idx + 1,
+          mode: tpl?.stage ?? stage.label,
+          bot: tpl?.bot ?? stage.bot,
+          assignment: tpl?.assignment ?? "",
+          status: "Not Started",
+          authorityNotes: tpl?.authorityNotes,
+          nextBot: tpl?.nextBot,
+          nextStep: tpl?.nextStep,
+        };
+      });
+      changed = true;
+      return { ...p, handoffs: [...p.handoffs, ...appended] };
+    });
   }
 
   try {
