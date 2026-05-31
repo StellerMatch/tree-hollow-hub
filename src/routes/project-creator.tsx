@@ -1320,8 +1320,11 @@ function ProjectCreatorPage() {
               {filteredProjects.map((p) => {
                 const active = selected?.id === p.id;
                 const workflow = currentStageEntry(p)?.handoff;
-                const displayMode = workflow?.mode || p.currentMode;
+                const rawMode = workflow?.mode || p.currentMode;
+                const split = splitStepTitle(rawMode);
                 const displayBot = workflow?.bot || p.currentBot;
+                const displayMode = split.title || rawMode;
+                const displayPhase = split.phase;
                 return (
                   <li key={p.id}>
                     <button
@@ -1342,6 +1345,7 @@ function ProjectCreatorPage() {
                         {p.projectType === "Other / Custom"
                           ? p.projectTypeCustom || "Other / Custom"
                           : p.projectType || "Unclassified"} · {displayMode} · {displayBot}
+                        {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
                       </div>
                       <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                         updated {fmtTime(p.updatedAt)}
