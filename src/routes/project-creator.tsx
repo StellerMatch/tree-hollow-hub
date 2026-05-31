@@ -1273,7 +1273,10 @@ function ProjectCreatorPage() {
         )}
 
         {/* 3-column layout */}
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+        <div
+          className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]"
+          suppressHydrationWarning
+        >
           {/* LEFT — project list */}
           <aside
             className="rounded-2xl border bark-texture p-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
