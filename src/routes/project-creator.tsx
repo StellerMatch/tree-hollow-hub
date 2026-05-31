@@ -1538,8 +1538,8 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
-          {active && splitStepTitle(active.mode).phase && (
-            <> · phase <span className="text-foreground">{splitStepTitle(active.mode).phase}</span></>
+          {active && (
+            <> · phase <span className="text-foreground">{phaseForHandoff(active).label}</span></>
           )}
           {active && <> · <StatusPill status={active.status} /></>}
         </div>
@@ -3695,9 +3695,7 @@ function CurrentStageIndicator({
           </span>
           <span className="text-xs text-muted-foreground">
             owner <strong className="text-foreground">{active.bot || "—"}</strong>
-            {splitStepTitle(active.mode).phase && (
-              <> · phase <strong className="text-foreground">{splitStepTitle(active.mode).phase}</strong></>
-            )}
+            <> · phase <strong className="text-foreground">{phaseForHandoff(active).label}</strong></>
           </span>
           <StatusPill status={active.status} />
         </div>
