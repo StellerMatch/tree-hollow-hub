@@ -1080,48 +1080,64 @@ function MetaItem({
 
 function CurrentStageIndicator({ project }: { project: Project }) {
   const active = activeHandoff(project.handoffs);
-  if (!active) return null;
-  const isBlocked = active.status === "Blocked" || !!project.blocker;
-  const accent = isBlocked ? "oklch(0.65 0.22 25)" : AMBER;
+  const hasBlocker = !!project.blocker || active?.status === "Blocked";
+  const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
+  const nextAction = project.nextAction?.trim();
+
+  if (!active && !nextAction && !hasBlocker) return null;
+
   return (
     <div
-      className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+      className="mt-4 rounded-xl border p-3"
       style={{
-        borderColor: isBlocked ? "oklch(0.65 0.22 25 / 0.5)" : AMBER_LINE,
-        background: isBlocked
+        borderColor: hasBlocker ? "oklch(0.65 0.22 25 / 0.55)" : AMBER_LINE,
+        background: hasBlocker
           ? "oklch(0.65 0.22 25 / 0.08)"
           : "oklch(0.78 0.18 50 / 0.06)",
       }}
     >
-      <span
-        className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
-        style={{ borderColor: accent, color: accent }}
-      >
-        Current stage
-      </span>
-      <span className="font-display text-sm font-semibold" style={{ color: accent }}>
-        {active.step}. {active.mode || "untitled stage"}
-      </span>
-      <span className="text-muted-foreground">
-        owner: <strong className="text-foreground">{active.bot || "—"}</strong>
-      </span>
-      <StatusPill status={active.status} />
-      {active.nextStep && (
-        <span className="text-muted-foreground">
-          → next: <strong className="text-foreground">{active.nextStep}</strong>
-          {active.nextBot && <> by <strong className="text-foreground">{active.nextBot}</strong></>}
-        </span>
+      {active && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.16em]"
+            style={{ borderColor: accent, color: accent }}
+          >
+            Current stage
+          </span>
+          <span className="font-display text-base font-semibold" style={{ color: accent }}>
+            {active.step}. {active.mode || "untitled stage"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            owner <strong className="text-foreground">{active.bot || "—"}</strong>
+          </span>
+          <StatusPill status={active.status} />
+        </div>
       )}
+
+      {(nextAction || active?.nextStep) && (
+        <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm">
+          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Next required action
+          </span>
+          <span className="text-foreground">
+            {nextAction ||
+              `${active?.nextStep ?? ""}${active?.nextBot ? ` — by ${active.nextBot}` : ""}`}
+          </span>
+        </div>
+      )}
+
       {project.blocker && (
-        <span
-          className="ml-auto rounded border px-2 py-0.5 text-[11px]"
+        <div
+          className="mt-2 flex items-start gap-2 rounded-md border px-2 py-1.5 text-[12px]"
           style={{
             borderColor: "oklch(0.65 0.22 25 / 0.5)",
-            color: "oklch(0.85 0.12 25)",
+            background: "oklch(0.65 0.22 25 / 0.12)",
+            color: "oklch(0.88 0.10 25)",
           }}
         >
-          ⚠ {project.blocker}
-        </span>
+          <span className="mt-0.5">⚠</span>
+          <span><strong className="uppercase tracking-[0.14em] text-[10px] mr-1.5">Blocker</strong>{project.blocker}</span>
+        </div>
       )}
     </div>
   );
