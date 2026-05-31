@@ -316,8 +316,16 @@ function ProjectCreatorPage() {
   }, []);
 
   // Persist only after hydration so we never overwrite stored data with seed.
+  // Also keep a runtime safety net for already-mounted or imported projects:
+  // append missing required stage handoffs before writing back to localStorage.
   useEffect(() => {
-    if (hydrated) saveProjects(projects);
+    if (!hydrated) return;
+    const { projects: ensured, changed } = ensureRequiredStages(projects);
+    if (changed) {
+      setProjects(ensured);
+      return;
+    }
+    saveProjects(projects);
   }, [projects, hydrated]);
 
   const selected = useMemo(
