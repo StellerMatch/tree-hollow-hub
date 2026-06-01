@@ -4071,9 +4071,9 @@ function RealRoutePreflight({
   project: Project;
   onChange: (mut: (p: Project) => Project) => void;
 }) {
-  const [bridge] = React.useState(() => detectBotBridge());
-  const [busy, setBusy] = React.useState(false);
-  const [lastResult, setLastResult] = React.useState<BridgeResult | null>(null);
+  const [bridge] = useState(() => detectBotBridge());
+  const [busy, setBusy] = useState(false);
+  const [lastResult, setLastResult] = useState<BridgeResult | null>(null);
 
   async function runTinyReceiptTest(bot: string) {
     if (busy) return;
