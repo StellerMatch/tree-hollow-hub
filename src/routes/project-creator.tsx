@@ -567,6 +567,16 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
   let next = existing;
   let changed = false;
 
+  // v0 normalize: every project + handoff must have a string id. Runs first
+  // so later migrations can safely rely on `h.id` / `p.id` being present.
+  {
+    const norm = normalizeProjectIds(next);
+    if (norm.changed) {
+      next = norm.projects;
+      changed = true;
+    }
+  }
+
   // v2: add seeded "DaBotTree Project Board" if it's missing.
   if (stored < 2) {
     const hasBoard = next.some((p) => p.id === DABOTTREE_BOARD_ID);
