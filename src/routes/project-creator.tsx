@@ -4467,6 +4467,136 @@ function HHBridgeReadinessPanel({ project }: { project: Project }) {
   );
 }
 
+// ---------- Stable Bridge Process panel ----------
+function StableBridgeProcessPanel() {
+  const checklist = [
+    { label: "Written report / receipt", status: "yes" },
+    { label: "State / events captured", status: "yes" },
+    { label: "Current status recorded", status: "yes" },
+    { label: "Findings documented", status: "yes" },
+    { label: "Installed fix or no install needed", status: "no install needed" },
+    { label: "Boundary stated", status: "yes" },
+  ];
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Stable Bridge Process panel"
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div
+          className="h-2 w-2 rounded-full"
+          style={{ background: EMERALD }}
+        />
+        <h3
+          className="font-display text-sm font-semibold tracking-tight"
+          style={{ color: AMBER }}
+        >
+          Stable Bridge Process
+        </h3>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            bridge_process_status
+          </div>
+          <div className="mt-0.5 font-semibold text-foreground/90">
+            stable_local_only
+          </div>
+        </div>
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            runner
+          </div>
+          <div className="mt-0.5 font-semibold text-foreground/90">
+            local-bridge-runner.mjs
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          source_material_policy
+        </div>
+        <div className="mt-0.5 text-muted-foreground/90">
+          Blue Lantern and double-letter runs are reference / proof / history only, not required by the stable process.
+        </div>
+      </div>
+
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          stable process files
+        </div>
+        <ul className="mt-1 space-y-0.5 text-muted-foreground/90">
+          <li>· LOCAL-BRIDGE-RUNNER-STANDARD-2026-06-01.md</li>
+          <li>· PROJECT-TEST-CLOSEOUT-GATE-2026-06-01.md</li>
+          <li>· templates/local-bridge-runner-config-template.json</li>
+        </ul>
+      </div>
+
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          closeout checklist
+        </div>
+        <ul className="mt-1 space-y-0.5 text-muted-foreground/90">
+          {checklist.map((item) => (
+            <li key={item.label} className="flex items-start gap-2">
+              <span
+                className="inline-block rounded px-1 py-0 text-[9px] font-semibold leading-tight"
+                style={{
+                  background:
+                    item.status === "yes"
+                      ? "oklch(0.7 0.14 160 / 0.12)"
+                      : "oklch(0.78 0.18 50 / 0.12)",
+                  color:
+                    item.status === "yes"
+                      ? EMERALD
+                      : AMBER,
+                }}
+              >
+                {item.status}
+              </span>
+              <span>{item.label}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          boundary
+        </div>
+        <ul className="mt-1 space-y-0.5 text-muted-foreground/90">
+          <li>· No Lovable write by runner</li>
+          <li>· No real bot routing</li>
+          <li>· No backend / auth / cloud / database</li>
+          <li>· No automation activation</li>
+          <li>· No approval movement</li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
@@ -6354,6 +6484,7 @@ function ProjectMain({
       {project.id === HENRY_HANDOFF_ID && (
         <HHBridgeReadinessPanel project={project} />
       )}
+      {project.id === DABOTTREE_BOARD_ID && <StableBridgeProcessPanel />}
 
       {selectedHandoff ? (
         <SelectedStepDetail
