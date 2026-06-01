@@ -2280,7 +2280,7 @@ function ProjectCreatorPage() {
             >
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">
-                  Projects · {filteredProjects.length}/{projects.length}
+                  Projects · {filteredProjects.length} shown / {projects.length} total
                 </div>
                 <button
                   onClick={quickCreateProject}
