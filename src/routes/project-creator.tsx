@@ -116,6 +116,370 @@ type ProjectSettingsInput = {
   blocker: string;
 };
 
+const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
+  "Collection / Clarity": {
+    capturedMaterial:
+      "Boss wants DaBotTree.com to turn AI bot trees into collectible, character-forward digital bot cards. Clean packet includes vision, product flow, tree view, card copy, QR/mobile, privacy, research triggers, lane suggestions, and open Boss questions.",
+    goalScope:
+      "Phase One is tree import/create plus bot card creation. Tree structure drives card structure. QR opens rare mobile character experience with Coming Soon button. Marketplace/install/paid-video/legal/compliance stay parked.",
+    cleanPacketPath:
+      "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
+    nextOwner: "Clarity, then Chief War Room Gate.",
+  },
+  "Organize / Clarity": {
+    capturedMaterial:
+      "Organized into Phase One rules, protected decisions, product flow, tree requirements, card requirements, QR/mobile requirements, privacy boundaries, research triggers, and lane requests.",
+    goalScope:
+      "Keep DaBotTree.com playful, collectible, futuristic, character-rich, alive, and tree-based, not a plain SaaS/org chart.",
+    cleanPacketPath:
+      "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
+    nextOwner: "Clarity Deep Dive.",
+  },
+  "Deep Dive / Clarity": {
+    capturedMaterial:
+      "Unique combo is living tree hierarchy, collectible character cards, hidden layer consistency, and QR-only mobile character experiences.",
+    goalScope: "Preserve rare-card feeling while staying honest about Phase One limits.",
+    cleanPacketPath:
+      "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
+    nextOwner: "Chief.",
+  },
+  "Chief War Room Gate / Intake": {
+    sourcePacket:
+      "Chief received the clean packet. Canceled Compass route HOFF-20260527-2355-CLARITY-COMPASS-DABOT-TREE-BOT-CARDS is not active.",
+    runName: "WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31",
+    startingInstruction:
+      "Open WR1 from the clean packet, seed all known answers into the Project Board, and route future work step by step by named owner.",
+    bossDecisions:
+      "Starter tree count/categories; public/private/share/submit model; whether themed backgrounds are Phase One or exploration; exact review path for worthy trees.",
+  },
+  "Ivy Dispatcher Start Gate / Intake": {
+    dispatchPack:
+      "Clean packet path, run ID WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31, Bot Card Studio Project Board handoff, and starting instruction to begin at Echo memory alignment after Chief gate.",
+    boardLink: "Real Lovable Project Board / Bot Card Studio project.",
+    visibleStatus: "Ready to start after seeded source packet is installed.",
+    nextOwner: "Echo.",
+  },
+  "Memory Alignment / Intake": {
+    findings:
+      "Align with Boss intent: low long-term Boss workload, more involved first run, Chief surfaces decision needs, tree-first/card-second, no public marketplace/install/revenue scope drift.",
+    receipts: "Clean packet and WR1 filled run packet.",
+    blockers: "Needs Echo confirmation as the real receipt.",
+    nextOwner: "Ledger.",
+  },
+  "Official Project Record / Intake": {
+    findings:
+      "Official project home is /Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio. Clean packet and filled run packet are the current source records.",
+    receipts: "Clean packet path and filled run packet path.",
+    blockers: "Needs Ledger official receipt.",
+    nextOwner: "Shield.",
+  },
+  "Safety and Authority / Intake": {
+    verdict:
+      "Conditional clear for planning, packet filling, board seeding, and internal prototype preparation.",
+    boundaries:
+      "Blocked without approval for public launch, spending, authority changes, runtime/config/route changes, or final product decisions. No secrets, public QR index, income promises, or real install claims.",
+    approvalNeeded:
+      "Boss approval required for public/private/share model, launch/public exposure, spending, route/runtime/config changes, and final product direction.",
+    nextOwner: "Compass.",
+  },
+  "R&D Owner / Trunk": {
+    researchFrame:
+      "Validate how DaBotTree.com becomes a living-tree plus collectible-card system while staying private, editable, and honest about Phase One.",
+    vaultAssignment:
+      "Privacy/data/QR access, public/private guardrails, cost/spend boundaries, revenue-role classification without promises.",
+    bloomAssignment:
+      "Audience, growth, retention, starter tree identities, shareability, low-money launch paths.",
+    lumaAssignment:
+      "Visual trust, living tree UI, card theme language, QR mobile page, accessibility/readability, polish without renaming.",
+  },
+  "Money and Sustainability Input / Trunk": {
+    findings:
+      "Phase One should not promise income or paid bot activation. Possible future revenue hooks stay parked: custom cards, custom video, marketplace/gallery, advanced themes.",
+    privacyDataRisk:
+      "Users may paste sensitive tree/bot data. App needs explicit warnings and later data handling clarity before public use.",
+    commercialBoundaries:
+      "No paid feature, marketplace, voting, legal/compliance, or public sharing model unless Boss approves.",
+    sources: "Clean packet Vision Baseline, Privacy, Research Triggers.",
+  },
+  "Audience and Growth Input / Trunk": {
+    findings:
+      "Initial user is Boss and Boss's tree/cards. Later users may include creators, business owners, coaches/teachers, families/households, and project/team builders.",
+    launchPaths:
+      "Start with Boss/tree internal use; later explore starter trees and shareable QR card access.",
+    storyLanguage:
+      "Sell the magic as collectible character identity, not money promises or real bot install.",
+    sources: "Clean packet Key Product Flow, Collection Mechanic, Open Questions.",
+  },
+  "Design and Trust Input / Trunk": {
+    findings:
+      "Needs living/family tree feel with hierarchy, portraits, connectors, level labels, short roles, and collapsible structure.",
+    visualDirection:
+      "Dark wood vertical nested example is inspiration; Luma should make it cooler, cleaner, polished, playful, futuristic, character-rich, and alive.",
+    readabilityAccessibility:
+      "Tree and cards must remain readable/editable; avoid whole-card image-only artifacts.",
+    designRisks:
+      "Plain org chart, flattened generic personality, overdecorated unreadable cards, renamed brand, public profile vibe replacing rare QR feeling.",
+  },
+  "R&D Synthesis / Trunk": {
+    directionBrief:
+      "Build Phase One around a private editable tree import/create flow that produces character-forward cards with QR-only mobile reveals. Keep future monetization/gallery/install hooks parked.",
+    includedInputs:
+      "Clean packet plus needed Vault, Bloom, Luma, and Compass research receipts.",
+    parkedHooks:
+      "Real install/download/activation, marketplace/gallery/voting, paid custom video, advanced layer controls, legal/compliance, exact monetization.",
+    rookImplications:
+      "Rook should make a Tinker-ready packet with requirements, acceptance criteria, card copy rules, prompt branching, privacy language, and flow boundaries.",
+  },
+  "Knowledge Intake / Knowledge": {
+    findings:
+      "Rook should accept the clean packet, R&D synthesis, lane receipts, and filled run packet.",
+    receipts:
+      "Preserve DaBotTree.com name, tree-first/cards-second, hidden layers internal, QR rare access, no bot chains on card copy.",
+    blockers: "Needs real Compass/Vault/Bloom/Luma receipts.",
+    nextOwner: "Squirrel Gate / assigned checks.",
+  },
+  "Narrow Checks / Knowledge": {
+    gateResult: "Not started.",
+    findings:
+      "Request checks for living/family tree patterns, rarity without NFT/marketplace overscope, starter tree structures, privacy/QR access, hidden layers, character job profile writing, and avoiding income claims.",
+    receipts:
+      "Each checker should return Completed, Blocked, or No finding with source notes.",
+    blockers: "Assigned checkers needed.",
+    nextOwner: "Luma.",
+  },
+  "Practical Design Input / Knowledge": {
+    findings:
+      "Practical design packet should specify tree view, card front/back, hidden builder inputs, QR mobile page, starter template browsing, and theme/background behavior.",
+    visualDirection:
+      "Living tree plus collectible card with character-forward hero visuals and readable role/profile copy.",
+    readabilityAccessibility:
+      "Back-card copy should read like a character job profile, not a checklist; answers should be hidden in flowing copy.",
+    designRisks:
+      "Uneditable whole-card images, exposed layer controls, naming chains on cards, single teaser cards without set context.",
+  },
+  "Practical Money Input / Knowledge": {
+    findings:
+      "Build useful free/internal Phase One before commercializing. Keep future revenue hooks as parked notes.",
+    privacyDataRisk:
+      "Future sharing means shared details are no longer private; warn users before sensitive material is pasted.",
+    commercialBoundaries:
+      "No income claims, paid feature assumptions, or public marketplace as current scope.",
+    sources: "Clean packet Privacy, Vision Baseline, Research Triggers.",
+  },
+  "Practical Growth Input / Knowledge": {
+    findings:
+      "Natural first-use story: turn your own AI helper tree into a living collectible card set.",
+    launchPaths:
+      "Start with Boss's tree, then starter trees for artists, business people, creators, coaches/teachers, families/households, and project/team users.",
+    storyLanguage:
+      "Emphasize rarity, collection, character identity, and tree continuity; avoid marketplace hype.",
+    sources: "Clean packet Key Product Flow and Collection Mechanic.",
+  },
+  "Acceptance Criteria Check [Chief Added] / Knowledge": {
+    acceptanceCriteria:
+      "User can import/create tree, see living hierarchy, edit likely corrections, create bot cards from nodes, branch prompt flow by hero image, generate character job profile copy, produce QR/mobile character experience with Coming Soon button, and preserve privacy warnings.",
+    scopeBoundaries:
+      "No public gallery, marketplace, voting, install/download/activation, paid custom video, legal/compliance, exact monetization, or public-listed QR pages in Phase One.",
+    expectedEvidence:
+      "Tinker should return clickable prototype or screenshots, tree import/create flow notes, card generation flow notes, QR/mobile mockup notes, prompt branching evidence, and parked items.",
+    bossReviewNeeded:
+      "Yes: starter trees, share model, themed-background scope, worthy-tree review path.",
+  },
+  "Tinker-Ready Packet / Knowledge": {
+    findings:
+      "Prototype direction should focus on tree import/create, living tree display, editable nodes, bot card creation, hidden layer consistency, prompt branching, and QR/mobile card experience.",
+    receipts:
+      "Clean packet, R&D synthesis, acceptance criteria, practical lane inputs, narrow check receipts.",
+    blockers: "Needs real R&D and check receipts before final Tinker packet.",
+    nextOwner: "Tinker.",
+  },
+  "Tinker Intake / Experiment": {
+    findings:
+      "Organize prototype around essential flow, not final polish or future market features.",
+    receipts:
+      "Prototype priorities: tree import/create, editable correction list, living tree UI, per-bot card creation, card copy generation, QR/mobile reveal mockup.",
+    blockers: "No prototype yet.",
+    nextOwner: "Squirrel Gate / helper checks.",
+  },
+  "Squirrel Help / Experiment": {
+    gateResult: "Not started.",
+    findings:
+      "Needed checks: prototype flow risks, prompt safety, tree data structure, QR access assumptions, card copy checks, hidden-layer editability.",
+    receipts: "Helper receipts should attach here.",
+    blockers: "Needs Tinker to assign helpers.",
+    nextOwner: "Lantern Gate / Shield if needed.",
+  },
+  "Trunk Help / Experiment": {
+    gateResult: "Not started.",
+    findings:
+      "Request Lantern/Shield only if prototype touches safety, authority, privacy, or bigger R&D uncertainty.",
+    receipts: "Trunk helper receipts should attach here.",
+    blockers: "Depends on Tinker helper request.",
+    nextOwner: "Echo.",
+  },
+  "Pre-Momma Memory Alignment / Experiment": {
+    findings:
+      "Confirm prototype prompt still protects Boss vision, no local-only completion claims, no future features in Phase One, and no privacy/public-action drift.",
+    receipts: "Clean packet, filled packet, current Tinker notes.",
+    blockers: "Needs Echo.",
+    nextOwner: "Momma.",
+  },
+  "Momma Package Prep / Experiment": {
+    bearsPackage:
+      "Neutral package asks Ace, Bolt, and Craft for independent prototype/build directions for the same Phase One flow.",
+    neutralInstructions:
+      "Honor tree-first/card-second, hidden layers internal, QR rare access, no real install/public market claims, Boss review gates.",
+    constraints:
+      "Do not bias toward one visual style; preserve DaBotTree.com name and Phase One limits.",
+    nextOwner: "Build-A-Bears Gate.",
+  },
+  "Baby Bear Directions / Experiment": {
+    bearOutputs:
+      "Not started. Expected outputs are three independent prototype directions from Ace, Bolt, and Craft.",
+    masterPrompt: "Not ready until Bear outputs exist.",
+    chosenDirection: "Boss/Tinker/Chief choose after reviewing Bear options.",
+    parkedDirections: "Keep non-chosen useful pieces for later.",
+  },
+  "Bear Output Collection + Master Prompt Assembly / Experiment": {
+    bearOutputs: "Not started.",
+    masterPrompt:
+      "Combine strongest Bear direction pieces into one Lovable/prototype-ready build prompt after review.",
+    chosenDirection: "Not chosen.",
+    parkedDirections: "Not available yet.",
+  },
+  "Echo Lovable Build Pass / Experiment": {
+    findings:
+      "Hold Lovable build submission until approval is clear and Master Prompt is reviewed.",
+    receipts:
+      "Build prompt must not claim the app is public, monetized, installable, or final; output is prototype/Phase One.",
+    blockers:
+      "Chief/Boss approval needed before Lovable build beyond approved internal prototype work.",
+    nextOwner: "Tinker / Boss / Chief review.",
+  },
+  "Prototype Evidence [Chief Added] / Experiment": {
+    acceptanceCriteria:
+      "Not started. Evidence should include screenshots or preview link, what was clicked, what worked, what failed, and where tree/cards/QR behavior can be inspected.",
+    scopeBoundaries: "Evidence proves Phase One flow, not final market launch.",
+    expectedEvidence:
+      "Local build if used plus real Lovable preview verification if Lovable is used.",
+    bossReviewNeeded: "Yes after prototype evidence exists.",
+  },
+  "Demo Notes [Chief Added] / Experiment": {
+    acceptanceCriteria:
+      "Not started. Demo should explain exact path Boss can click: entry, tree import/create, node edit, card creation, QR/mobile preview.",
+    scopeBoundaries:
+      "Future marketplace/install/revenue/legal items remain parked.",
+    expectedEvidence:
+      "What works, what is rough, and what is parked after prototype exists.",
+    bossReviewNeeded: "Yes.",
+  },
+  "Project Overlook / Next Movement Review / Experiment": {
+    verdict: "Pending.",
+    whatWorks:
+      "Clean packet and workflow/capture setup are ready; prototype result not available yet.",
+    whatNeedsWork: "Need bot/lane receipts and prototype evidence.",
+    bossDecision: "Pending four open questions and prototype review.",
+    nextOwner: "Echo branch memory alignment after review.",
+  },
+  "Memory Alignment / Branch Gate": {
+    findings: "Pending after Experiment branch results.",
+    receipts: "Should include Tinker, Momma, Bears, Echo, prototype evidence.",
+    blockers:
+      "Check scope creep, public/market promises, unverified build claims, local-only evidence, loss of Boss decision points.",
+    nextOwner: "Weaver.",
+  },
+  "Package Intake and Review / Weaver": {
+    findings: "Pending Weaver package review.",
+    receipts:
+      "Expected inputs: prototype evidence, demo notes, Boss verdict, final/parked scope, build links/assets.",
+    blockers: "No prototype package yet.",
+    nextOwner: "Byte / Bubba.",
+  },
+  "Byte + Bubba Prototype Handoff / Weaver": {
+    handoffNotes: "Pending prototype/build package.",
+    technicalNotes: "Need prototype structure and build evidence first.",
+    contentBehaviorNotes: "Preserve tree/card/QR rules from packet.",
+    nextSliceGuidance: "Pending review.",
+  },
+  "Squirrel Checks / Weaver": {
+    gateResult: "Not started.",
+    findings:
+      "Final package check, content consistency, QR/privacy/access assumptions, card copy no-chain rule, UI inspection.",
+    receipts: "Squirrel receipts should attach after checks.",
+    blockers: "Needs Weaver package.",
+    nextOwner: "Trunk checks if needed.",
+  },
+  "Trunk Checks / Weaver": {
+    gateResult: "Not started.",
+    findings:
+      "Lantern/Shadows/requested group checks only if Weaver finds unresolved trunk-level concerns.",
+    receipts: "Pending.",
+    blockers: "Needs Weaver/Squirrel findings.",
+    nextOwner: "Final links and assets.",
+  },
+  "Final Links and Assets [Chief Added] / Weaver": {
+    finalLinks:
+      "Pending. Expected: Lovable preview, source commit, final package path, screenshots, QR/mobile mockup, asset folder.",
+    assets: "Pending.",
+    receipts: "Pending.",
+    ownerNotes: "Weaver should name complete, parked, and Boss-review items.",
+  },
+  "Review and Final Package / Weaver": {
+    findings: "Pending final package.",
+    receipts:
+      "Expected package: accepted prototype/build package, final links/assets, parked scope list, Boss decision list, Ward intake notes.",
+    blockers: "Needs prior Weaver steps.",
+    nextOwner: "High Council Gate.",
+  },
+  "High Council Review / Council": {
+    councilVerdict: "Pending.",
+    continuityNotes:
+      "Verify final package matches Boss intent, Bot Tree workflow, and durable records.",
+    recordNotes: "Ledger confirms official records and receipts.",
+    riskBoundaryNotes:
+      "Echo/Ledger/Raiz/Nerd flag memory, record, structural, and technical concerns.",
+  },
+  "Intake & Install / Ward": {
+    wardStatus: "Pending.",
+    installNotes: "Only plan install/live operations after approved final package.",
+    orientationNotes:
+      "Preserve public/private, QR access, privacy, and no-real-install Phase One boundaries.",
+    liveWatchNotes: "Not available yet.",
+    nextOwner: "Ward/helper gate.",
+  },
+  "Squirrel and Trunk Orientation / Ward": {
+    wardStatus: "Pending.",
+    installNotes: "Needs final approved package.",
+    orientationNotes: "Orient helpers around Ward-level setup and live-watch needs.",
+    liveWatchNotes: "Not available yet.",
+    nextOwner: "Ward / Boomer.",
+  },
+  "Boomer Setup / Ward": {
+    wardStatus: "Pending.",
+    installNotes:
+      "Boomer setup cannot be prepared until approved final package and live plan.",
+    orientationNotes: "Not available yet.",
+    liveWatchNotes: "Not available yet.",
+    nextOwner: "Ledger final record receipt.",
+  },
+  "Final Record Receipt [Chief Added] / Ward": {
+    shipped: "Pending.",
+    parked:
+      "Future-only features from clean packet stay parked unless Boss approves otherwise.",
+    ownsNext: "Pending after Ward/Boss final review.",
+    artifactsLocation:
+      "Project home and final package paths should be recorded here.",
+  },
+  "Live Watch / Ward": {
+    wardStatus: "Pending.",
+    installNotes: "No live watch until approved final/live setup exists.",
+    orientationNotes:
+      "Watch tracks status, blockers, public/privacy issues, and Boss-visible confirmation.",
+    liveWatchNotes: "Not available yet.",
+    nextOwner: "Boss / Chief after live status is known.",
+  },
+};
+
 function loadProjects(): Project[] {
   if (typeof window === "undefined") return SEED_PROJECTS;
   try {
