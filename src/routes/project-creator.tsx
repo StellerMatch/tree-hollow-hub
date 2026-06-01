@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 9; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 10; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -747,7 +747,7 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
 
       let touched = false;
       const handoffs = p.handoffs.map((h) => {
-        const seed = seedMap[h.mode];
+        const seed = seedMap[(h.mode ?? "").trim()];
         if (!seed) return h;
         touched = true;
         const mergedOutput = { ...seed, ...(h.stepOutput ?? {}) };
@@ -759,6 +759,58 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
           h.artifactBody && h.artifactBody.trim()
             ? h.artifactBody
             : `Source: ${packetPath}\nStep: ${h.mode}\nStatus: ${h.status}`;
+        return { ...h, stepOutput: mergedOutput, artifactTitle, artifactBody };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
+  // v10: repair migration. Earlier v9 used `seedMap[h.mode]` which missed
+  // rows whose `mode` had trailing whitespace, and treated an empty
+  // `stepOutput: {}` as already-seeded. Re-run with trimmed lookup and
+  // content-based merging so existing user edits still win.
+  if (stored < 10) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    const packetPath =
+      "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-BOT-CARD-STUDIO-FILLED-RUN-PACKET-2026-05-31.md";
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const seed = seedMap[(h.mode ?? "").trim()];
+        if (!seed) return h;
+        const existing = h.stepOutput ?? {};
+        const mergedOutput: Record<string, string> = { ...seed, ...existing };
+        // detect whether any seed key was newly applied
+        let seededKey = false;
+        for (const k of Object.keys(seed)) {
+          if (!(k in existing) || existing[k] === undefined || existing[k] === "") {
+            seededKey = true;
+            // ensure seed value wins over empty existing
+            if (existing[k] === undefined || existing[k] === "") {
+              mergedOutput[k] = seed[k];
+            }
+          }
+        }
+        const needTitle = !(h.artifactTitle && h.artifactTitle.trim());
+        const needBody = !(h.artifactBody && h.artifactBody.trim());
+        const artifactTitle = needTitle
+          ? "WR1 filled run packet - Chief first pass"
+          : h.artifactTitle;
+        const artifactBody = needBody
+          ? `Source: ${packetPath}\nStep: ${h.mode}\nStatus: ${h.status}`
+          : h.artifactBody;
+        if (!seededKey && !needTitle && !needBody) return h;
+        touched = true;
         return { ...h, stepOutput: mergedOutput, artifactTitle, artifactBody };
       });
       if (!touched) return p;
