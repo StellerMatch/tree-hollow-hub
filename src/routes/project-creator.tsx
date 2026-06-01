@@ -2749,6 +2749,102 @@ function ProjectCreatorPage() {
           onSave={saveArtifact}
         />
       )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={cancelDeleteFlow}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border bark-texture p-5 shadow-xl"
+            style={{ borderColor: AMBER_LINE, background: "oklch(0.16 0.02 60)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: "oklch(0.85 0.18 25)" }}
+            >
+              Delete project
+            </div>
+            <div className="mt-1 font-display text-lg font-semibold">
+              {deleteTarget.name}
+            </div>
+
+            {deletePhase === 1 && (
+              <>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  You are about to delete this project. Are you sure?
+                </p>
+                <p className="mt-2 text-[11px] text-muted-foreground/70">
+                  This removes the project from local app state and localStorage.
+                  Export your data first if you want a copy.
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={cancelDeleteFlow}
+                    className="rounded-md border px-3 py-1.5 text-xs"
+                    style={{ borderColor: AMBER_SOFT }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setDeletePhase(2)}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium"
+                    style={{
+                      borderColor: "oklch(0.65 0.22 25 / 0.6)",
+                      background: "oklch(0.65 0.22 25 / 0.15)",
+                      color: "oklch(0.9 0.18 25)",
+                    }}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
+
+            {deletePhase === 2 && (
+              <>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Type the phrase below exactly to enable deletion.
+                </p>
+                <div className="mt-2 rounded-md border px-2 py-1.5 font-mono text-xs"
+                  style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.4)" }}>
+                  delete {deleteTarget.name}
+                </div>
+                <input
+                  autoFocus
+                  value={deleteTyped}
+                  onChange={(e) => setDeleteTyped(e.target.value)}
+                  placeholder={`delete ${deleteTarget.name}`}
+                  className="mt-2 w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 font-mono text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
+                  style={{ borderColor: AMBER_SOFT }}
+                />
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={cancelDeleteFlow}
+                    className="rounded-md border px-3 py-1.5 text-xs"
+                    style={{ borderColor: AMBER_SOFT }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteProject}
+                    disabled={deleteTyped.trim() !== `delete ${deleteTarget.name}`}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{
+                      borderColor: "oklch(0.65 0.22 25 / 0.6)",
+                      background: "oklch(0.65 0.22 25 / 0.2)",
+                      color: "oklch(0.92 0.18 25)",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
