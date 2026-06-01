@@ -2059,11 +2059,16 @@ function ProjectCreatorPage() {
     setProjects(repaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
+    const henry = repaired.find(
+      (p) => p.id === HENRY_HANDOFF_ID && !hidden.includes(p.id),
+    );
     const gigi = repaired.find(
       (p) => p.id === GIGI_GARDEN_ID && !hidden.includes(p.id),
     );
     const firstVisible = repaired.find((p) => !hidden.includes(p.id));
-    setSelectedId(gigi?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "");
+    setSelectedId(
+      henry?.id ?? gigi?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "",
+    );
     setHydrated(true);
   }, []);
 
