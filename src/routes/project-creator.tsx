@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 15; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 16; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1099,13 +1099,16 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
   }
 
-  // v15: post-G/G sidebar restore. The G/G real-route receipt test left the
-  // sidebar in a noisy state. Re-enforce the four-row acceptance set
-  // (Gigi's Garden Draft + Debauchery Waiting + WR1 Repair System Blocked +
-  // DaBotTree Project Board Active) by hiding any other project from the
-  // sidebar. Visibility only — records remain in localStorage / export.
-  // Also re-seed Gigi's Garden if it was deleted, so the Draft row returns.
-  if (stored < 15) {
+  // Post-G/G sidebar invariant (always enforced, regardless of stored version).
+  // The G/G real-route receipt test left the sidebar in a noisy state on some
+  // browsers (Bot Card Studio re-surfaced, Gigi's Garden missing). Re-enforce
+  // the four-row acceptance set every load:
+  //   Gigi's Garden (Draft) + Debauchery (Waiting) +
+  //   WR1 Repair System (Blocked) + DaBotTree Project Board (Active)
+  // Visibility only — underlying records remain in localStorage / export, so
+  // total count stays >= 5 once a hidden noisy seed (e.g. Bot Card Studio)
+  // is present, giving the expected "4 shown / 5 total".
+  {
     const existingHidden = new Set<string>(loadHiddenProjectIds());
     let hiddenChanged = false;
 
