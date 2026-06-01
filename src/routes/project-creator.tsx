@@ -2659,13 +2659,16 @@ function PhaseOverview({
   const BLOCK = "oklch(0.65 0.22 25)";
   return (
     <div className="rounded-2xl border bark-texture p-4 md:p-5" style={{ borderColor: AMBER_SOFT }}>
-      <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
-        Phase {phaseNumber} overview
-      </div>
-      <div className="mt-1 flex flex-wrap items-baseline gap-2">
-        <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
-          {bucket.phase.label}
-        </h3>
+      <div className="flex items-start gap-3">
+        <BotAvatar name={bucket.phase.ownerTeam.split(",")[0]?.trim()} size={44} />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+            Phase {phaseNumber} overview
+          </div>
+          <div className="mt-1 flex flex-wrap items-baseline gap-2">
+            <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
+              {bucket.phase.label}
+            </h3>
         {isActivePhase && (
           <span
             className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
@@ -2683,8 +2686,10 @@ function PhaseOverview({
             on file
           </span>
         )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
+        </div>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
 
       {/* Phase facts */}
       <div
