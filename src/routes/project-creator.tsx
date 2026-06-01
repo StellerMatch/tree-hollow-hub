@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 11; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 12; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -124,7 +124,7 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Phase One is tree import/create plus bot card creation. Tree structure drives card structure. QR opens rare mobile character experience with Coming Soon button. Marketplace/install/paid-video/legal/compliance stay parked.",
     cleanPacketPath:
       "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
-    nextOwner: "Clarity, then Chief War Room Gate.",
+    nextOwner: "Clarity, then Chief Starts Project Board.",
   },
   "Organize / Clarity": {
     capturedMaterial:
@@ -143,21 +143,14 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
     nextOwner: "Chief.",
   },
-  "Chief War Room Gate / Intake": {
+  "Chief Starts Project Board / Intake": {
     sourcePacket:
       "Chief received the clean packet. Canceled Compass route HOFF-20260527-2355-CLARITY-COMPASS-DABOT-TREE-BOT-CARDS is not active.",
     runName: "WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31",
     startingInstruction:
-      "Open WR1 from the clean packet, seed all known answers into the Project Board, and route future work step by step by named owner.",
+      "Chief opens Project Creator / Project Board, names the project, enters Clarity's information, fills the required basic setup fields, and presses Done / Go / Start. That press is the trigger Ghost watches to advance the workflow directly to Echo for Memory Alignment.",
     bossDecisions:
       "Starter tree count/categories; public/private/share/submit model; whether themed backgrounds are Phase One or exploration; exact review path for worthy trees.",
-  },
-  "Ivy Dispatcher Start Gate / Intake": {
-    dispatchPack:
-      "Clean packet path, run ID WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31, Bot Card Studio Project Board handoff, and starting instruction to begin at Echo memory alignment after Chief gate.",
-    boardLink: "Real Lovable Project Board / Bot Card Studio project.",
-    visibleStatus: "Ready to start after seeded source packet is installed.",
-    nextOwner: "Echo.",
   },
   "Memory Alignment / Intake": {
     findings:
@@ -877,6 +870,48 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         if (!seededKey) return h;
         touched = true;
         return { ...h, stepOutput: mergedOutput };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
+  // v12: the old "Chief War Room Gate / Intake" step was renamed to
+  // "Chief Starts Project Board / Intake" and the "Ivy Dispatcher Start
+  // Gate / Intake" step was removed. NESTED_STEP_RENAMES +
+  // normalizePersistedWorkflowRecords handle the rename + dedupe on load,
+  // but we still need to (a) re-seed the renamed handoff with the new
+  // WR1_BOT_CARD_STUDIO_SEED key and (b) refresh the assignment text
+  // describing the Ghost -> Echo trigger.
+  if (stored < 12) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const mode = (h.mode ?? "").trim();
+        if (mode !== "Chief Starts Project Board / Intake") return h;
+        const seed = seedMap[mode];
+        if (!seed) return h;
+        const existing = h.stepOutput ?? {};
+        const mergedOutput: Record<string, string> = { ...existing };
+        let seededKey = false;
+        for (const k of Object.keys(seed)) {
+          if (existing[k] === undefined || existing[k] === "") {
+            mergedOutput[k] = seed[k];
+            seededKey = true;
+          }
+        }
+        touched = true;
+        return { ...h, stepOutput: mergedOutput, assignment: h.assignment };
       });
       if (!touched) return p;
       changed = true;
@@ -3984,12 +4019,20 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     },
   },
 
-  // ----- Chief War Room Gate / Intake -----
+  // ----- Chief Starts Project Board / Intake -----
+  // Chief opens the Project Board, fills basic setup, and presses Done / Go /
+  // Start. That press is the trigger Ghost watches to advance the workflow
+  // directly to Echo for Memory Alignment. The Ivy Dispatcher Stargate is
+  // intentionally not part of this flow.
   {
-    match: (m) => m.includes("chief war room gate"),
+    match: (m) =>
+      m.includes("chief starts project board") ||
+      m.includes("chief war room gate") ||
+      m.includes("ivy dispatcher"),
     template: {
-      id: "wr1-chief-gate",
-      blurb: "Chief opens the war room path from Clarity's clean packet.",
+      id: "wr1-chief-starts-board",
+      blurb:
+        "Chief opens Project Creator / Project Board, names the project, enters Clarity's info, fills the required basic setup fields, and presses Done / Go / Start. Ghost watches that press and hands off to Echo for Memory Alignment.",
       fields: [
         {
           key: "sourcePacket",
@@ -4005,6 +4048,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           label: "Starting instruction",
           multiline: true,
           rows: 3,
+          placeholder:
+            "What Chief is setting up on the board before pressing Done / Go / Start.",
         },
         {
           key: "bossDecisions",
@@ -4013,28 +4058,16 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 3,
           placeholder: "Anything Boss must decide before / during this run.",
         },
-      ],
-    },
-  },
-
-  // ----- Ivy Dispatcher Start Gate / Intake -----
-  {
-    match: (m) => m.includes("ivy dispatcher"),
-    template: {
-      id: "wr1-ivy-dispatch",
-      blurb: "Ivy starts dispatcher tracking for the war room run.",
-      fields: [
         {
-          key: "dispatchPack",
-          label: "Dispatch start pack",
-          primary: true,
-          multiline: true,
-          rows: 4,
-          placeholder: "Clean packet + war room number + Project Handoff sheet link.",
+          key: "doneTrigger",
+          label: "Done / Go / Start press",
+          placeholder: "Recorded when Chief presses Done. Ghost advances to Echo.",
         },
-        { key: "boardLink", label: "Live handoff / board link" },
-        { key: "visibleStatus", label: "Visible status", placeholder: "e.g. Open / Working" },
-        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Echo" },
+        {
+          key: "nextOwner",
+          label: "Next owner",
+          placeholder: "Ghost -> Echo (Memory Alignment).",
+        },
       ],
     },
   },
