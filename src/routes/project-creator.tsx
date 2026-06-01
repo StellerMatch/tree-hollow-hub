@@ -2017,7 +2017,10 @@ function ProjectCreatorPage() {
 
   function exportJSON() {
     if (typeof window === "undefined") return;
-    const blob = new Blob([JSON.stringify(projects, null, 2)], {
+    // Normalize before export so every project + handoff in the saved file
+    // carries a stable id, even if any legacy in-memory row slipped through.
+    const { projects: normalized } = normalizeProjectIds(projects);
+    const blob = new Blob([JSON.stringify(normalized, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -2037,12 +2040,15 @@ function ProjectCreatorPage() {
         const parsed = JSON.parse(String(reader.result));
         if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
         for (const p of parsed) {
-          if (typeof p?.id !== "string" || typeof p?.name !== "string") {
-            throw new Error("Project entries missing id/name");
+          if (typeof p?.name !== "string") {
+            throw new Error("Project entries missing name");
           }
         }
+        // Mint ids for any project/handoff that arrived without one so the
+        // import never crashes downstream `startsWith`/key lookups.
+        const { projects: withIds } = normalizeProjectIds(parsed as Project[]);
         const ts = new Date().toISOString();
-        const stamped = (parsed as Project[]).map((p) => ({
+        const stamped = withIds.map((p) => ({
           ...p,
           activity: [
             ...(p.activity ?? []),
