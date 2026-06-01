@@ -204,7 +204,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
 export const NESTED_STEP_RENAMES: Record<string, string> = {
   "mode 0 / raw idea": "Collection / Clarity",
   "mode 0 / clarity intake": "Collection / Clarity",
-  "project type confirmation / clarity": "Chief War Room Gate / Intake",
+  "project type confirmation / clarity": "Chief Starts Project Board / Intake",
   "mode 1 / shape": "Organize / Clarity",
   "mode 2 / project brief": "Deep Dive / Clarity",
   "chief intake summary / clarity": "Chief Starts Project Board / Intake",
