@@ -1099,6 +1099,42 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
   }
 
+  // v15: post-G/G sidebar restore. The G/G real-route receipt test left the
+  // sidebar in a noisy state. Re-enforce the four-row acceptance set
+  // (Gigi's Garden Draft + Debauchery Waiting + WR1 Repair System Blocked +
+  // DaBotTree Project Board Active) by hiding any other project from the
+  // sidebar. Visibility only — records remain in localStorage / export.
+  // Also re-seed Gigi's Garden if it was deleted, so the Draft row returns.
+  if (stored < 15) {
+    const existingHidden = new Set<string>(loadHiddenProjectIds());
+    let hiddenChanged = false;
+
+    const hasGigi = next.some(
+      (p) => p.id === GIGI_GARDEN_ID || normalizeProjectName(p.name) === "gigi's garden",
+    );
+    if (!hasGigi) {
+      next = [makeGigiGardenProject(), ...next];
+      changed = true;
+    }
+
+    for (const p of next) {
+      if (typeof p.id !== "string") continue;
+      if (ALLOWED_VISIBLE_IDS.includes(p.id)) {
+        if (existingHidden.has(p.id)) {
+          existingHidden.delete(p.id);
+          hiddenChanged = true;
+        }
+        continue;
+      }
+      if (!existingHidden.has(p.id)) {
+        existingHidden.add(p.id);
+        hiddenChanged = true;
+      }
+    }
+
+    if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
