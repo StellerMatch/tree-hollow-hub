@@ -3367,7 +3367,7 @@ function CommandReceiptModal({
         className="absolute inset-0 bg-[oklch(0.08_0.02_60_/_0.75)] backdrop-blur-sm animate-fade-in"
       />
       <div
-        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border bark-texture p-4 animate-fade-up"
+        className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border bark-texture p-4 animate-fade-up"
         style={{ borderColor: AMBER, animationDuration: "0.2s" }}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -3382,9 +3382,105 @@ function CommandReceiptModal({
             ✕
           </button>
         </div>
-        <StatusPanel project={project} onChange={onChange} />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <StatusPanel project={project} onChange={onChange} />
+          <AllStepsReceiptsTable project={project} />
+        </div>
       </div>
     </div>
+  );
+}
+
+// ---------- All steps / receipts table (used inside Command Receipt) ----------
+function AllStepsReceiptsTable({ project }: { project: Project }) {
+  const rows = project.handoffs.map((h, i) => {
+    const split = splitStepTitle(h.mode);
+    const phase = phaseForHandoff(h);
+    const hasReceipt =
+      !!h.receiptLink ||
+      !!h.artifactLink ||
+      !!h.artifactBody ||
+      !!(h.stepOutput && Object.values(h.stepOutput).some((v) => v && v.trim()));
+    return {
+      idx: i + 1,
+      phaseLabel: phase.label,
+      title: split.title || h.mode || "—",
+      owner: h.bot || "—",
+      status: h.status,
+      hasReceipt,
+      nextOwner: h.nextBot,
+      nextStep: h.nextStep,
+      blocker: h.status === "Blocked" ? (h.artifactBody || "blocked").slice(0, 80) : "",
+    };
+  });
+
+  return (
+    <aside
+      className="rounded-2xl border bark-texture p-3 lg:max-h-[calc(90vh-6rem)] lg:overflow-y-auto"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <div className="text-[11px] uppercase tracking-[0.18em]" style={{ color: AMBER }}>
+          All Steps / Receipts
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          {rows.length} steps · {rows.filter((r) => r.hasReceipt).length} with receipt
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[11px]">
+          <thead>
+            <tr className="text-left text-muted-foreground/70">
+              <th className="py-1 pr-2 font-normal">#</th>
+              <th className="py-1 pr-2 font-normal">Step</th>
+              <th className="py-1 pr-2 font-normal">Owner</th>
+              <th className="py-1 pr-2 font-normal">Status</th>
+              <th className="py-1 pr-2 font-normal">Receipt</th>
+              <th className="py-1 pr-2 font-normal">Next</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.idx} className="border-t" style={{ borderColor: AMBER_SOFT }}>
+                <td className="py-1 pr-2 align-top text-muted-foreground/70">{r.idx}</td>
+                <td className="py-1 pr-2 align-top">
+                  <div className="font-medium text-foreground" title={r.title}>
+                    {r.title}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/70">{r.phaseLabel}</div>
+                  {r.blocker && (
+                    <div className="text-[10px]" style={{ color: "oklch(0.85 0.12 25)" }}>
+                      ⚠ {r.blocker}
+                    </div>
+                  )}
+                </td>
+                <td className="py-1 pr-2 align-top">{r.owner}</td>
+                <td className="py-1 pr-2 align-top">
+                  <StatusPill status={r.status} />
+                </td>
+                <td className="py-1 pr-2 align-top">
+                  {r.hasReceipt ? (
+                    <span style={{ color: AMBER }}>yes</span>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
+                </td>
+                <td className="py-1 pr-2 align-top text-muted-foreground">
+                  {r.nextOwner || r.nextStep ? (
+                    <>
+                      <div className="text-foreground/80">{r.nextOwner || "—"}</div>
+                      <div className="text-[10px] text-muted-foreground/70">{r.nextStep || ""}</div>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </aside>
   );
 }
 
