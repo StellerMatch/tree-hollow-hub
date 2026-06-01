@@ -4358,6 +4358,115 @@ function RealRoutePreflight({
   );
 }
 
+// ---------- H/H bridge-readiness panel ----------
+function HHBridgeReadinessPanel({ project }: { project: Project }) {
+  const firstFive = project.handoffs.slice(0, 5);
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="H/H bridge-readiness panel"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            H/H Bridge-Readiness
+          </div>
+          <div className="text-[12px] font-medium" style={{ color: AMBER }}>
+            bridge_status: local_only · route_status: real_route_unavailable
+          </div>
+        </div>
+        <div className="text-[10px] text-muted-foreground/80">
+          Local files can be prepared for Ghost / local-runner mirroring. This
+          preview still has no real bot route.
+        </div>
+      </div>
+
+      <p className="mt-2 text-[11px] text-muted-foreground/90">
+        H/H prepares the board for local report and Lovable mirror payload
+        handling. It does not prove a real bot route.
+      </p>
+
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Bridge-ready fields (preserved per step)
+          </div>
+          <ul className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-muted-foreground/85">
+            {HH_BRIDGE_FIELD_KEYS.map((k) => (
+              <li key={k}>· {k}</li>
+            ))}
+          </ul>
+        </div>
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Supported stop states
+          </div>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground/85">
+            {HH_SUPPORTED_STOP_STATES.map((s) => (
+              <li key={s}>· {s}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          First 5 steps — placeholder values
+        </div>
+        <div className="mt-1 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-[11px]">
+            <thead className="text-muted-foreground/70">
+              <tr>
+                <th className="pr-2 py-0.5 font-normal">#</th>
+                <th className="pr-2 py-0.5 font-normal">Step / Bot</th>
+                <th className="pr-2 py-0.5 font-normal">bridge_status</th>
+                <th className="pr-2 py-0.5 font-normal">local_report_path</th>
+                <th className="pr-2 py-0.5 font-normal">mirror_payload_path</th>
+                <th className="pr-2 py-0.5 font-normal">receipt_type</th>
+              </tr>
+            </thead>
+            <tbody className="text-muted-foreground/90">
+              {(firstFive.length > 0
+                ? firstFive.map((h, i) => ({
+                    n: i + 1,
+                    label: `${h.mode} · ${h.bot}`,
+                    out: h.stepOutput ?? {},
+                  }))
+                : HH_FIRST_FIVE_STEPS.map((s) => ({
+                    n: s.step,
+                    label: `${s.mode} · ${s.bot}`,
+                    out: {
+                      bridge_status: "local_only",
+                      local_report_path: "pending",
+                      mirror_payload_path: "pending",
+                      receipt_type: "none",
+                    } as Record<string, string>,
+                  }))
+              ).map((row) => (
+                <tr key={row.n} className="border-t" style={{ borderColor: AMBER_SOFT }}>
+                  <td className="pr-2 py-1 align-top">{row.n}</td>
+                  <td className="pr-2 py-1 align-top">{row.label}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.bridge_status ?? "local_only"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.local_report_path ?? "pending"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.mirror_payload_path ?? "pending"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.receipt_type ?? "none"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
