@@ -5910,6 +5910,9 @@ function ProjectMain({
 
       <CreatorGuidance project={project} onChange={onChange} />
       <ProjectContextStrip project={project} />
+      {project.id === GIGI_GARDEN_ID && (
+        <RealRoutePreflight project={project} onChange={onChange} />
+      )}
 
       {selectedHandoff ? (
         <SelectedStepDetail
