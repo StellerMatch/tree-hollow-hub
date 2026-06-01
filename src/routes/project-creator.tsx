@@ -6496,7 +6496,7 @@ function ProjectMain({
       {project.id === HENRY_HANDOFF_ID && (
         <HHBridgeReadinessPanel project={project} />
       )}
-      {project.id === DABOTTREE_BOARD_ID && <StableBridgeProcessPanel />}
+      {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && <StableBridgeProcessPanel />}
 
       {selectedHandoff ? (
         <SelectedStepDetail
