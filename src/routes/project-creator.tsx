@@ -1089,7 +1089,7 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
     if (h.artifactBody) s += 2;
     if (h.artifactTitle) s += 1;
     if (h.completedAt) s += 1;
-    if (!h.id.startsWith("nested-")) s += 1;
+    if (typeof h.id === "string" && !h.id.startsWith("nested-")) s += 1;
     return s;
   };
   const byMode = new Map<string, Handoff>();
@@ -1485,7 +1485,7 @@ function workflowRecordScore(handoff: Handoff): number {
   if (handoff.artifactTitle) score += 2;
   if (handoff.stepOutput && Object.keys(handoff.stepOutput).length > 0) score += 4;
   if (isCanonicalWorkflowRecord(handoff)) score += 5;
-  if (!handoff.id.startsWith("nested-")) score += 1;
+  if (typeof handoff.id === "string" && !handoff.id.startsWith("nested-")) score += 1;
   return score;
 }
 
