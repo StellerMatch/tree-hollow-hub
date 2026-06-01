@@ -3486,6 +3486,81 @@ function CreatorGuidance({
   );
 }
 
+// ---------- Project context strip (source / process type / gates) ----------
+function deriveSourcePacket(project: Project): string {
+  const keys = ["cleanPacketPath", "sourcePacket", "packetPath", "packet"];
+  for (const h of project.handoffs) {
+    const out = h.stepOutput ?? {};
+    for (const k of keys) {
+      const v = out[k];
+      if (v && v.trim()) return v.trim();
+    }
+  }
+  for (const h of project.handoffs) {
+    const body = h.artifactBody ?? "";
+    const m = body.match(/(?:packet|source)[^\n:]*[:\-]\s*([^\n]+)/i);
+    if (m && m[1]) return m[1].trim();
+    if (h.receiptLink && /packet/i.test(h.receiptLink)) return h.receiptLink;
+  }
+  return "not recorded";
+}
+
+function hasRealReceiptLinks(project: Project): boolean {
+  const isUrl = (s?: string) => !!s && /^https?:\/\//i.test(s.trim());
+  if (project.handoffs.some((h) => isUrl(h.receiptLink) || isUrl(h.artifactLink))) return true;
+  if (project.activity.some((a) => isUrl(a.receipt) || isUrl(a.link))) return true;
+  if (project.artifacts.some((a) => isUrl(a.link))) return true;
+  return false;
+}
+
+function ProjectContextStrip({ project }: { project: Project }) {
+  const sourcePacket = deriveSourcePacket(project);
+  const mode = project.creatorMode ?? "Better";
+  const liveReceipts = hasRealReceiptLinks(project);
+  const processType =
+    mode === "Good" || !liveReceipts ? "Board walkthrough" : "Live lane run";
+  const processNote =
+    processType === "Board walkthrough"
+      ? "Walkthrough only — not proof bots ran every lane."
+      : "Real receipt links detected on this project.";
+  const gateStatus =
+    "No live dispatch · No publish · No spend · No runtime unless approved";
+
+  const items: Array<{ label: string; value: string; note?: string; tone?: "amber" | "muted" }> = [
+    { label: "Source Packet", value: sourcePacket, tone: sourcePacket === "not recorded" ? "muted" : "amber" },
+    { label: "Process Type", value: processType, note: processNote, tone: "amber" },
+    { label: "Gate Status", value: "All closed by default", note: gateStatus, tone: "muted" },
+  ];
+
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Project context"
+    >
+      <div className="grid gap-2 sm:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.label} className="min-w-0">
+            <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+              {it.label}
+            </div>
+            <div
+              className="truncate text-[12px] font-medium"
+              style={{ color: it.tone === "amber" ? AMBER : undefined }}
+              title={it.value}
+            >
+              {it.value}
+            </div>
+            {it.note && (
+              <div className="text-[10px] text-muted-foreground/80">{it.note}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
