@@ -4538,6 +4538,18 @@ function StableBridgeProcessPanel() {
         style={{ borderColor: AMBER_SOFT }}
       >
         <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          test_artifacts_status
+        </div>
+        <div className="mt-0.5 font-semibold text-foreground/90">
+          disposable
+        </div>
+      </div>
+
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
           stable process files
         </div>
         <ul className="mt-1 space-y-0.5 text-muted-foreground/90">
@@ -6484,7 +6496,7 @@ function ProjectMain({
       {project.id === HENRY_HANDOFF_ID && (
         <HHBridgeReadinessPanel project={project} />
       )}
-      {project.id === DABOTTREE_BOARD_ID && <StableBridgeProcessPanel />}
+      {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && <StableBridgeProcessPanel />}
 
       {selectedHandoff ? (
         <SelectedStepDetail
