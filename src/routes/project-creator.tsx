@@ -132,6 +132,7 @@ function loadProjects(): Project[] {
 // Apply forward-only migrations to existing localStorage data.
 // Never wipes or overwrites user-edited projects.
 function migrateProjects(existing: Project[]): { projects: Project[]; changed: boolean } {
+  // (seed map defined below as WR1_BOT_CARD_STUDIO_SEED)
   if (typeof window === "undefined") return { projects: existing, changed: false };
   let stored = 0;
   try {
