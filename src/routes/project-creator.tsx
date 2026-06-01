@@ -101,14 +101,16 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 16; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 17; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
+const HENRY_HANDOFF_ID = "henry-handoff-hh";
 
 // Pre/post-G/G acceptance: the sidebar must show exactly these four rows.
 // Any other project is hidden (visibility only — underlying data preserved).
 const ALLOWED_VISIBLE_IDS: string[] = [
+  HENRY_HANDOFF_ID,
   GIGI_GARDEN_ID,
   "debauchery",
   "wr1-repair-system",
