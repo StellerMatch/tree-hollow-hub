@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 17; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 18; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1160,10 +1160,10 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
-  // v14: pre-G/G visibility cleanup + seed Gigi's Garden.
-  // - Hide noisy alphabet test rows and duplicate Untitled drafts from the
-  //   sidebar without deleting their underlying records (export still works).
-  // - Seed the G/G "Gigi's Garden" Draft project if it isn't already present.
+  // v14: pre-G/G visibility cleanup (legacy).
+  // Historically also seeded Gigi's Garden; that seed has been removed as part
+  // of the Project Board cleanup. We still hide noisy alphabet rows + extra
+  // Untitled drafts here for older stored states.
   if (stored < 14) {
     const existingHidden = new Set<string>(loadHiddenProjectIds());
     let hiddenChanged = false;
@@ -1191,63 +1191,33 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
       }
     }
 
-    // 3) seed Gigi's Garden if missing
-    const hasGigi = next.some(
-      (p) => p.id === GIGI_GARDEN_ID || normalizeProjectName(p.name) === "gigi's garden",
-    );
-    if (!hasGigi) {
-      next = [makeGigiGardenProject(), ...next];
-      changed = true;
-    }
-
     if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
   }
 
-  // Post-G/G sidebar invariant (always enforced, regardless of stored version).
-  // The G/G real-route receipt test left the sidebar in a noisy state on some
-  // browsers (Bot Card Studio re-surfaced, Gigi's Garden missing). Re-enforce
-  // the four-row acceptance set every load:
-  //   Gigi's Garden (Draft) + Debauchery (Waiting) +
-  //   WR1 Repair System (Blocked) + DaBotTree Project Board (Active)
-  // Visibility only — underlying records remain in localStorage / export, so
-  // total count stays >= 5 once a hidden noisy seed (e.g. Bot Card Studio)
-  // is present, giving the expected "4 shown / 5 total".
-  {
-    const existingHidden = new Set<string>(loadHiddenProjectIds());
-    let hiddenChanged = false;
-
-    const hasGigi = next.some(
-      (p) => p.id === GIGI_GARDEN_ID || normalizeProjectName(p.name) === "gigi's garden",
-    );
-    if (!hasGigi) {
-      next = [makeGigiGardenProject(), ...next];
-      changed = true;
+  // v18: Project Board cleanup. Purge legacy alphabet/test records
+  // (Henry's Handoff, Gigi's Garden, Bot Card Studio, hardening passes,
+  // duplicate Untitled drafts, and any other noisy-by-name rows) from
+  // active project data, and clear the hidden list so the sidebar shows
+  // exactly the kept projects with a matching total count. Do NOT
+  // re-seed Gigi's Garden or Henry's Handoff.
+  if (stored < 18) {
+    const before = next.length;
+    next = next.filter((p) => {
+      if (p.id === GIGI_GARDEN_ID) return false;
+      if (p.id === HENRY_HANDOFF_ID) return false;
+      if (ALLOWED_VISIBLE_IDS.includes(p.id)) return true;
+      if (isNoisyProjectName(p.name)) return false;
+      if (normalizeProjectName(p.name) === "untitled project") return false;
+      return true;
+    });
+    if (next.length !== before) changed = true;
+    // Clear hidden list — nothing is hidden after cleanup; the kept
+    // projects are all in ALLOWED_VISIBLE_IDS and visible by default.
+    try {
+      if (loadHiddenProjectIds().length > 0) saveHiddenProjectIds([]);
+    } catch {
+      /* ignore */
     }
-
-    const hasHenry = next.some(
-      (p) => p.id === HENRY_HANDOFF_ID || normalizeProjectName(p.name) === "henry's handoff",
-    );
-    if (!hasHenry) {
-      next = [makeHenryHandoffProject(), ...next];
-      changed = true;
-    }
-
-    for (const p of next) {
-      if (typeof p.id !== "string") continue;
-      if (ALLOWED_VISIBLE_IDS.includes(p.id)) {
-        if (existingHidden.has(p.id)) {
-          existingHidden.delete(p.id);
-          hiddenChanged = true;
-        }
-        continue;
-      }
-      if (!existingHidden.has(p.id)) {
-        existingHidden.add(p.id);
-        hiddenChanged = true;
-      }
-    }
-
-    if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
   }
 
   try {
