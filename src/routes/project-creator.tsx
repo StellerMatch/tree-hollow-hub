@@ -4029,6 +4029,178 @@ function ProjectContextStrip({ project }: { project: Project }) {
   );
 }
 
+// ---------- G/G Real-Route Preflight ----------
+// Honest bridge detection for the Gigi's Garden real-route receipt test.
+// This app has no live bot route. The preflight inspects the runtime for a
+// declared bridge (window.__DABOTTREE_BOT_BRIDGE__.sendReceipt) and reports
+// real_route_available, real_route_unavailable, or board_simulated_receipt
+// accordingly. It never labels a board-generated receipt as a real bot
+// receipt.
+type BridgeResult = {
+  source: "real_route_receipt" | "board_simulated_receipt" | "real_route_unavailable";
+  bot: string;
+  text: string;
+  at: string;
+  evidence?: string;
+};
+
+function detectBotBridge(): { available: boolean; detail: string } {
+  if (typeof window === "undefined") {
+    return { available: false, detail: "SSR context — no runtime bridge to inspect." };
+  }
+  const w = window as unknown as {
+    __DABOTTREE_BOT_BRIDGE__?: { sendReceipt?: (bot: string, text: string) => Promise<string> };
+  };
+  const bridge = w.__DABOTTREE_BOT_BRIDGE__;
+  if (bridge && typeof bridge.sendReceipt === "function") {
+    return { available: true, detail: "window.__DABOTTREE_BOT_BRIDGE__.sendReceipt detected." };
+  }
+  return {
+    available: false,
+    detail: "No window.__DABOTTREE_BOT_BRIDGE__ in this preview. No live dispatch, publish, spend, or runtime route is wired.",
+  };
+}
+
+const GG_RECEIPT_TEXT =
+  "I received the G/G Gigi's Garden real-route receipt test. No research performed. Status: receipt_only_complete.";
+
+function RealRoutePreflight({
+  project,
+  onChange,
+}: {
+  project: Project;
+  onChange: (mut: (p: Project) => Project) => void;
+}) {
+  const [bridge] = React.useState(() => detectBotBridge());
+  const [busy, setBusy] = React.useState(false);
+  const [lastResult, setLastResult] = React.useState<BridgeResult | null>(null);
+
+  async function runTinyReceiptTest(bot: string) {
+    if (busy) return;
+    setBusy(true);
+    const at = new Date().toISOString();
+    let result: BridgeResult;
+    try {
+      if (bridge.available && typeof window !== "undefined") {
+        const w = window as unknown as {
+          __DABOTTREE_BOT_BRIDGE__?: { sendReceipt?: (bot: string, text: string) => Promise<string> };
+        };
+        const evidence = await w.__DABOTTREE_BOT_BRIDGE__!.sendReceipt!(bot, GG_RECEIPT_TEXT);
+        result = {
+          source: "real_route_receipt",
+          bot,
+          text: GG_RECEIPT_TEXT,
+          at,
+          evidence: typeof evidence === "string" ? evidence : JSON.stringify(evidence),
+        };
+      } else {
+        result = {
+          source: "real_route_unavailable",
+          bot,
+          text: GG_RECEIPT_TEXT,
+          at,
+          evidence: bridge.detail,
+        };
+      }
+    } catch (err) {
+      result = {
+        source: "real_route_unavailable",
+        bot,
+        text: GG_RECEIPT_TEXT,
+        at,
+        evidence: `Bridge call threw: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+    setLastResult(result);
+    onChange((p) => ({
+      ...p,
+      updatedAt: at,
+      activity: [
+        {
+          id: `gg-rt-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`,
+          at,
+          bot,
+          action: `G/G real-route preflight → ${result.source}`,
+          receipt: result.text,
+          link: result.evidence,
+        },
+        ...p.activity,
+      ],
+    }));
+    setBusy(false);
+  }
+
+  const statusLabel = bridge.available ? "Real route detected" : "Real route unavailable";
+  const statusTone = bridge.available ? AMBER : "oklch(0.7 0.02 60)";
+
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="G/G real-route preflight"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            G/G Real-Route Preflight
+          </div>
+          <div className="text-[12px] font-medium" style={{ color: statusTone }}>
+            {statusLabel}
+          </div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground/80">
+            {bridge.detail} Any receipt captured here is board-simulated unless a
+            real bot route returns evidence.
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-1.5">
+          <button
+            onClick={() => runTinyReceiptTest("Echo")}
+            disabled={busy}
+            className="rounded-md border px-2 py-1 text-[11px] font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)] disabled:opacity-50"
+            style={{ borderColor: AMBER_SOFT, color: AMBER }}
+            title="Send tiny receipt-only request to Echo"
+          >
+            Test → Echo
+          </button>
+          <button
+            onClick={() => runTinyReceiptTest("Ledger")}
+            disabled={busy}
+            className="rounded-md border px-2 py-1 text-[11px] font-medium transition hover:bg-[oklch(0.3_0.03_60_/_0.4)] disabled:opacity-50"
+            style={{ borderColor: AMBER_SOFT, color: AMBER }}
+            title="Send tiny receipt-only request to Ledger"
+          >
+            Test → Ledger
+          </button>
+        </div>
+      </div>
+      {lastResult && (
+        <div
+          className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="font-medium" style={{ color: AMBER }}>
+            Last result: {lastResult.source}
+          </div>
+          <div className="text-muted-foreground/90">
+            Bot: {lastResult.bot} · At: {fmtTime(lastResult.at)}
+          </div>
+          <div className="mt-0.5 text-muted-foreground/80">Receipt: {lastResult.text}</div>
+          {lastResult.evidence && (
+            <div className="mt-0.5 break-words text-muted-foreground/70">
+              Evidence: {lastResult.evidence}
+            </div>
+          )}
+          {lastResult.source !== "real_route_receipt" && (
+            <div className="mt-1 text-[10px] italic text-muted-foreground/70">
+              G/G did not prove real bot connectivity. Real routing is unavailable in this preview.
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
