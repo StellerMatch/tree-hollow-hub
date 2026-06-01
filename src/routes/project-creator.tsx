@@ -124,7 +124,7 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Phase One is tree import/create plus bot card creation. Tree structure drives card structure. QR opens rare mobile character experience with Coming Soon button. Marketplace/install/paid-video/legal/compliance stay parked.",
     cleanPacketPath:
       "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
-    nextOwner: "Clarity, then Chief War Room Gate.",
+    nextOwner: "Clarity, then Chief Starts Project Board.",
   },
   "Organize / Clarity": {
     capturedMaterial:
@@ -143,21 +143,14 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-DABOTTREE-BOT-CARDS-PHASE-ONE-CHIEF-FIRST-CLEAN-PACKET-2026-05-31.md",
     nextOwner: "Chief.",
   },
-  "Chief War Room Gate / Intake": {
+  "Chief Starts Project Board / Intake": {
     sourcePacket:
       "Chief received the clean packet. Canceled Compass route HOFF-20260527-2355-CLARITY-COMPASS-DABOT-TREE-BOT-CARDS is not active.",
     runName: "WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31",
     startingInstruction:
-      "Open WR1 from the clean packet, seed all known answers into the Project Board, and route future work step by step by named owner.",
+      "Chief opens Project Creator / Project Board, names the project, enters Clarity's information, fills the required basic setup fields, and presses Done / Go / Start. That press is the trigger Ghost watches to advance the workflow directly to Echo for Memory Alignment.",
     bossDecisions:
       "Starter tree count/categories; public/private/share/submit model; whether themed backgrounds are Phase One or exploration; exact review path for worthy trees.",
-  },
-  "Ivy Dispatcher Start Gate / Intake": {
-    dispatchPack:
-      "Clean packet path, run ID WR1-BOT-CARD-STUDIO-PHASE-ONE-2026-05-31, Bot Card Studio Project Board handoff, and starting instruction to begin at Echo memory alignment after Chief gate.",
-    boardLink: "Real Lovable Project Board / Bot Card Studio project.",
-    visibleStatus: "Ready to start after seeded source packet is installed.",
-    nextOwner: "Echo.",
   },
   "Memory Alignment / Intake": {
     findings:
