@@ -5368,6 +5368,7 @@ function ProjectMain({
       </div>
 
       <CreatorGuidance project={project} onChange={onChange} />
+      <ProjectContextStrip project={project} />
 
       {selectedHandoff ? (
         <SelectedStepDetail
