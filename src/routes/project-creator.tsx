@@ -1047,6 +1047,49 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v14: pre-G/G visibility cleanup + seed Gigi's Garden.
+  // - Hide noisy alphabet test rows and duplicate Untitled drafts from the
+  //   sidebar without deleting their underlying records (export still works).
+  // - Seed the G/G "Gigi's Garden" Draft project if it isn't already present.
+  if (stored < 14) {
+    const existingHidden = new Set<string>(loadHiddenProjectIds());
+    let hiddenChanged = false;
+
+    // 1) noisy-by-name auto-hide (Bot Cards, Bot Card Studio, Ellen's, Fiona's)
+    for (const p of next) {
+      if (isNoisyProjectName(p.name) && typeof p.id === "string" && !existingHidden.has(p.id)) {
+        existingHidden.add(p.id);
+        hiddenChanged = true;
+      }
+    }
+
+    // 2) dedupe "Untitled Project": keep the most recently updated visible,
+    //    hide the rest so the sidebar shows at most one Untitled row.
+    const untitled = next
+      .filter((p) => normalizeProjectName(p.name) === "untitled project")
+      .slice()
+      .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+    // Per pre-G/G acceptance the only visible Draft should be the working
+    // alphabet project (Gigi's Garden). Hide every Untitled Project row.
+    for (const p of untitled) {
+      if (typeof p.id === "string" && !existingHidden.has(p.id)) {
+        existingHidden.add(p.id);
+        hiddenChanged = true;
+      }
+    }
+
+    // 3) seed Gigi's Garden if missing
+    const hasGigi = next.some(
+      (p) => p.id === GIGI_GARDEN_ID || normalizeProjectName(p.name) === "gigi's garden",
+    );
+    if (!hasGigi) {
+      next = [makeGigiGardenProject(), ...next];
+      changed = true;
+    }
+
+    if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
