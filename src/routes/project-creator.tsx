@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 11; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 12; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -870,6 +870,48 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         if (!seededKey) return h;
         touched = true;
         return { ...h, stepOutput: mergedOutput };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
+  // v12: the old "Chief War Room Gate / Intake" step was renamed to
+  // "Chief Starts Project Board / Intake" and the "Ivy Dispatcher Start
+  // Gate / Intake" step was removed. NESTED_STEP_RENAMES +
+  // normalizePersistedWorkflowRecords handle the rename + dedupe on load,
+  // but we still need to (a) re-seed the renamed handoff with the new
+  // WR1_BOT_CARD_STUDIO_SEED key and (b) refresh the assignment text
+  // describing the Ghost -> Echo trigger.
+  if (stored < 12) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const mode = (h.mode ?? "").trim();
+        if (mode !== "Chief Starts Project Board / Intake") return h;
+        const seed = seedMap[mode];
+        if (!seed) return h;
+        const existing = h.stepOutput ?? {};
+        const mergedOutput: Record<string, string> = { ...existing };
+        let seededKey = false;
+        for (const k of Object.keys(seed)) {
+          if (existing[k] === undefined || existing[k] === "") {
+            mergedOutput[k] = seed[k];
+            seededKey = true;
+          }
+        }
+        touched = true;
+        return { ...h, stepOutput: mergedOutput, assignment: h.assignment };
       });
       if (!touched) return p;
       changed = true;
