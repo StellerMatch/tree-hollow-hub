@@ -3707,7 +3707,7 @@ function ProjectContextStrip({ project }: { project: Project }) {
     mode === "Good" || !liveReceipts ? "Board walkthrough" : "Live lane run";
   const processNote =
     processType === "Board walkthrough"
-      ? "Walkthrough only — not proof bots ran every lane."
+      ? "Board walkthrough completion proves Project Board movement only — not that every named lane owner produced a real report."
       : "Real receipt links detected on this project.";
   const gateStatus =
     "No live dispatch · No publish · No spend · No runtime unless approved";
