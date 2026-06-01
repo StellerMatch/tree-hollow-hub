@@ -3393,17 +3393,17 @@ const CREATOR_MODES = [
   {
     key: "Good" as const,
     label: "Good",
-    blurb: "Hands-off. Bots complete the process unless blocked.",
+    blurb: "Auto-run board walkthrough. Bots continue unless blocked.",
   },
   {
     key: "Better" as const,
     label: "Better",
-    blurb: "Guided. Bots pause at key checkpoints for creator review.",
+    blurb: "Pause at checkpoints for creator review.",
   },
   {
     key: "Best" as const,
     label: "Best",
-    blurb: "Hands-on. Creator walks every major stage with the bots.",
+    blurb: "Hands-on with creator at every major stage.",
   },
 ];
 
