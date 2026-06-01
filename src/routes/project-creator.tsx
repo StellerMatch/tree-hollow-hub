@@ -3255,6 +3255,451 @@ const STEP_TEMPLATE_MATCHERS: Array<{
   match: (mode: string, bot: string) => boolean;
   template: StepTemplate;
 }> = [
+  // ============================================================
+  // WR1 sheet-based workflow templates (first-match wins).
+  // These run BEFORE the legacy fallbacks below so the current
+  // 44-step board captures structured, packet-relevant evidence.
+  // ============================================================
+
+  // ----- Clarity rows: Collection / Organize / Deep Dive -----
+  {
+    match: (m) => / \/ clarity$/.test(m),
+    template: {
+      id: "wr1-clarity",
+      blurb: "Clarity captures Boss material and shapes it into a clean packet.",
+      fields: [
+        {
+          key: "capturedMaterial",
+          label: "Captured material",
+          primary: true,
+          multiline: true,
+          rows: 5,
+          placeholder: "Everything Boss has given for this project so far.",
+        },
+        {
+          key: "goalScope",
+          label: "Goal / scope",
+          multiline: true,
+          rows: 3,
+          placeholder: "What this project is and is not.",
+        },
+        {
+          key: "cleanPacketPath",
+          label: "Clean packet path / link",
+          placeholder: "Where the cleaned packet lives.",
+        },
+        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Chief" },
+      ],
+    },
+  },
+
+  // ----- Chief War Room Gate / Intake -----
+  {
+    match: (m) => m.includes("chief war room gate"),
+    template: {
+      id: "wr1-chief-gate",
+      blurb: "Chief opens the war room path from Clarity's clean packet.",
+      fields: [
+        {
+          key: "sourcePacket",
+          label: "Source clean packet",
+          primary: true,
+          multiline: true,
+          rows: 3,
+          placeholder: "Link or reference to Clarity's packet.",
+        },
+        { key: "runName", label: "Run / handoff name", placeholder: "e.g. WR1 - Bot Card Studio" },
+        {
+          key: "startingInstruction",
+          label: "Starting instruction",
+          multiline: true,
+          rows: 3,
+        },
+        {
+          key: "bossDecisions",
+          label: "Boss decision points",
+          multiline: true,
+          rows: 3,
+          placeholder: "Anything Boss must decide before / during this run.",
+        },
+      ],
+    },
+  },
+
+  // ----- Ivy Dispatcher Start Gate / Intake -----
+  {
+    match: (m) => m.includes("ivy dispatcher"),
+    template: {
+      id: "wr1-ivy-dispatch",
+      blurb: "Ivy starts dispatcher tracking for the war room run.",
+      fields: [
+        {
+          key: "dispatchPack",
+          label: "Dispatch start pack",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "Clean packet + war room number + Project Handoff sheet link.",
+        },
+        { key: "boardLink", label: "Live handoff / board link" },
+        { key: "visibleStatus", label: "Visible status", placeholder: "e.g. Open / Working" },
+        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Echo" },
+      ],
+    },
+  },
+
+  // ----- Safety and Authority / Intake -----
+  {
+    match: (m) => m.includes("safety and authority"),
+    template: {
+      id: "wr1-safety",
+      blurb: "Shield checks safety, authority, privacy, and public-action risk.",
+      fields: [
+        {
+          key: "verdict",
+          label: "Safety / authority verdict",
+          primary: true,
+          placeholder: "Clear / Conditional / Blocked",
+        },
+        { key: "boundaries", label: "Boundaries", multiline: true, rows: 3 },
+        {
+          key: "approvalNeeded",
+          label: "Approval needed",
+          multiline: true,
+          rows: 2,
+          placeholder: "Who must approve, and for what.",
+        },
+        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Compass" },
+      ],
+    },
+  },
+
+  // ----- Trunk: R&D Owner (Compass kickoff) -----
+  {
+    match: (m) => m.includes("r&d owner"),
+    template: {
+      id: "wr1-rd-owner",
+      blurb: "Compass frames the Trunk R&D layer and assigns the lanes.",
+      fields: [
+        {
+          key: "researchFrame",
+          label: "Research frame",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "What this R&D layer must answer.",
+        },
+        { key: "vaultAssignment", label: "Vault lane (money / sustainability)", multiline: true, rows: 2 },
+        { key: "bloomAssignment", label: "Bloom lane (audience / growth)", multiline: true, rows: 2 },
+        { key: "lumaAssignment", label: "Luma lane (design / trust)", multiline: true, rows: 2 },
+      ],
+    },
+  },
+
+  // ----- Trunk: Vault money / sustainability -----
+  {
+    match: (m) => m.includes("money and sustainability"),
+    template: {
+      id: "wr1-vault-trunk",
+      blurb: "Vault returns money and sustainability input for the Trunk R&D layer.",
+      fields: [
+        {
+          key: "findings",
+          label: "Money / sustainability findings",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "privacyDataRisk", label: "Privacy / data risk", multiline: true, rows: 3 },
+        { key: "commercialBoundaries", label: "Commercial boundaries", multiline: true, rows: 3 },
+        { key: "sources", label: "Sources / receipts", multiline: true, rows: 2 },
+      ],
+    },
+  },
+
+  // ----- Bloom: audience / growth (Trunk + Knowledge) -----
+  {
+    match: (m) => m.includes("audience and growth") || m.includes("practical growth"),
+    template: {
+      id: "wr1-bloom",
+      blurb: "Bloom returns audience and growth input.",
+      fields: [
+        {
+          key: "findings",
+          label: "Audience / growth findings",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "launchPaths", label: "Launch paths", multiline: true, rows: 3 },
+        { key: "storyLanguage", label: "Story / language rules", multiline: true, rows: 3 },
+        { key: "sources", label: "Sources / receipts", multiline: true, rows: 2 },
+      ],
+    },
+  },
+
+  // ----- Luma: design / trust (Trunk + Knowledge) -----
+  {
+    match: (m) => m.includes("design and trust") || m.includes("practical design"),
+    template: {
+      id: "wr1-luma",
+      blurb: "Luma returns design, trust, readability, and visual input.",
+      fields: [
+        {
+          key: "findings",
+          label: "Design / trust findings",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "visualDirection", label: "Visual direction", multiline: true, rows: 3 },
+        { key: "readabilityAccessibility", label: "Readability / accessibility", multiline: true, rows: 3 },
+        { key: "designRisks", label: "Design risks", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- Trunk: R&D Synthesis (Compass) -----
+  {
+    match: (m) => m.includes("r&d synthesis"),
+    template: {
+      id: "wr1-rd-synthesis",
+      blurb: "Compass synthesizes Trunk inputs and points to Knowledge.",
+      fields: [
+        {
+          key: "directionBrief",
+          label: "R&D direction brief",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "includedInputs", label: "Included inputs", multiline: true, rows: 3 },
+        { key: "parkedHooks", label: "Parked future hooks", multiline: true, rows: 3 },
+        { key: "rookImplications", label: "Implications for Rook (Knowledge)", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- Acceptance Criteria Check (Chief Added) -----
+  {
+    match: (m) => m.includes("acceptance criteria"),
+    template: {
+      id: "wr1-acceptance",
+      blurb: "Lock acceptance criteria and evidence expectations before Tinker starts.",
+      fields: [
+        {
+          key: "acceptanceCriteria",
+          label: "Acceptance criteria",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "scopeBoundaries", label: "Scope boundaries", multiline: true, rows: 3 },
+        { key: "expectedEvidence", label: "Expected evidence from Tinker", multiline: true, rows: 3 },
+        { key: "bossReviewNeeded", label: "Boss review needed?", placeholder: "yes / no + what" },
+      ],
+    },
+  },
+
+  // ----- Group gate rows: Squirrel / Lantern / Shadow / Build-A-Bears / Council -----
+  {
+    match: (m) =>
+      m.includes("narrow checks") ||
+      m.includes("squirrel help") ||
+      m.includes("squirrel checks") ||
+      m.includes("trunk help") ||
+      m.includes("trunk checks"),
+    template: {
+      id: "wr1-group-gate",
+      blurb: "Group gate: assigned helpers return findings and receipts.",
+      fields: [
+        {
+          key: "gateResult",
+          label: "Gate result",
+          primary: true,
+          placeholder: "Completed / Blocked / Partial",
+        },
+        { key: "findings", label: "Findings", multiline: true, rows: 4 },
+        { key: "receipts", label: "Receipts / links", multiline: true, rows: 3 },
+        { key: "blockers", label: "Blockers", multiline: true, rows: 3 },
+        { key: "nextOwner", label: "Next owner" },
+      ],
+    },
+  },
+
+  // ----- Momma Package Prep / Experiment -----
+  {
+    match: (m) => m.includes("momma package prep"),
+    template: {
+      id: "wr1-momma-prep",
+      blurb: "Momma prepares the neutral Build-A-Bears package.",
+      fields: [
+        {
+          key: "bearsPackage",
+          label: "Bears package",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "Neutral packet handed to Ace, Bolt, and Craft.",
+        },
+        { key: "neutralInstructions", label: "Neutral instructions", multiline: true, rows: 3 },
+        { key: "constraints", label: "Constraints", multiline: true, rows: 3 },
+        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Build-A-Bears Gate" },
+      ],
+    },
+  },
+
+  // ----- Baby Bear Directions + Bear Output Collection / Master Prompt -----
+  {
+    match: (m) => m.includes("baby bear directions") || m.includes("bear output collection"),
+    template: {
+      id: "wr1-bears",
+      blurb: "Bears propose directions; Momma assembles the Master Prompt.",
+      fields: [
+        {
+          key: "bearOutputs",
+          label: "Bear outputs (Ace / Bolt / Craft)",
+          primary: true,
+          multiline: true,
+          rows: 5,
+        },
+        { key: "masterPrompt", label: "Master Prompt", multiline: true, rows: 5 },
+        { key: "chosenDirection", label: "Chosen direction", multiline: true, rows: 3 },
+        { key: "parkedDirections", label: "Parked directions", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- Project Overlook / Next Movement Review -----
+  {
+    match: (m) => m.includes("project overlook") || m.includes("next movement review"),
+    template: {
+      id: "wr1-overlook",
+      blurb: "Boss + Tinker + Chief review the project result and pick the next move.",
+      fields: [
+        {
+          key: "verdict",
+          label: "Review verdict",
+          primary: true,
+          placeholder: "Go / Iterate / Park",
+        },
+        { key: "whatWorks", label: "What works", multiline: true, rows: 3 },
+        { key: "whatNeedsWork", label: "What needs work", multiline: true, rows: 3 },
+        { key: "bossDecision", label: "Boss decision", multiline: true, rows: 3 },
+        { key: "nextOwner", label: "Next owner" },
+      ],
+    },
+  },
+
+  // ----- Byte + Bubba Prototype Handoff / Weaver -----
+  {
+    match: (m) => m.includes("byte") && m.includes("bubba"),
+    template: {
+      id: "wr1-byte-bubba",
+      blurb: "Byte + Bubba review prototype/build handoff needs.",
+      fields: [
+        {
+          key: "handoffNotes",
+          label: "Prototype handoff notes",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "technicalNotes", label: "Technical notes", multiline: true, rows: 3 },
+        { key: "contentBehaviorNotes", label: "Content / behavior notes", multiline: true, rows: 3 },
+        { key: "nextSliceGuidance", label: "Next-slice guidance", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- Final Links and Assets [Chief Added] / Weaver -----
+  {
+    match: (m) => m.includes("final links and assets"),
+    template: {
+      id: "wr1-final-links",
+      blurb: "Weaver collects final links, assets, and receipts before package review.",
+      fields: [
+        {
+          key: "finalLinks",
+          label: "Final links",
+          primary: true,
+          multiline: true,
+          rows: 4,
+          placeholder: "One URL per line.",
+        },
+        { key: "assets", label: "Assets", multiline: true, rows: 3 },
+        { key: "receipts", label: "Receipts / package references", multiline: true, rows: 3 },
+        { key: "ownerNotes", label: "Owner notes", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- High Council Review / Council -----
+  {
+    match: (m) => m.includes("high council"),
+    template: {
+      id: "wr1-council",
+      blurb: "High Council reviews continuity, record, and risk before Ward.",
+      fields: [
+        {
+          key: "councilVerdict",
+          label: "Council verdict",
+          primary: true,
+          placeholder: "Completed / Blocked / Conditional",
+        },
+        { key: "continuityNotes", label: "Continuity notes", multiline: true, rows: 3 },
+        { key: "recordNotes", label: "Record notes", multiline: true, rows: 3 },
+        { key: "riskBoundaryNotes", label: "Risk / boundary notes", multiline: true, rows: 3 },
+      ],
+    },
+  },
+
+  // ----- Final Record Receipt [Chief Added] / Ward -----
+  {
+    match: (m) => m.includes("final record receipt"),
+    template: {
+      id: "wr1-final-record",
+      blurb: "Ledger captures what shipped, what stayed parked, and who owns next.",
+      fields: [
+        {
+          key: "shipped",
+          label: "What shipped",
+          primary: true,
+          multiline: true,
+          rows: 4,
+        },
+        { key: "parked", label: "What stayed parked", multiline: true, rows: 3 },
+        { key: "ownsNext", label: "Who owns next", multiline: true, rows: 2 },
+        { key: "artifactsLocation", label: "Where artifacts live", multiline: true, rows: 2 },
+      ],
+    },
+  },
+
+  // ----- Ward rows: Intake & Install / Orientation / Boomer / Live Watch -----
+  {
+    match: (m) => / \/ ward$/.test(m),
+    template: {
+      id: "wr1-ward",
+      blurb: "Ward handles intake, orientation, Boomer setup, and live watch.",
+      fields: [
+        {
+          key: "wardStatus",
+          label: "Ward status",
+          primary: true,
+          placeholder: "Completed / Blocked / Watching",
+        },
+        { key: "installNotes", label: "Install / setup notes", multiline: true, rows: 3 },
+        { key: "orientationNotes", label: "Orientation notes", multiline: true, rows: 3 },
+        { key: "liveWatchNotes", label: "Live watch notes", multiline: true, rows: 3 },
+        { key: "nextOwner", label: "Next owner" },
+      ],
+    },
+  },
+
+  // ============================================================
+  // Legacy fallback templates (kept for older boards / data).
+  // ============================================================
+
   // ----- Chief Review -----
   {
     match: (m) => m.includes("chief intake"),
