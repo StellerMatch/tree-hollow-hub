@@ -1950,10 +1950,15 @@ function ProjectCreatorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => !hiddenIds.includes(p.id)),
+    [projects, hiddenIds],
+  );
+
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter((p) =>
+    if (!q) return visibleProjects;
+    return visibleProjects.filter((p) =>
       [
         p.name,
         p.status,
@@ -1967,7 +1972,40 @@ function ProjectCreatorPage() {
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(q)),
     );
-  }, [projects, query]);
+  }, [visibleProjects, query]);
+
+  function openDeleteFlow(p: Project) {
+    setDeleteTarget(p);
+    setDeletePhase(1);
+    setDeleteTyped("");
+  }
+
+  function cancelDeleteFlow() {
+    setDeleteTarget(null);
+    setDeletePhase(1);
+    setDeleteTyped("");
+  }
+
+  function confirmDeleteProject() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const expected = `delete ${target.name}`;
+    if (deleteTyped.trim() !== expected) return;
+    setProjects((prev) => {
+      const next = prev.filter((p) => p.id !== target.id);
+      if (selectedId === target.id) {
+        const firstVisible = next.find((p) => !hiddenIds.includes(p.id));
+        setSelectedId(firstVisible?.id ?? next[0]?.id ?? "");
+      }
+      return next;
+    });
+    if (hiddenIds.includes(target.id)) {
+      const nextHidden = hiddenIds.filter((id) => id !== target.id);
+      setHiddenIds(nextHidden);
+      saveHiddenProjectIds(nextHidden);
+    }
+    cancelDeleteFlow();
+  }
 
   function logActivity(
     p: Project,
