@@ -191,6 +191,18 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Audience, growth, retention, starter tree identities, shareability, low-money launch paths.",
     lumaAssignment:
       "Visual trust, living tree UI, card theme language, QR mobile page, accessibility/readability, polish without renaming.",
+    lanternKickoff:
+      "Trunk R&D Lantern kickoff. Stage: Trunk. Step: R&D Owner. Job: Compass frames the R&D layer for Phase One (tree import/create + bot cards + QR mobile) and assigns Vault, Bloom, Luma lane contributions.",
+    pastLandscape:
+      "Past: family/org tree visualizations, collectible card games, profile pages, QR-linked microsites, AI agent directories. What worked: hierarchy + portraits + short roles. What failed: flat org charts, generic SaaS profiles, NFT-style marketplaces overshadowing the artifact.",
+    presentLandscape:
+      "Present: most AI-bot UIs are flat lists or chat panes. No mainstream tool turns a private bot tree into a collectible, character-forward card set with QR-only mobile reveals. DaBotTree.com's living tree + rare-card model is currently uncontested.",
+    futureHooks:
+      "Future (parked): starter trees, shareable QR card access, themed backgrounds, custom video reveals, marketplace/gallery, paid bot activation. Hold for later phases; do not promise in Phase One.",
+    risksUnknowns:
+      "Risks: privacy of pasted tree/bot data, scope drift into public marketplace, plain-org-chart regression, unreadable image-only cards, income claims, lost rare-QR feeling.",
+    evidenceReceipt:
+      "Receipts: clean packet path and filled run packet path under /Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/. Lane receipts from Vault/Bloom/Luma to land in their own rows.",
   },
   "Money and Sustainability Input / Trunk": {
     findings:
@@ -200,6 +212,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
     commercialBoundaries:
       "No paid feature, marketplace, voting, legal/compliance, or public sharing model unless Boss approves.",
     sources: "Clean packet Vision Baseline, Privacy, Research Triggers.",
+    rdPastPresentFuture:
+      "Past: prior monetization patterns (subscriptions, marketplaces, paid unlocks) showed that premature money pressure killed collectible/character products. Present: Phase One has no paid surface; revenue role is internal-use-first, no income promises. Future: parked hooks include custom cards, custom video, marketplace/gallery, advanced themes — only after Boss approval and privacy clarity.",
   },
   "Audience and Growth Input / Trunk": {
     findings:
@@ -209,6 +223,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
     storyLanguage:
       "Sell the magic as collectible character identity, not money promises or real bot install.",
     sources: "Clean packet Key Product Flow, Collection Mechanic, Open Questions.",
+    rdPastPresentFuture:
+      "Past: collectible communities grew around rare, character-forward artifacts (trading cards, fan wikis, character sheets) not feature lists. Present: Boss is the first user; story language is rarity + character identity, not marketplace hype. Future: starter trees for creators, business owners, coaches/teachers, families/households, and project/team users; shareable QR card access after privacy guardrails.",
   },
   "Design and Trust Input / Trunk": {
     findings:
@@ -219,6 +235,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Tree and cards must remain readable/editable; avoid whole-card image-only artifacts.",
     designRisks:
       "Plain org chart, flattened generic personality, overdecorated unreadable cards, renamed brand, public profile vibe replacing rare QR feeling.",
+    rdPastPresentFuture:
+      "Past: family-tree and trading-card visual languages earned trust through hierarchy, portraits, and readable role copy. Present: visual direction is living tree + character-forward cards; readability and editability outrank decoration. Future: themed backgrounds, richer QR mobile reveals, and polish passes are parked until Phase One trust baseline holds.",
   },
   "R&D Synthesis / Trunk": {
     directionBrief:
@@ -229,6 +247,16 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Real install/download/activation, marketplace/gallery/voting, paid custom video, advanced layer controls, legal/compliance, exact monetization.",
     rookImplications:
       "Rook should make a Tinker-ready packet with requirements, acceptance criteria, card copy rules, prompt branching, privacy language, and flow boundaries.",
+    pastSynthesis:
+      "Past synthesis: trees + collectible cards + QR microsites are proven separately; the combination is the rare slot. Earlier marketplace-first attempts diluted character identity.",
+    presentSynthesis:
+      "Present synthesis: Phase One is private, editable tree → character-forward cards → QR-only mobile reveal with Coming Soon. No public market surface, no income claims, no real install.",
+    futureSynthesis:
+      "Future synthesis: parked hooks (starter trees, share model, themed backgrounds, custom video, marketplace/gallery, paid activation) wait for Boss approval and lane receipts.",
+    bossHighlight:
+      "Boss highlight brief: protect tree-first/card-second, hidden layers internal, QR rare access, no chain-of-bot copy, no income promises. Decision points: starter tree count/categories, share model, themed-background scope, worthy-tree review path.",
+    evidenceReceipt:
+      "Receipts: clean packet, filled run packet, Vault/Bloom/Luma lane outputs, acceptance criteria row. All under the bot-card-studio project home.",
   },
   "Knowledge Intake / Knowledge": {
     findings:
