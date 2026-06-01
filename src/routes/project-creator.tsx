@@ -847,6 +847,43 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v11: re-merge WR1_BOT_CARD_STUDIO_SEED so newly-added seed keys (the
+  // R&D Lantern Past / Present / Future capture fields on Trunk rows) land
+  // on existing Bot Card Studio storage. Existing non-empty user edits win.
+  if (stored < 11) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const seed = seedMap[(h.mode ?? "").trim()];
+        if (!seed) return h;
+        const existing = h.stepOutput ?? {};
+        const mergedOutput: Record<string, string> = { ...existing };
+        let seededKey = false;
+        for (const k of Object.keys(seed)) {
+          if (existing[k] === undefined || existing[k] === "") {
+            mergedOutput[k] = seed[k];
+            seededKey = true;
+          }
+        }
+        if (!seededKey) return h;
+        touched = true;
+        return { ...h, stepOutput: mergedOutput };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
