@@ -331,6 +331,39 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     changed = true;
   }
 
+  // v8: migrate the legacy 8-phase / 43-step workflow to the new 9-branch /
+  // 44-row sheet-based workflow. Only rewrites the Bot Card Studio seed so
+  // existing custom projects keep their handoff state.
+  if (stored < 8) {
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      if (
+        p.id !== "bot-cards" &&
+        p.id !== "bot-card-studio" &&
+        normalizedName !== "bot cards" &&
+        normalizedName !== "bot card studio"
+      ) {
+        return p;
+      }
+      const handoffs = createInitialWorkflowHandoffs(p.id);
+      const migratedHandoffs = handoffs.map((handoff, index) => {
+        if (index === 0) return { ...handoff, status: "Complete" as const };
+        if (index === 1) return { ...handoff, status: "Working" as const };
+        return { ...handoff, status: "Not Started" as const };
+      });
+      changed = true;
+      return {
+        ...p,
+        status: "Active" as const,
+        handoffs: migratedHandoffs,
+        currentMode: "Organize / Clarity",
+        currentBot: "Clarity",
+        nextAction: "Complete Organize / Clarity",
+        updatedAt: new Date().toISOString(),
+      };
+    });
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
