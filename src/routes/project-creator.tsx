@@ -2585,31 +2585,49 @@ function ProjectCreatorPage() {
                   const displayPhase = split.phase;
                   return (
                     <li key={p.id}>
-                      <button
-                        onClick={() => setSelectedId(p.id)}
-                        className="w-full rounded-xl border px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
+                      <div
+                        className="group relative rounded-xl border transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
                         style={{
                           borderColor: active ? AMBER : AMBER_SOFT,
                           background: active ? `${AMBER_SOFT}` : "transparent",
                         }}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="truncate font-display text-sm font-semibold">
-                            {p.name}
+                        <button
+                          onClick={() => setSelectedId(p.id)}
+                          className="w-full rounded-xl px-3 py-2 pr-8 text-left"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="truncate font-display text-sm font-semibold">
+                              {p.name}
+                            </div>
+                            <StatusPill status={p.status} />
                           </div>
-                          <StatusPill status={p.status} />
-                        </div>
-                        <div className="mt-1 truncate text-[11px] text-muted-foreground">
-                          {p.projectType === "Other / Custom"
-                            ? p.projectTypeCustom || "Other / Custom"
-                            : p.projectType || "Unclassified"}{" "}
-                          · {displayMode} · {displayBot}
-                          {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
-                        </div>
-                        <div className="mt-0.5 text-[10px] text-muted-foreground/70">
-                          updated {fmtTime(p.updatedAt)}
-                        </div>
-                      </button>
+                          <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                            {p.projectType === "Other / Custom"
+                              ? p.projectTypeCustom || "Other / Custom"
+                              : p.projectType || "Unclassified"}{" "}
+                            · {displayMode} · {displayBot}
+                            {displayPhase && (
+                              <span className="opacity-60"> · {displayPhase}</span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+                            updated {fmtTime(p.updatedAt)}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteFlow(p);
+                          }}
+                          title="Delete project"
+                          aria-label={`Delete project ${p.name}`}
+                          className="absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground/60 opacity-0 transition hover:bg-[oklch(0.65_0.22_25_/_0.18)] hover:text-[oklch(0.85_0.18_25)] group-hover:opacity-100 focus:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
