@@ -101,8 +101,88 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 13; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 14; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
+const HIDDEN_KEY = "dabottree.projects.hidden.v1";
+const GIGI_GARDEN_ID = "gigi-garden-gg";
+
+// Project names that are board-test noise from earlier alphabet runs.
+// Visibility cleanup only — the underlying records remain in localStorage
+// and continue to export/import, so this is not a destructive delete.
+const NOISY_PROJECT_NAMES: string[] = [
+  "bot cards",
+  "bot card studio",
+  "ellen's elevators",
+  "ellens elevators",
+  "fiona's folders",
+  "fionas folders",
+];
+
+function normalizeProjectName(name: string | undefined | null): string {
+  return (name ?? "").trim().toLowerCase();
+}
+
+function isNoisyProjectName(name: string | undefined | null): boolean {
+  const n = normalizeProjectName(name);
+  if (!n) return false;
+  return NOISY_PROJECT_NAMES.includes(n);
+}
+
+export function loadHiddenProjectIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HIDDEN_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveHiddenProjectIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {
+    /* ignore */
+  }
+}
+
+function makeGigiGardenProject(): Project {
+  const ts = new Date().toISOString();
+  return {
+    id: GIGI_GARDEN_ID,
+    name: "Gigi's Garden",
+    summary:
+      "G/G real-route bridge proof attempt. Not another 43-step board-simulated receipt test. Goal: capture a tiny real-route receipt from one or two selected bots if routing is available. If real routing is not available in this app, the UI must say so clearly rather than treating board-generated receipts as real bot receipts.",
+    status: "Draft",
+    projectType: undefined,
+    projectTypeCustom: undefined,
+    currentMode: "Mode 0 / Raw Idea",
+    currentBot: "Boss",
+    nextAction: "Fill Mode 0 / Raw Idea",
+    blocker: undefined,
+    updatedAt: ts,
+    creatorMode: "Better",
+    clarity: "",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs: [],
+    artifacts: [],
+    activity: [
+      {
+        id: `gg-ev-${Date.now().toString(36)}`,
+        at: ts,
+        bot: "Boss",
+        action: "created G/G draft (real-route bridge proof attempt)",
+        status: "Draft",
+      },
+    ],
+  };
+}
 
 // Generate a safe id when imported/legacy data lacks one. Keeps a stable
 // prefix so debugging can tell which row the synthetic id was minted for.
