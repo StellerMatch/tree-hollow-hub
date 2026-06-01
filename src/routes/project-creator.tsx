@@ -195,6 +195,97 @@ function makeGigiGardenProject(): Project {
   };
 }
 
+// H/H Henry's Handoff — local-folder ⇄ Lovable bridge-readiness draft.
+// UI/state preparation only. No backend, no auth, no cloud bridge,
+// no credentials, no deploy, no bot activation. Real route remains
+// unavailable in this preview.
+export const HH_BRIDGE_FIELD_KEYS = [
+  "step_status",
+  "bridge_status",
+  "local_report_path",
+  "mirror_payload_path",
+  "mirror_payload_summary",
+  "receipt_type",
+  "next_owner",
+  "next_action",
+  "approval_gate",
+] as const;
+
+export const HH_SUPPORTED_STOP_STATES = [
+  "format_fix_needed",
+  "waiting_for_boss_go",
+] as const;
+
+export const HH_FIRST_FIVE_STEPS: ReadonlyArray<{
+  step: number;
+  mode: string;
+  bot: string;
+}> = [
+  { step: 1, mode: "Collection / Clarity", bot: "Clarity" },
+  { step: 2, mode: "Organize / Clarity", bot: "Clarity" },
+  { step: 3, mode: "Deep Dive / Clarity", bot: "Clarity" },
+  { step: 4, mode: "Chief Starts Project Board / Intake", bot: "Chief" },
+  { step: 5, mode: "Memory Alignment / Intake", bot: "Echo" },
+];
+
+function makeHenryHandoffProject(): Project {
+  const ts = new Date().toISOString();
+  const handoffs: Handoff[] = HH_FIRST_FIVE_STEPS.map((s, i) => ({
+    id: `hh-step-${i + 1}`,
+    step: s.step,
+    mode: s.mode,
+    bot: s.bot,
+    assignment:
+      "H/H bridge-readiness placeholder. Board UI/state only — no real route, no backend.",
+    status: "Not Started",
+    authorityNotes:
+      "H/H scope: prepare local-folder→Lovable mirror payload fields. Real bot route remains unavailable.",
+    stepOutput: {
+      step_status: "not_started",
+      bridge_status: "local_only",
+      local_report_path: "pending",
+      mirror_payload_path: "pending",
+      mirror_payload_summary: "",
+      receipt_type: "none",
+      next_owner: "",
+      next_action: "",
+      approval_gate: "",
+    },
+  }));
+  return {
+    id: HENRY_HANDOFF_ID,
+    name: "Henry's Handoff",
+    summary:
+      "H/H prepares the Project Board UI/state for a local-folder-to-Lovable bridge. No backend, no auth, no database, no cloud bridge, no credentials, no deploy, no bot activation. Real bot route remains unavailable in this preview.",
+    status: "Draft",
+    projectType: undefined,
+    projectTypeCustom: undefined,
+    currentMode: "Mode 0 / Raw Idea",
+    currentBot: "Boss",
+    nextAction: "Prepare bridge-readiness fields (local-only)",
+    blocker: undefined,
+    updatedAt: ts,
+    creatorMode: "Good",
+    clarity: "",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs,
+    artifacts: [],
+    activity: [
+      {
+        id: `hh-ev-${Date.now().toString(36)}`,
+        at: ts,
+        bot: "Boss",
+        action:
+          "created H/H draft (bridge-readiness; bridge_status=local_only, route_status=real_route_unavailable)",
+        status: "Draft",
+      },
+    ],
+  };
+}
+
 // Generate a safe id when imported/legacy data lacks one. Keeps a stable
 // prefix so debugging can tell which row the synthetic id was minted for.
 function ensureStableId(prefix: string, existing: unknown): string {
