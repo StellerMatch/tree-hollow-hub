@@ -6351,6 +6351,9 @@ function ProjectMain({
       {project.id === GIGI_GARDEN_ID && (
         <RealRoutePreflight project={project} onChange={onChange} />
       )}
+      {project.id === HENRY_HANDOFF_ID && (
+        <HHBridgeReadinessPanel project={project} />
+      )}
 
       {selectedHandoff ? (
         <SelectedStepDetail
