@@ -1213,6 +1213,14 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
       changed = true;
     }
 
+    const hasHenry = next.some(
+      (p) => p.id === HENRY_HANDOFF_ID || normalizeProjectName(p.name) === "henry's handoff",
+    );
+    if (!hasHenry) {
+      next = [makeHenryHandoffProject(), ...next];
+      changed = true;
+    }
+
     for (const p of next) {
       if (typeof p.id !== "string") continue;
       if (ALLOWED_VISIBLE_IDS.includes(p.id)) {
