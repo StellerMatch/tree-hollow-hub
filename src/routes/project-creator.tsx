@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 10; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 11; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 
 type ProjectSettingsInput = {
@@ -191,6 +191,18 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Audience, growth, retention, starter tree identities, shareability, low-money launch paths.",
     lumaAssignment:
       "Visual trust, living tree UI, card theme language, QR mobile page, accessibility/readability, polish without renaming.",
+    lanternKickoff:
+      "Trunk R&D Lantern kickoff. Stage: Trunk. Step: R&D Owner. Job: Compass frames the R&D layer for Phase One (tree import/create + bot cards + QR mobile) and assigns Vault, Bloom, Luma lane contributions.",
+    pastLandscape:
+      "Past: family/org tree visualizations, collectible card games, profile pages, QR-linked microsites, AI agent directories. What worked: hierarchy + portraits + short roles. What failed: flat org charts, generic SaaS profiles, NFT-style marketplaces overshadowing the artifact.",
+    presentLandscape:
+      "Present: most AI-bot UIs are flat lists or chat panes. No mainstream tool turns a private bot tree into a collectible, character-forward card set with QR-only mobile reveals. DaBotTree.com's living tree + rare-card model is currently uncontested.",
+    futureHooks:
+      "Future (parked): starter trees, shareable QR card access, themed backgrounds, custom video reveals, marketplace/gallery, paid bot activation. Hold for later phases; do not promise in Phase One.",
+    risksUnknowns:
+      "Risks: privacy of pasted tree/bot data, scope drift into public marketplace, plain-org-chart regression, unreadable image-only cards, income claims, lost rare-QR feeling.",
+    evidenceReceipt:
+      "Receipts: clean packet path and filled run packet path under /Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/. Lane receipts from Vault/Bloom/Luma to land in their own rows.",
   },
   "Money and Sustainability Input / Trunk": {
     findings:
@@ -200,6 +212,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
     commercialBoundaries:
       "No paid feature, marketplace, voting, legal/compliance, or public sharing model unless Boss approves.",
     sources: "Clean packet Vision Baseline, Privacy, Research Triggers.",
+    rdPastPresentFuture:
+      "Past: prior monetization patterns (subscriptions, marketplaces, paid unlocks) showed that premature money pressure killed collectible/character products. Present: Phase One has no paid surface; revenue role is internal-use-first, no income promises. Future: parked hooks include custom cards, custom video, marketplace/gallery, advanced themes — only after Boss approval and privacy clarity.",
   },
   "Audience and Growth Input / Trunk": {
     findings:
@@ -209,6 +223,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
     storyLanguage:
       "Sell the magic as collectible character identity, not money promises or real bot install.",
     sources: "Clean packet Key Product Flow, Collection Mechanic, Open Questions.",
+    rdPastPresentFuture:
+      "Past: collectible communities grew around rare, character-forward artifacts (trading cards, fan wikis, character sheets) not feature lists. Present: Boss is the first user; story language is rarity + character identity, not marketplace hype. Future: starter trees for creators, business owners, coaches/teachers, families/households, and project/team users; shareable QR card access after privacy guardrails.",
   },
   "Design and Trust Input / Trunk": {
     findings:
@@ -219,6 +235,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Tree and cards must remain readable/editable; avoid whole-card image-only artifacts.",
     designRisks:
       "Plain org chart, flattened generic personality, overdecorated unreadable cards, renamed brand, public profile vibe replacing rare QR feeling.",
+    rdPastPresentFuture:
+      "Past: family-tree and trading-card visual languages earned trust through hierarchy, portraits, and readable role copy. Present: visual direction is living tree + character-forward cards; readability and editability outrank decoration. Future: themed backgrounds, richer QR mobile reveals, and polish passes are parked until Phase One trust baseline holds.",
   },
   "R&D Synthesis / Trunk": {
     directionBrief:
@@ -229,6 +247,16 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
       "Real install/download/activation, marketplace/gallery/voting, paid custom video, advanced layer controls, legal/compliance, exact monetization.",
     rookImplications:
       "Rook should make a Tinker-ready packet with requirements, acceptance criteria, card copy rules, prompt branching, privacy language, and flow boundaries.",
+    pastSynthesis:
+      "Past synthesis: trees + collectible cards + QR microsites are proven separately; the combination is the rare slot. Earlier marketplace-first attempts diluted character identity.",
+    presentSynthesis:
+      "Present synthesis: Phase One is private, editable tree → character-forward cards → QR-only mobile reveal with Coming Soon. No public market surface, no income claims, no real install.",
+    futureSynthesis:
+      "Future synthesis: parked hooks (starter trees, share model, themed backgrounds, custom video, marketplace/gallery, paid activation) wait for Boss approval and lane receipts.",
+    bossHighlight:
+      "Boss highlight brief: protect tree-first/card-second, hidden layers internal, QR rare access, no chain-of-bot copy, no income promises. Decision points: starter tree count/categories, share model, themed-background scope, worthy-tree review path.",
+    evidenceReceipt:
+      "Receipts: clean packet, filled run packet, Vault/Bloom/Luma lane outputs, acceptance criteria row. All under the bot-card-studio project home.",
   },
   "Knowledge Intake / Knowledge": {
     findings:
@@ -812,6 +840,43 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         if (!seededKey && !needTitle && !needBody) return h;
         touched = true;
         return { ...h, stepOutput: mergedOutput, artifactTitle, artifactBody };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
+  // v11: re-merge WR1_BOT_CARD_STUDIO_SEED so newly-added seed keys (the
+  // R&D Lantern Past / Present / Future capture fields on Trunk rows) land
+  // on existing Bot Card Studio storage. Existing non-empty user edits win.
+  if (stored < 11) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const seed = seedMap[(h.mode ?? "").trim()];
+        if (!seed) return h;
+        const existing = h.stepOutput ?? {};
+        const mergedOutput: Record<string, string> = { ...existing };
+        let seededKey = false;
+        for (const k of Object.keys(seed)) {
+          if (existing[k] === undefined || existing[k] === "") {
+            mergedOutput[k] = seed[k];
+            seededKey = true;
+          }
+        }
+        if (!seededKey) return h;
+        touched = true;
+        return { ...h, stepOutput: mergedOutput };
       });
       if (!touched) return p;
       changed = true;
@@ -3834,8 +3899,17 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("r&d owner"),
     template: {
       id: "wr1-rd-owner",
-      blurb: "Compass frames the Trunk R&D layer and assigns the lanes.",
+      blurb:
+        "Compass frames the Trunk R&D layer (Past / Present / Future) and assigns Vault, Bloom, and Luma lane contributions. The job is the stage + step + Column G instruction, not the bot.",
       fields: [
+        {
+          key: "lanternKickoff",
+          label: "Lantern kickoff / stage-step job",
+          multiline: true,
+          rows: 3,
+          placeholder:
+            "Stage + Step + exact Column G instruction Compass is running here.",
+        },
         {
           key: "researchFrame",
           label: "Research frame",
@@ -3844,9 +3918,44 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 4,
           placeholder: "What this R&D layer must answer.",
         },
+        {
+          key: "pastLandscape",
+          label: "Past landscape",
+          multiline: true,
+          rows: 3,
+          placeholder: "What has been tried before — what worked, what failed.",
+        },
+        {
+          key: "presentLandscape",
+          label: "Present landscape",
+          multiline: true,
+          rows: 3,
+          placeholder: "What exists today and where this project sits in it.",
+        },
+        {
+          key: "futureHooks",
+          label: "Future hooks (parked)",
+          multiline: true,
+          rows: 3,
+          placeholder: "Hooks worth keeping for later phases; not promises now.",
+        },
+        {
+          key: "risksUnknowns",
+          label: "Risks / unknowns",
+          multiline: true,
+          rows: 3,
+          placeholder: "Things that could break the run if ignored.",
+        },
         { key: "vaultAssignment", label: "Vault lane (money / sustainability)", multiline: true, rows: 2 },
         { key: "bloomAssignment", label: "Bloom lane (audience / growth)", multiline: true, rows: 2 },
         { key: "lumaAssignment", label: "Luma lane (design / trust)", multiline: true, rows: 2 },
+        {
+          key: "evidenceReceipt",
+          label: "Evidence / receipt",
+          multiline: true,
+          rows: 2,
+          placeholder: "Paths or links to clean packet + lane receipts.",
+        },
       ],
     },
   },
@@ -3856,7 +3965,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("money and sustainability"),
     template: {
       id: "wr1-vault-trunk",
-      blurb: "Vault returns money and sustainability input for the Trunk R&D layer.",
+      blurb:
+        "Vault lane contribution into Compass's R&D synthesis: money and sustainability across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3864,6 +3974,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (money / sustainability)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: prior monetization patterns. Present: current scope and revenue role. Future: parked hooks.",
         },
         { key: "privacyDataRisk", label: "Privacy / data risk", multiline: true, rows: 3 },
         { key: "commercialBoundaries", label: "Commercial boundaries", multiline: true, rows: 3 },
@@ -3877,7 +3995,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("audience and growth") || m.includes("practical growth"),
     template: {
       id: "wr1-bloom",
-      blurb: "Bloom returns audience and growth input.",
+      blurb:
+        "Bloom lane contribution into Compass's R&D synthesis: audience and growth across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3885,6 +4004,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (audience / growth)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: how similar audiences have grown. Present: today's user and story. Future: parked audience expansion.",
         },
         { key: "launchPaths", label: "Launch paths", multiline: true, rows: 3 },
         { key: "storyLanguage", label: "Story / language rules", multiline: true, rows: 3 },
@@ -3898,7 +4025,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("design and trust") || m.includes("practical design"),
     template: {
       id: "wr1-luma",
-      blurb: "Luma returns design, trust, readability, and visual input.",
+      blurb:
+        "Luma lane contribution into Compass's R&D synthesis: design, trust, readability across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3906,6 +4034,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (design / trust / readability)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: visual languages that earned trust. Present: current direction. Future: parked polish / theme passes.",
         },
         { key: "visualDirection", label: "Visual direction", multiline: true, rows: 3 },
         { key: "readabilityAccessibility", label: "Readability / accessibility", multiline: true, rows: 3 },
@@ -3919,7 +4055,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("r&d synthesis"),
     template: {
       id: "wr1-rd-synthesis",
-      blurb: "Compass synthesizes Trunk inputs and points to Knowledge.",
+      blurb:
+        "Compass synthesizes Vault, Bloom, and Luma lane contributions into one Past / Present / Future direction and a Boss highlight brief. Different job than R&D Owner.",
       fields: [
         {
           key: "directionBrief",
@@ -3928,9 +4065,44 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           multiline: true,
           rows: 4,
         },
+        {
+          key: "pastSynthesis",
+          label: "Past synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "What the combined past evidence says.",
+        },
+        {
+          key: "presentSynthesis",
+          label: "Present synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "Where this project actually sits today.",
+        },
+        {
+          key: "futureSynthesis",
+          label: "Future synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "Parked hooks worth carrying forward, with conditions.",
+        },
+        {
+          key: "bossHighlight",
+          label: "Boss highlight brief",
+          multiline: true,
+          rows: 3,
+          placeholder: "Plain-language highlights and decision points for Boss.",
+        },
         { key: "includedInputs", label: "Included inputs", multiline: true, rows: 3 },
         { key: "parkedHooks", label: "Parked future hooks", multiline: true, rows: 3 },
         { key: "rookImplications", label: "Implications for Rook (Knowledge)", multiline: true, rows: 3 },
+        {
+          key: "evidenceReceipt",
+          label: "Evidence / receipt",
+          multiline: true,
+          rows: 2,
+          placeholder: "Paths or links to lane receipts and synthesis sources.",
+        },
       ],
     },
   },
