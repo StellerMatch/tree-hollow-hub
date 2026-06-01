@@ -364,6 +364,44 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v9: seed Bot Card Studio handoffs with the WR1 filled clean-packet
+  // answers so the Project Board is the visible source for the run.
+  // Existing user edits in stepOutput / artifact fields are preserved.
+  if (stored < 9) {
+    const seedMap = WR1_BOT_CARD_STUDIO_SEED;
+    const packetPath =
+      "/Users/2ndbrain/.openclaw/workspace/projects/bot-card-studio/packets/WR1-BOT-CARD-STUDIO-FILLED-RUN-PACKET-2026-05-31.md";
+    next = next.map((p) => {
+      const normalizedName = (p.name ?? "").trim().toLowerCase();
+      const isTarget =
+        p.id === "bot-card-studio" ||
+        p.id === "bot-cards" ||
+        normalizedName === "bot card studio" ||
+        normalizedName === "bot cards";
+      if (!isTarget) return p;
+
+      let touched = false;
+      const handoffs = p.handoffs.map((h) => {
+        const seed = seedMap[h.mode];
+        if (!seed) return h;
+        touched = true;
+        const mergedOutput = { ...seed, ...(h.stepOutput ?? {}) };
+        const artifactTitle =
+          h.artifactTitle && h.artifactTitle.trim()
+            ? h.artifactTitle
+            : "WR1 filled run packet - Chief first pass";
+        const artifactBody =
+          h.artifactBody && h.artifactBody.trim()
+            ? h.artifactBody
+            : `Source: ${packetPath}\nStep: ${h.mode}\nStatus: ${h.status}`;
+        return { ...h, stepOutput: mergedOutput, artifactTitle, artifactBody };
+      });
+      if (!touched) return p;
+      changed = true;
+      return { ...p, handoffs, updatedAt: new Date().toISOString() };
+    });
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
