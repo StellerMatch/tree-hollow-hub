@@ -1894,6 +1894,10 @@ function ProjectCreatorPage() {
   const [selectedHandoffId, setSelectedHandoffId] = useState<string | null>(null);
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [commandReceiptOpen, setCommandReceiptOpen] = useState(false);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deletePhase, setDeletePhase] = useState<1 | 2>(1);
+  const [deleteTyped, setDeleteTyped] = useState("");
 
   // Load from localStorage after mount.
   useEffect(() => {
@@ -1904,7 +1908,10 @@ function ProjectCreatorPage() {
       repairToCanonicalWorkflow(ensured);
     if (migratedChanged || ensuredChanged || repairedChanged) saveProjects(repaired);
     setProjects(repaired);
-    setSelectedId(repaired[0]?.id ?? "");
+    const hidden = loadHiddenProjectIds();
+    setHiddenIds(hidden);
+    const firstVisible = repaired.find((p) => !hidden.includes(p.id));
+    setSelectedId(firstVisible?.id ?? repaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
