@@ -3862,8 +3862,17 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("r&d owner"),
     template: {
       id: "wr1-rd-owner",
-      blurb: "Compass frames the Trunk R&D layer and assigns the lanes.",
+      blurb:
+        "Compass frames the Trunk R&D layer (Past / Present / Future) and assigns Vault, Bloom, and Luma lane contributions. The job is the stage + step + Column G instruction, not the bot.",
       fields: [
+        {
+          key: "lanternKickoff",
+          label: "Lantern kickoff / stage-step job",
+          multiline: true,
+          rows: 3,
+          placeholder:
+            "Stage + Step + exact Column G instruction Compass is running here.",
+        },
         {
           key: "researchFrame",
           label: "Research frame",
@@ -3872,9 +3881,44 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 4,
           placeholder: "What this R&D layer must answer.",
         },
+        {
+          key: "pastLandscape",
+          label: "Past landscape",
+          multiline: true,
+          rows: 3,
+          placeholder: "What has been tried before — what worked, what failed.",
+        },
+        {
+          key: "presentLandscape",
+          label: "Present landscape",
+          multiline: true,
+          rows: 3,
+          placeholder: "What exists today and where this project sits in it.",
+        },
+        {
+          key: "futureHooks",
+          label: "Future hooks (parked)",
+          multiline: true,
+          rows: 3,
+          placeholder: "Hooks worth keeping for later phases; not promises now.",
+        },
+        {
+          key: "risksUnknowns",
+          label: "Risks / unknowns",
+          multiline: true,
+          rows: 3,
+          placeholder: "Things that could break the run if ignored.",
+        },
         { key: "vaultAssignment", label: "Vault lane (money / sustainability)", multiline: true, rows: 2 },
         { key: "bloomAssignment", label: "Bloom lane (audience / growth)", multiline: true, rows: 2 },
         { key: "lumaAssignment", label: "Luma lane (design / trust)", multiline: true, rows: 2 },
+        {
+          key: "evidenceReceipt",
+          label: "Evidence / receipt",
+          multiline: true,
+          rows: 2,
+          placeholder: "Paths or links to clean packet + lane receipts.",
+        },
       ],
     },
   },
@@ -3884,7 +3928,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("money and sustainability"),
     template: {
       id: "wr1-vault-trunk",
-      blurb: "Vault returns money and sustainability input for the Trunk R&D layer.",
+      blurb:
+        "Vault lane contribution into Compass's R&D synthesis: money and sustainability across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3892,6 +3937,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (money / sustainability)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: prior monetization patterns. Present: current scope and revenue role. Future: parked hooks.",
         },
         { key: "privacyDataRisk", label: "Privacy / data risk", multiline: true, rows: 3 },
         { key: "commercialBoundaries", label: "Commercial boundaries", multiline: true, rows: 3 },
@@ -3905,7 +3958,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("audience and growth") || m.includes("practical growth"),
     template: {
       id: "wr1-bloom",
-      blurb: "Bloom returns audience and growth input.",
+      blurb:
+        "Bloom lane contribution into Compass's R&D synthesis: audience and growth across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3913,6 +3967,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (audience / growth)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: how similar audiences have grown. Present: today's user and story. Future: parked audience expansion.",
         },
         { key: "launchPaths", label: "Launch paths", multiline: true, rows: 3 },
         { key: "storyLanguage", label: "Story / language rules", multiline: true, rows: 3 },
@@ -3926,7 +3988,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("design and trust") || m.includes("practical design"),
     template: {
       id: "wr1-luma",
-      blurb: "Luma returns design, trust, readability, and visual input.",
+      blurb:
+        "Luma lane contribution into Compass's R&D synthesis: design, trust, readability across Past / Present / Future.",
       fields: [
         {
           key: "findings",
@@ -3934,6 +3997,14 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           primary: true,
           multiline: true,
           rows: 4,
+        },
+        {
+          key: "rdPastPresentFuture",
+          label: "R&D Past / Present / Future (design / trust / readability)",
+          multiline: true,
+          rows: 4,
+          placeholder:
+            "Past: visual languages that earned trust. Present: current direction. Future: parked polish / theme passes.",
         },
         { key: "visualDirection", label: "Visual direction", multiline: true, rows: 3 },
         { key: "readabilityAccessibility", label: "Readability / accessibility", multiline: true, rows: 3 },
@@ -3947,7 +4018,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     match: (m) => m.includes("r&d synthesis"),
     template: {
       id: "wr1-rd-synthesis",
-      blurb: "Compass synthesizes Trunk inputs and points to Knowledge.",
+      blurb:
+        "Compass synthesizes Vault, Bloom, and Luma lane contributions into one Past / Present / Future direction and a Boss highlight brief. Different job than R&D Owner.",
       fields: [
         {
           key: "directionBrief",
@@ -3956,9 +4028,44 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           multiline: true,
           rows: 4,
         },
+        {
+          key: "pastSynthesis",
+          label: "Past synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "What the combined past evidence says.",
+        },
+        {
+          key: "presentSynthesis",
+          label: "Present synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "Where this project actually sits today.",
+        },
+        {
+          key: "futureSynthesis",
+          label: "Future synthesis",
+          multiline: true,
+          rows: 3,
+          placeholder: "Parked hooks worth carrying forward, with conditions.",
+        },
+        {
+          key: "bossHighlight",
+          label: "Boss highlight brief",
+          multiline: true,
+          rows: 3,
+          placeholder: "Plain-language highlights and decision points for Boss.",
+        },
         { key: "includedInputs", label: "Included inputs", multiline: true, rows: 3 },
         { key: "parkedHooks", label: "Parked future hooks", multiline: true, rows: 3 },
         { key: "rookImplications", label: "Implications for Rook (Knowledge)", multiline: true, rows: 3 },
+        {
+          key: "evidenceReceipt",
+          label: "Evidence / receipt",
+          multiline: true,
+          rows: 2,
+          placeholder: "Paths or links to lane receipts and synthesis sources.",
+        },
       ],
     },
   },
