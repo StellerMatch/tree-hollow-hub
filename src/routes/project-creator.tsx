@@ -101,14 +101,16 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 16; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 17; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
+const HENRY_HANDOFF_ID = "henry-handoff-hh";
 
 // Pre/post-G/G acceptance: the sidebar must show exactly these four rows.
 // Any other project is hidden (visibility only — underlying data preserved).
 const ALLOWED_VISIBLE_IDS: string[] = [
+  HENRY_HANDOFF_ID,
   GIGI_GARDEN_ID,
   "debauchery",
   "wr1-repair-system",
@@ -187,6 +189,97 @@ function makeGigiGardenProject(): Project {
         at: ts,
         bot: "Boss",
         action: "created G/G draft (real-route bridge proof attempt)",
+        status: "Draft",
+      },
+    ],
+  };
+}
+
+// H/H Henry's Handoff — local-folder ⇄ Lovable bridge-readiness draft.
+// UI/state preparation only. No backend, no auth, no cloud bridge,
+// no credentials, no deploy, no bot activation. Real route remains
+// unavailable in this preview.
+export const HH_BRIDGE_FIELD_KEYS = [
+  "step_status",
+  "bridge_status",
+  "local_report_path",
+  "mirror_payload_path",
+  "mirror_payload_summary",
+  "receipt_type",
+  "next_owner",
+  "next_action",
+  "approval_gate",
+] as const;
+
+export const HH_SUPPORTED_STOP_STATES = [
+  "format_fix_needed",
+  "waiting_for_boss_go",
+] as const;
+
+export const HH_FIRST_FIVE_STEPS: ReadonlyArray<{
+  step: number;
+  mode: string;
+  bot: string;
+}> = [
+  { step: 1, mode: "Collection / Clarity", bot: "Clarity" },
+  { step: 2, mode: "Organize / Clarity", bot: "Clarity" },
+  { step: 3, mode: "Deep Dive / Clarity", bot: "Clarity" },
+  { step: 4, mode: "Chief Starts Project Board / Intake", bot: "Chief" },
+  { step: 5, mode: "Memory Alignment / Intake", bot: "Echo" },
+];
+
+function makeHenryHandoffProject(): Project {
+  const ts = new Date().toISOString();
+  const handoffs: Handoff[] = HH_FIRST_FIVE_STEPS.map((s, i) => ({
+    id: `hh-step-${i + 1}`,
+    step: s.step,
+    mode: s.mode,
+    bot: s.bot,
+    assignment:
+      "H/H bridge-readiness placeholder. Board UI/state only — no real route, no backend.",
+    status: "Not Started",
+    authorityNotes:
+      "H/H scope: prepare local-folder→Lovable mirror payload fields. Real bot route remains unavailable.",
+    stepOutput: {
+      step_status: "not_started",
+      bridge_status: "local_only",
+      local_report_path: "pending",
+      mirror_payload_path: "pending",
+      mirror_payload_summary: "",
+      receipt_type: "none",
+      next_owner: "",
+      next_action: "",
+      approval_gate: "",
+    },
+  }));
+  return {
+    id: HENRY_HANDOFF_ID,
+    name: "Henry's Handoff",
+    summary:
+      "H/H prepares the Project Board UI/state for a local-folder-to-Lovable bridge. No backend, no auth, no database, no cloud bridge, no credentials, no deploy, no bot activation. Real bot route remains unavailable in this preview.",
+    status: "Draft",
+    projectType: undefined,
+    projectTypeCustom: undefined,
+    currentMode: "Mode 0 / Raw Idea",
+    currentBot: "Boss",
+    nextAction: "Prepare bridge-readiness fields (local-only)",
+    blocker: undefined,
+    updatedAt: ts,
+    creatorMode: "Good",
+    clarity: "",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs,
+    artifacts: [],
+    activity: [
+      {
+        id: `hh-ev-${Date.now().toString(36)}`,
+        at: ts,
+        bot: "Boss",
+        action:
+          "created H/H draft (bridge-readiness; bridge_status=local_only, route_status=real_route_unavailable)",
         status: "Draft",
       },
     ],
@@ -1120,6 +1213,14 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
       changed = true;
     }
 
+    const hasHenry = next.some(
+      (p) => p.id === HENRY_HANDOFF_ID || normalizeProjectName(p.name) === "henry's handoff",
+    );
+    if (!hasHenry) {
+      next = [makeHenryHandoffProject(), ...next];
+      changed = true;
+    }
+
     for (const p of next) {
       if (typeof p.id !== "string") continue;
       if (ALLOWED_VISIBLE_IDS.includes(p.id)) {
@@ -1958,11 +2059,16 @@ function ProjectCreatorPage() {
     setProjects(repaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
+    const henry = repaired.find(
+      (p) => p.id === HENRY_HANDOFF_ID && !hidden.includes(p.id),
+    );
     const gigi = repaired.find(
       (p) => p.id === GIGI_GARDEN_ID && !hidden.includes(p.id),
     );
     const firstVisible = repaired.find((p) => !hidden.includes(p.id));
-    setSelectedId(gigi?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "");
+    setSelectedId(
+      henry?.id ?? gigi?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "",
+    );
     setHydrated(true);
   }, []);
 
@@ -4252,6 +4358,115 @@ function RealRoutePreflight({
   );
 }
 
+// ---------- H/H bridge-readiness panel ----------
+function HHBridgeReadinessPanel({ project }: { project: Project }) {
+  const firstFive = project.handoffs.slice(0, 5);
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="H/H bridge-readiness panel"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70">
+            H/H Bridge-Readiness
+          </div>
+          <div className="text-[12px] font-medium" style={{ color: AMBER }}>
+            bridge_status: local_only · route_status: real_route_unavailable
+          </div>
+        </div>
+        <div className="text-[10px] text-muted-foreground/80">
+          Local files can be prepared for Ghost / local-runner mirroring. This
+          preview still has no real bot route.
+        </div>
+      </div>
+
+      <p className="mt-2 text-[11px] text-muted-foreground/90">
+        H/H prepares the board for local report and Lovable mirror payload
+        handling. It does not prove a real bot route.
+      </p>
+
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Bridge-ready fields (preserved per step)
+          </div>
+          <ul className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-muted-foreground/85">
+            {HH_BRIDGE_FIELD_KEYS.map((k) => (
+              <li key={k}>· {k}</li>
+            ))}
+          </ul>
+        </div>
+        <div
+          className="rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            Supported stop states
+          </div>
+          <ul className="mt-1 space-y-0.5 text-muted-foreground/85">
+            {HH_SUPPORTED_STOP_STATES.map((s) => (
+              <li key={s}>· {s}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          First 5 steps — placeholder values
+        </div>
+        <div className="mt-1 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-[11px]">
+            <thead className="text-muted-foreground/70">
+              <tr>
+                <th className="pr-2 py-0.5 font-normal">#</th>
+                <th className="pr-2 py-0.5 font-normal">Step / Bot</th>
+                <th className="pr-2 py-0.5 font-normal">bridge_status</th>
+                <th className="pr-2 py-0.5 font-normal">local_report_path</th>
+                <th className="pr-2 py-0.5 font-normal">mirror_payload_path</th>
+                <th className="pr-2 py-0.5 font-normal">receipt_type</th>
+              </tr>
+            </thead>
+            <tbody className="text-muted-foreground/90">
+              {(firstFive.length > 0
+                ? firstFive.map((h, i) => ({
+                    n: i + 1,
+                    label: `${h.mode} · ${h.bot}`,
+                    out: h.stepOutput ?? {},
+                  }))
+                : HH_FIRST_FIVE_STEPS.map((s) => ({
+                    n: s.step,
+                    label: `${s.mode} · ${s.bot}`,
+                    out: {
+                      bridge_status: "local_only",
+                      local_report_path: "pending",
+                      mirror_payload_path: "pending",
+                      receipt_type: "none",
+                    } as Record<string, string>,
+                  }))
+              ).map((row) => (
+                <tr key={row.n} className="border-t" style={{ borderColor: AMBER_SOFT }}>
+                  <td className="pr-2 py-1 align-top">{row.n}</td>
+                  <td className="pr-2 py-1 align-top">{row.label}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.bridge_status ?? "local_only"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.local_report_path ?? "pending"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.mirror_payload_path ?? "pending"}</td>
+                  <td className="pr-2 py-1 align-top">{row.out.receipt_type ?? "none"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
@@ -6135,6 +6350,9 @@ function ProjectMain({
       <ProjectContextStrip project={project} />
       {project.id === GIGI_GARDEN_ID && (
         <RealRoutePreflight project={project} onChange={onChange} />
+      )}
+      {project.id === HENRY_HANDOFF_ID && (
+        <HHBridgeReadinessPanel project={project} />
       )}
 
       {selectedHandoff ? (
