@@ -3977,12 +3977,20 @@ const STEP_TEMPLATE_MATCHERS: Array<{
     },
   },
 
-  // ----- Chief War Room Gate / Intake -----
+  // ----- Chief Starts Project Board / Intake -----
+  // Chief opens the Project Board, fills basic setup, and presses Done / Go /
+  // Start. That press is the trigger Ghost watches to advance the workflow
+  // directly to Echo for Memory Alignment. The Ivy Dispatcher Stargate is
+  // intentionally not part of this flow.
   {
-    match: (m) => m.includes("chief war room gate"),
+    match: (m) =>
+      m.includes("chief starts project board") ||
+      m.includes("chief war room gate") ||
+      m.includes("ivy dispatcher"),
     template: {
-      id: "wr1-chief-gate",
-      blurb: "Chief opens the war room path from Clarity's clean packet.",
+      id: "wr1-chief-starts-board",
+      blurb:
+        "Chief opens Project Creator / Project Board, names the project, enters Clarity's info, fills the required basic setup fields, and presses Done / Go / Start. Ghost watches that press and hands off to Echo for Memory Alignment.",
       fields: [
         {
           key: "sourcePacket",
@@ -3998,6 +4006,8 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           label: "Starting instruction",
           multiline: true,
           rows: 3,
+          placeholder:
+            "What Chief is setting up on the board before pressing Done / Go / Start.",
         },
         {
           key: "bossDecisions",
@@ -4006,28 +4016,16 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 3,
           placeholder: "Anything Boss must decide before / during this run.",
         },
-      ],
-    },
-  },
-
-  // ----- Ivy Dispatcher Start Gate / Intake -----
-  {
-    match: (m) => m.includes("ivy dispatcher"),
-    template: {
-      id: "wr1-ivy-dispatch",
-      blurb: "Ivy starts dispatcher tracking for the war room run.",
-      fields: [
         {
-          key: "dispatchPack",
-          label: "Dispatch start pack",
-          primary: true,
-          multiline: true,
-          rows: 4,
-          placeholder: "Clean packet + war room number + Project Handoff sheet link.",
+          key: "doneTrigger",
+          label: "Done / Go / Start press",
+          placeholder: "Recorded when Chief presses Done. Ghost advances to Echo.",
         },
-        { key: "boardLink", label: "Live handoff / board link" },
-        { key: "visibleStatus", label: "Visible status", placeholder: "e.g. Open / Working" },
-        { key: "nextOwner", label: "Next owner", placeholder: "e.g. Echo" },
+        {
+          key: "nextOwner",
+          label: "Next owner",
+          placeholder: "Ghost -> Echo (Memory Alignment).",
+        },
       ],
     },
   },
