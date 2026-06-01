@@ -110,8 +110,6 @@ const HENRY_HANDOFF_ID = "henry-handoff-hh";
 // Pre/post-G/G acceptance: the sidebar must show exactly these four rows.
 // Any other project is hidden (visibility only — underlying data preserved).
 const ALLOWED_VISIBLE_IDS: string[] = [
-  HENRY_HANDOFF_ID,
-  GIGI_GARDEN_ID,
   "debauchery",
   "wr1-repair-system",
   DABOTTREE_BOARD_ID,
@@ -127,6 +125,18 @@ const NOISY_PROJECT_NAMES: string[] = [
   "ellens elevators",
   "fiona's folders",
   "fionas folders",
+  "amber arbor",
+  "gigi's garden",
+  "gigis garden",
+  "henry's handoff",
+  "henrys handoff",
+];
+
+// Name patterns for old alphabet/double-letter/bridge/debug/route-test
+// projects that should stay hidden from the public dashboard.
+const NOISY_NAME_PATTERNS: RegExp[] = [
+  /\b(alphabet|double[-\s]?letter|bridge|debug|route[-\s]?test)\b/i,
+  /^[a-z]\/[a-z]\b/i, // e.g. "g/g", "h/h"
 ];
 
 function normalizeProjectName(name: string | undefined | null): string {
@@ -136,7 +146,8 @@ function normalizeProjectName(name: string | undefined | null): string {
 function isNoisyProjectName(name: string | undefined | null): boolean {
   const n = normalizeProjectName(name);
   if (!n) return false;
-  return NOISY_PROJECT_NAMES.includes(n);
+  if (NOISY_PROJECT_NAMES.includes(n)) return true;
+  return NOISY_NAME_PATTERNS.some((re) => re.test(n));
 }
 
 export function loadHiddenProjectIds(): string[] {
@@ -2059,16 +2070,10 @@ function ProjectCreatorPage() {
     setProjects(repaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const henry = repaired.find(
-      (p) => p.id === HENRY_HANDOFF_ID && !hidden.includes(p.id),
+    const firstVisible = repaired.find(
+      (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    const gigi = repaired.find(
-      (p) => p.id === GIGI_GARDEN_ID && !hidden.includes(p.id),
-    );
-    const firstVisible = repaired.find((p) => !hidden.includes(p.id));
-    setSelectedId(
-      henry?.id ?? gigi?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "",
-    );
+    setSelectedId(firstVisible?.id ?? repaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
