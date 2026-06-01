@@ -101,8 +101,88 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 13; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 14; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
+const HIDDEN_KEY = "dabottree.projects.hidden.v1";
+const GIGI_GARDEN_ID = "gigi-garden-gg";
+
+// Project names that are board-test noise from earlier alphabet runs.
+// Visibility cleanup only — the underlying records remain in localStorage
+// and continue to export/import, so this is not a destructive delete.
+const NOISY_PROJECT_NAMES: string[] = [
+  "bot cards",
+  "bot card studio",
+  "ellen's elevators",
+  "ellens elevators",
+  "fiona's folders",
+  "fionas folders",
+];
+
+function normalizeProjectName(name: string | undefined | null): string {
+  return (name ?? "").trim().toLowerCase();
+}
+
+function isNoisyProjectName(name: string | undefined | null): boolean {
+  const n = normalizeProjectName(name);
+  if (!n) return false;
+  return NOISY_PROJECT_NAMES.includes(n);
+}
+
+export function loadHiddenProjectIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(HIDDEN_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveHiddenProjectIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(HIDDEN_KEY, JSON.stringify(Array.from(new Set(ids))));
+  } catch {
+    /* ignore */
+  }
+}
+
+function makeGigiGardenProject(): Project {
+  const ts = new Date().toISOString();
+  return {
+    id: GIGI_GARDEN_ID,
+    name: "Gigi's Garden",
+    summary:
+      "G/G real-route bridge proof attempt. Not another 43-step board-simulated receipt test. Goal: capture a tiny real-route receipt from one or two selected bots if routing is available. If real routing is not available in this app, the UI must say so clearly rather than treating board-generated receipts as real bot receipts.",
+    status: "Draft",
+    projectType: undefined,
+    projectTypeCustom: undefined,
+    currentMode: "Mode 0 / Raw Idea",
+    currentBot: "Boss",
+    nextAction: "Fill Mode 0 / Raw Idea",
+    blocker: undefined,
+    updatedAt: ts,
+    creatorMode: "Better",
+    clarity: "",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs: [],
+    artifacts: [],
+    activity: [
+      {
+        id: `gg-ev-${Date.now().toString(36)}`,
+        at: ts,
+        bot: "Boss",
+        action: "created G/G draft (real-route bridge proof attempt)",
+        status: "Draft",
+      },
+    ],
+  };
+}
 
 // Generate a safe id when imported/legacy data lacks one. Keeps a stable
 // prefix so debugging can tell which row the synthetic id was minted for.
@@ -967,6 +1047,49 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     });
   }
 
+  // v14: pre-G/G visibility cleanup + seed Gigi's Garden.
+  // - Hide noisy alphabet test rows and duplicate Untitled drafts from the
+  //   sidebar without deleting their underlying records (export still works).
+  // - Seed the G/G "Gigi's Garden" Draft project if it isn't already present.
+  if (stored < 14) {
+    const existingHidden = new Set<string>(loadHiddenProjectIds());
+    let hiddenChanged = false;
+
+    // 1) noisy-by-name auto-hide (Bot Cards, Bot Card Studio, Ellen's, Fiona's)
+    for (const p of next) {
+      if (isNoisyProjectName(p.name) && typeof p.id === "string" && !existingHidden.has(p.id)) {
+        existingHidden.add(p.id);
+        hiddenChanged = true;
+      }
+    }
+
+    // 2) dedupe "Untitled Project": keep the most recently updated visible,
+    //    hide the rest so the sidebar shows at most one Untitled row.
+    const untitled = next
+      .filter((p) => normalizeProjectName(p.name) === "untitled project")
+      .slice()
+      .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+    // Per pre-G/G acceptance the only visible Draft should be the working
+    // alphabet project (Gigi's Garden). Hide every Untitled Project row.
+    for (const p of untitled) {
+      if (typeof p.id === "string" && !existingHidden.has(p.id)) {
+        existingHidden.add(p.id);
+        hiddenChanged = true;
+      }
+    }
+
+    // 3) seed Gigi's Garden if missing
+    const hasGigi = next.some(
+      (p) => p.id === GIGI_GARDEN_ID || normalizeProjectName(p.name) === "gigi's garden",
+    );
+    if (!hasGigi) {
+      next = [makeGigiGardenProject(), ...next];
+      changed = true;
+    }
+
+    if (hiddenChanged) saveHiddenProjectIds(Array.from(existingHidden));
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
@@ -1771,6 +1894,10 @@ function ProjectCreatorPage() {
   const [selectedHandoffId, setSelectedHandoffId] = useState<string | null>(null);
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
   const [commandReceiptOpen, setCommandReceiptOpen] = useState(false);
+  const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deletePhase, setDeletePhase] = useState<1 | 2>(1);
+  const [deleteTyped, setDeleteTyped] = useState("");
 
   // Load from localStorage after mount.
   useEffect(() => {
@@ -1781,7 +1908,10 @@ function ProjectCreatorPage() {
       repairToCanonicalWorkflow(ensured);
     if (migratedChanged || ensuredChanged || repairedChanged) saveProjects(repaired);
     setProjects(repaired);
-    setSelectedId(repaired[0]?.id ?? "");
+    const hidden = loadHiddenProjectIds();
+    setHiddenIds(hidden);
+    const firstVisible = repaired.find((p) => !hidden.includes(p.id));
+    setSelectedId(firstVisible?.id ?? repaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -1820,10 +1950,15 @@ function ProjectCreatorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  const visibleProjects = useMemo(
+    () => projects.filter((p) => !hiddenIds.includes(p.id)),
+    [projects, hiddenIds],
+  );
+
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter((p) =>
+    if (!q) return visibleProjects;
+    return visibleProjects.filter((p) =>
       [
         p.name,
         p.status,
@@ -1837,7 +1972,40 @@ function ProjectCreatorPage() {
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(q)),
     );
-  }, [projects, query]);
+  }, [visibleProjects, query]);
+
+  function openDeleteFlow(p: Project) {
+    setDeleteTarget(p);
+    setDeletePhase(1);
+    setDeleteTyped("");
+  }
+
+  function cancelDeleteFlow() {
+    setDeleteTarget(null);
+    setDeletePhase(1);
+    setDeleteTyped("");
+  }
+
+  function confirmDeleteProject() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    const expected = `delete ${target.name}`;
+    if (deleteTyped.trim() !== expected) return;
+    setProjects((prev) => {
+      const next = prev.filter((p) => p.id !== target.id);
+      if (selectedId === target.id) {
+        const firstVisible = next.find((p) => !hiddenIds.includes(p.id));
+        setSelectedId(firstVisible?.id ?? next[0]?.id ?? "");
+      }
+      return next;
+    });
+    if (hiddenIds.includes(target.id)) {
+      const nextHidden = hiddenIds.filter((id) => id !== target.id);
+      setHiddenIds(nextHidden);
+      saveHiddenProjectIds(nextHidden);
+    }
+    cancelDeleteFlow();
+  }
 
   function logActivity(
     p: Project,
@@ -2417,31 +2585,49 @@ function ProjectCreatorPage() {
                   const displayPhase = split.phase;
                   return (
                     <li key={p.id}>
-                      <button
-                        onClick={() => setSelectedId(p.id)}
-                        className="w-full rounded-xl border px-3 py-2 text-left transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
+                      <div
+                        className="group relative rounded-xl border transition hover:bg-[oklch(0.3_0.03_60_/_0.3)]"
                         style={{
                           borderColor: active ? AMBER : AMBER_SOFT,
                           background: active ? `${AMBER_SOFT}` : "transparent",
                         }}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="truncate font-display text-sm font-semibold">
-                            {p.name}
+                        <button
+                          onClick={() => setSelectedId(p.id)}
+                          className="w-full rounded-xl px-3 py-2 pr-8 text-left"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="truncate font-display text-sm font-semibold">
+                              {p.name}
+                            </div>
+                            <StatusPill status={p.status} />
                           </div>
-                          <StatusPill status={p.status} />
-                        </div>
-                        <div className="mt-1 truncate text-[11px] text-muted-foreground">
-                          {p.projectType === "Other / Custom"
-                            ? p.projectTypeCustom || "Other / Custom"
-                            : p.projectType || "Unclassified"}{" "}
-                          · {displayMode} · {displayBot}
-                          {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
-                        </div>
-                        <div className="mt-0.5 text-[10px] text-muted-foreground/70">
-                          updated {fmtTime(p.updatedAt)}
-                        </div>
-                      </button>
+                          <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                            {p.projectType === "Other / Custom"
+                              ? p.projectTypeCustom || "Other / Custom"
+                              : p.projectType || "Unclassified"}{" "}
+                            · {displayMode} · {displayBot}
+                            {displayPhase && (
+                              <span className="opacity-60"> · {displayPhase}</span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 text-[10px] text-muted-foreground/70">
+                            updated {fmtTime(p.updatedAt)}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDeleteFlow(p);
+                          }}
+                          title="Delete project"
+                          aria-label={`Delete project ${p.name}`}
+                          className="absolute right-1.5 top-1.5 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground/60 opacity-0 transition hover:bg-[oklch(0.65_0.22_25_/_0.18)] hover:text-[oklch(0.85_0.18_25)] group-hover:opacity-100 focus:opacity-100"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </li>
                   );
                 })}
@@ -2562,6 +2748,102 @@ function ProjectCreatorPage() {
           onClose={() => setEditingArtifactId(null)}
           onSave={saveArtifact}
         />
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={cancelDeleteFlow}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border bark-texture p-5 shadow-xl"
+            style={{ borderColor: AMBER_LINE, background: "oklch(0.16 0.02 60)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="text-[11px] uppercase tracking-[0.18em]"
+              style={{ color: "oklch(0.85 0.18 25)" }}
+            >
+              Delete project
+            </div>
+            <div className="mt-1 font-display text-lg font-semibold">
+              {deleteTarget.name}
+            </div>
+
+            {deletePhase === 1 && (
+              <>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  You are about to delete this project. Are you sure?
+                </p>
+                <p className="mt-2 text-[11px] text-muted-foreground/70">
+                  This removes the project from local app state and localStorage.
+                  Export your data first if you want a copy.
+                </p>
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={cancelDeleteFlow}
+                    className="rounded-md border px-3 py-1.5 text-xs"
+                    style={{ borderColor: AMBER_SOFT }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setDeletePhase(2)}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium"
+                    style={{
+                      borderColor: "oklch(0.65 0.22 25 / 0.6)",
+                      background: "oklch(0.65 0.22 25 / 0.15)",
+                      color: "oklch(0.9 0.18 25)",
+                    }}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            )}
+
+            {deletePhase === 2 && (
+              <>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Type the phrase below exactly to enable deletion.
+                </p>
+                <div className="mt-2 rounded-md border px-2 py-1.5 font-mono text-xs"
+                  style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.4)" }}>
+                  delete {deleteTarget.name}
+                </div>
+                <input
+                  autoFocus
+                  value={deleteTyped}
+                  onChange={(e) => setDeleteTyped(e.target.value)}
+                  placeholder={`delete ${deleteTarget.name}`}
+                  className="mt-2 w-full rounded-md border bg-[oklch(0.15_0.02_60_/_0.4)] px-2.5 py-1.5 font-mono text-xs outline-none focus:border-[oklch(0.78_0.18_50)]"
+                  style={{ borderColor: AMBER_SOFT }}
+                />
+                <div className="mt-4 flex justify-end gap-2">
+                  <button
+                    onClick={cancelDeleteFlow}
+                    className="rounded-md border px-3 py-1.5 text-xs"
+                    style={{ borderColor: AMBER_SOFT }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteProject}
+                    disabled={deleteTyped.trim() !== `delete ${deleteTarget.name}`}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{
+                      borderColor: "oklch(0.65 0.22 25 / 0.6)",
+                      background: "oklch(0.65 0.22 25 / 0.2)",
+                      color: "oklch(0.92 0.18 25)",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
