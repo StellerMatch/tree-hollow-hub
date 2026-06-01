@@ -101,8 +101,46 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 12; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 13; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
+
+// Generate a safe id when imported/legacy data lacks one. Keeps a stable
+// prefix so debugging can tell which row the synthetic id was minted for.
+function ensureStableId(prefix: string, existing: unknown): string {
+  if (typeof existing === "string" && existing.length > 0) return existing;
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
+}
+
+// Walk every project + handoff and guarantee a string id. Old localStorage
+// data and imported JSON may be missing ids, which previously crashed any
+// `h.id.startsWith(...)` check. Returns changed=true when any id was minted.
+export function normalizeProjectIds(
+  projects: unknown,
+): { projects: Project[]; changed: boolean } {
+  if (!Array.isArray(projects)) return { projects: [], changed: false };
+  let changed = false;
+  const out = projects.map((raw, pi) => {
+    const p = (raw ?? {}) as Project;
+    const pid = ensureStableId(`proj-${pi}`, p.id);
+    let pChanged = pid !== p.id;
+    const handoffs = Array.isArray(p.handoffs)
+      ? p.handoffs.map((h, hi) => {
+          const hid = ensureStableId(`h-${pi}-${hi}`, h?.id);
+          if (hid !== h?.id) {
+            pChanged = true;
+            return { ...h, id: hid } as Handoff;
+          }
+          return h;
+        })
+      : [];
+    if (pChanged) {
+      changed = true;
+      return { ...p, id: pid, handoffs } as Project;
+    }
+    return p;
+  });
+  return { projects: out, changed };
+}
 
 type ProjectSettingsInput = {
   name: string;
