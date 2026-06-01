@@ -3578,7 +3578,8 @@ const CREATOR_MODES = [
   {
     key: "Good" as const,
     label: "Good",
-    blurb: "Auto-run board walkthrough. Bots continue unless blocked.",
+    blurb:
+      "Auto-run board walkthrough. In-scope step movement continues unless blocked. Does NOT approve backend, auth, storage, cloud, config, credentials, spending, public launch, authority changes, or final product sign-off.",
   },
   {
     key: "Better" as const,
