@@ -101,8 +101,46 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 12; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 13; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
+
+// Generate a safe id when imported/legacy data lacks one. Keeps a stable
+// prefix so debugging can tell which row the synthetic id was minted for.
+function ensureStableId(prefix: string, existing: unknown): string {
+  if (typeof existing === "string" && existing.length > 0) return existing;
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
+}
+
+// Walk every project + handoff and guarantee a string id. Old localStorage
+// data and imported JSON may be missing ids, which previously crashed any
+// `h.id.startsWith(...)` check. Returns changed=true when any id was minted.
+export function normalizeProjectIds(
+  projects: unknown,
+): { projects: Project[]; changed: boolean } {
+  if (!Array.isArray(projects)) return { projects: [], changed: false };
+  let changed = false;
+  const out = projects.map((raw, pi) => {
+    const p = (raw ?? {}) as Project;
+    const pid = ensureStableId(`proj-${pi}`, p.id);
+    let pChanged = pid !== p.id;
+    const handoffs = Array.isArray(p.handoffs)
+      ? p.handoffs.map((h, hi) => {
+          const hid = ensureStableId(`h-${pi}-${hi}`, h?.id);
+          if (hid !== h?.id) {
+            pChanged = true;
+            return { ...h, id: hid } as Handoff;
+          }
+          return h;
+        })
+      : [];
+    if (pChanged) {
+      changed = true;
+      return { ...p, id: pid, handoffs } as Project;
+    }
+    return p;
+  });
+  return { projects: out, changed };
+}
 
 type ProjectSettingsInput = {
   name: string;
@@ -528,6 +566,16 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
 
   let next = existing;
   let changed = false;
+
+  // v0 normalize: every project + handoff must have a string id. Runs first
+  // so later migrations can safely rely on `h.id` / `p.id` being present.
+  {
+    const norm = normalizeProjectIds(next);
+    if (norm.changed) {
+      next = norm.projects;
+      changed = true;
+    }
+  }
 
   // v2: add seeded "DaBotTree Project Board" if it's missing.
   if (stored < 2) {
@@ -1041,7 +1089,7 @@ function ensureNestedSteps(project: Project): { project: Project; changed: boole
     if (h.artifactBody) s += 2;
     if (h.artifactTitle) s += 1;
     if (h.completedAt) s += 1;
-    if (!h.id.startsWith("nested-")) s += 1;
+    if (typeof h.id === "string" && !h.id.startsWith("nested-")) s += 1;
     return s;
   };
   const byMode = new Map<string, Handoff>();
@@ -1437,7 +1485,7 @@ function workflowRecordScore(handoff: Handoff): number {
   if (handoff.artifactTitle) score += 2;
   if (handoff.stepOutput && Object.keys(handoff.stepOutput).length > 0) score += 4;
   if (isCanonicalWorkflowRecord(handoff)) score += 5;
-  if (!handoff.id.startsWith("nested-")) score += 1;
+  if (typeof handoff.id === "string" && !handoff.id.startsWith("nested-")) score += 1;
   return score;
 }
 
@@ -1969,7 +2017,10 @@ function ProjectCreatorPage() {
 
   function exportJSON() {
     if (typeof window === "undefined") return;
-    const blob = new Blob([JSON.stringify(projects, null, 2)], {
+    // Normalize before export so every project + handoff in the saved file
+    // carries a stable id, even if any legacy in-memory row slipped through.
+    const { projects: normalized } = normalizeProjectIds(projects);
+    const blob = new Blob([JSON.stringify(normalized, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -1989,12 +2040,15 @@ function ProjectCreatorPage() {
         const parsed = JSON.parse(String(reader.result));
         if (!Array.isArray(parsed)) throw new Error("Expected an array of projects");
         for (const p of parsed) {
-          if (typeof p?.id !== "string" || typeof p?.name !== "string") {
-            throw new Error("Project entries missing id/name");
+          if (typeof p?.name !== "string") {
+            throw new Error("Project entries missing name");
           }
         }
+        // Mint ids for any project/handoff that arrived without one so the
+        // import never crashes downstream `startsWith`/key lookups.
+        const { projects: withIds } = normalizeProjectIds(parsed as Project[]);
         const ts = new Date().toISOString();
-        const stamped = (parsed as Project[]).map((p) => ({
+        const stamped = withIds.map((p) => ({
           ...p,
           activity: [
             ...(p.activity ?? []),
@@ -3524,7 +3578,8 @@ const CREATOR_MODES = [
   {
     key: "Good" as const,
     label: "Good",
-    blurb: "Auto-run board walkthrough. Bots continue unless blocked.",
+    blurb:
+      "Auto-run board walkthrough. In-scope step movement continues unless blocked. Does NOT approve backend, auth, storage, cloud, config, credentials, spending, public launch, authority changes, or final product sign-off.",
   },
   {
     key: "Better" as const,
@@ -3652,7 +3707,7 @@ function ProjectContextStrip({ project }: { project: Project }) {
     mode === "Good" || !liveReceipts ? "Board walkthrough" : "Live lane run";
   const processNote =
     processType === "Board walkthrough"
-      ? "Walkthrough only — not proof bots ran every lane."
+      ? "Board walkthrough completion proves Project Board movement only — not that every named lane owner produced a real report."
       : "Real receipt links detected on this project.";
   const gateStatus =
     "No live dispatch · No publish · No spend · No runtime unless approved";
