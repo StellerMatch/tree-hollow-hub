@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 22; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 23; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -228,10 +228,7 @@ export const HH_BRIDGE_FIELD_KEYS = [
   "approval_gate",
 ] as const;
 
-export const HH_SUPPORTED_STOP_STATES = [
-  "format_fix_needed",
-  "waiting_for_boss_go",
-] as const;
+export const HH_SUPPORTED_STOP_STATES = ["format_fix_needed", "waiting_for_boss_go"] as const;
 
 export const HH_FIRST_FIVE_STEPS: ReadonlyArray<{
   step: number;
@@ -386,9 +383,7 @@ function makeRedDonkeyProject(): Project {
 // Walk every project + handoff and guarantee a string id. Old localStorage
 // data and imported JSON may be missing ids, which previously crashed any
 // `h.id.startsWith(...)` check. Returns changed=true when any id was minted.
-export function normalizeProjectIds(
-  projects: unknown,
-): { projects: Project[]; changed: boolean } {
+export function normalizeProjectIds(projects: unknown): { projects: Project[]; changed: boolean } {
   if (!Array.isArray(projects)) return { projects: [], changed: false };
   let changed = false;
   const out = projects.map((raw, pi) => {
@@ -544,8 +539,7 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
   "R&D Synthesis / Trunk": {
     directionBrief:
       "Build Phase One around a private editable tree import/create flow that produces character-forward cards with QR-only mobile reveals. Keep future monetization/gallery/install hooks parked.",
-    includedInputs:
-      "Clean packet plus needed Vault, Bloom, Luma, and Compass research receipts.",
+    includedInputs: "Clean packet plus needed Vault, Bloom, Luma, and Compass research receipts.",
     parkedHooks:
       "Real install/download/activation, marketplace/gallery/voting, paid custom video, advanced layer controls, legal/compliance, exact monetization.",
     rookImplications:
@@ -573,8 +567,7 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
     gateResult: "Not started.",
     findings:
       "Request checks for living/family tree patterns, rarity without NFT/marketplace overscope, starter tree structures, privacy/QR access, hidden layers, character job profile writing, and avoiding income claims.",
-    receipts:
-      "Each checker should return Completed, Blocked, or No finding with source notes.",
+    receipts: "Each checker should return Completed, Blocked, or No finding with source notes.",
     blockers: "Assigned checkers needed.",
     nextOwner: "Luma.",
   },
@@ -698,10 +691,8 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
   "Demo Notes [Chief Added] / Experiment": {
     acceptanceCriteria:
       "Not started. Demo should explain exact path Boss can click: entry, tree import/create, node edit, card creation, QR/mobile preview.",
-    scopeBoundaries:
-      "Future marketplace/install/revenue/legal items remain parked.",
-    expectedEvidence:
-      "What works, what is rough, and what is parked after prototype exists.",
+    scopeBoundaries: "Future marketplace/install/revenue/legal items remain parked.",
+    expectedEvidence: "What works, what is rough, and what is parked after prototype exists.",
     bossReviewNeeded: "Yes.",
   },
   "Project Overlook / Next Movement Review / Experiment": {
@@ -787,19 +778,16 @@ const WR1_BOT_CARD_STUDIO_SEED: Record<string, Record<string, string>> = {
   },
   "Boomer Setup / Ward": {
     wardStatus: "Pending.",
-    installNotes:
-      "Boomer setup cannot be prepared until approved final package and live plan.",
+    installNotes: "Boomer setup cannot be prepared until approved final package and live plan.",
     orientationNotes: "Not available yet.",
     liveWatchNotes: "Not available yet.",
     nextOwner: "Ledger final record receipt.",
   },
   "Final Record Receipt [Chief Added] / Ward": {
     shipped: "Pending.",
-    parked:
-      "Future-only features from clean packet stay parked unless Boss approves otherwise.",
+    parked: "Future-only features from clean packet stay parked unless Boss approves otherwise.",
     ownsNext: "Pending after Ward/Boss final review.",
-    artifactsLocation:
-      "Project home and final package paths should be recorded here.",
+    artifactsLocation: "Project home and final package paths should be recorded here.",
   },
   "Live Watch / Ward": {
     wardStatus: "Pending.",
@@ -1714,16 +1702,117 @@ const CANONICAL_BY_MODE: Map<string, CanonicalWorkflowRow> = new Map(
   CANONICAL_WORKFLOW_ROWS.map((r) => [r.mode.trim().toLowerCase(), r]),
 );
 
+const CANONICAL_BY_CODE: Map<string, CanonicalWorkflowRow> = new Map(
+  CANONICAL_WORKFLOW_ROWS.map((r) => [r.code.trim().toLowerCase(), r]),
+);
+
+const WORKFLOW_ROW_CODE_RE = /\bwr1-(?:pre\d{2}|s\d{2})\b/i;
+
 /** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
 function canonicalCodeFor(mode?: string | null): string | null {
-  const row = CANONICAL_BY_MODE.get((mode ?? "").trim().toLowerCase());
+  const row = canonicalRowForStage(mode);
   return row?.code ?? null;
 }
 
 /** Strip leading numeric/decimal stage prefixes (e.g. "20. ", "2.2 ", "1. ") from user-visible strings. */
 function stripLegacyStagePrefix(value?: string | null): string {
   if (!value) return "";
-  return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
+  if (/^\s*\d+(?:\.\d+)?\s*$/.test(value)) return "";
+  return value
+    .replace(/^\s*\d+(?:\.\d+)?[.)]\s+/, "")
+    .replace(
+      /\b(Complete|Fill|Start|Open|Review|Prepare|Confirm|Continue|Send|Await)\s+\d+(?:\.\d+)?[.)]?\s+/gi,
+      "$1 ",
+    )
+    .trimStart();
+}
+
+function legacySafeWorkflowText(value?: string | null): string {
+  const stripped = stripLegacyStagePrefix(value);
+  if (/^\s*\d+(?:\.\d+)?(?:[.)]?\s*)?$/i.test(stripped)) return "non-canonical stored label";
+  return stripped || "non-canonical stored label";
+}
+
+function visibleWorkflowText(value?: string | null): string {
+  const stripped = stripLegacyStagePrefix(value);
+  if (!stripped) return "";
+  if (/^\s*\d+(?:\.\d+)?(?:[.)]?\s*)?$/i.test(stripped)) return "workflow_sync_blocked";
+  return stripped;
+}
+
+function canonicalRowForStage(
+  mode?: string | null,
+  holder?: string | null,
+): CanonicalWorkflowRow | null {
+  const raw = (mode ?? "").trim();
+  const code = raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase();
+  if (code) return CANONICAL_BY_CODE.get(code) ?? null;
+
+  const stripped = stripLegacyStagePrefix(raw);
+  const renamed = NESTED_STEP_RENAMES[workflowTextKey(stripped)] ?? stripped;
+  const exact = CANONICAL_BY_MODE.get(workflowTextKey(renamed));
+  if (exact) return exact;
+
+  const split = splitStepTitle(renamed);
+  const titleKey = workflowTextKey(split.title || renamed);
+  const phaseKey = workflowTextKey(split.phase);
+  const holderKey = workflowTextKey(holder);
+  let candidates = CANONICAL_WORKFLOW_ROWS.filter(
+    (row) => workflowTextKey(splitStepTitle(row.mode).title) === titleKey,
+  );
+  if (phaseKey) {
+    const phaseMatches = candidates.filter(
+      (row) => workflowTextKey(splitStepTitle(row.mode).phase) === phaseKey,
+    );
+    if (phaseMatches.length > 0) candidates = phaseMatches;
+  }
+  if (holderKey) {
+    const holderMatches = candidates.filter((row) => workflowTextKey(row.holder) === holderKey);
+    if (holderMatches.length > 0) candidates = holderMatches;
+  }
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function canonicalRowForHandoff(handoff?: Handoff | null): CanonicalWorkflowRow | null {
+  if (!handoff) return null;
+  const fromAssignment = canonicalRowForStage(handoff.assignment, handoff.bot);
+  return fromAssignment ?? canonicalRowForStage(handoff.mode, handoff.bot);
+}
+
+function canonicalStageLabel(row: CanonicalWorkflowRow): string {
+  return `${row.code} — ${row.mode} — ${row.holder}`;
+}
+
+function currentStageDisplay(project: Project): {
+  handoff: Handoff | null;
+  row: CanonicalWorkflowRow | null;
+  label: string;
+  blocked: boolean;
+  note: string;
+} {
+  const active = currentStageEntry(project)?.handoff ?? null;
+  const row =
+    canonicalRowForHandoff(active) ?? canonicalRowForStage(project.currentMode, project.currentBot);
+  const sync = computeWorkflowSync(project);
+  if (row) {
+    return {
+      handoff: active,
+      row,
+      label: canonicalStageLabel(row),
+      blocked: sync.status === "workflow_sync_blocked",
+      note:
+        sync.status === "workflow_sync_blocked"
+          ? "workflow_sync_blocked: Lovable and Ghost/controller row sources disagree."
+          : "",
+    };
+  }
+  return {
+    handoff: active,
+    row: null,
+    label: "workflow_sync_blocked",
+    blocked: true,
+    note: "Current stage does not map to the 36-row canonical workflow.",
+  };
 }
 
 /**
@@ -1737,18 +1826,23 @@ function scrubLegacyStageLabels(projects: Project[]): {
 } {
   let changed = false;
   const next = projects.map((p) => {
-    const scrubbedMode = stripLegacyStagePrefix(p.currentMode);
+    const currentRow = canonicalRowForStage(p.currentMode, p.currentBot);
+    const scrubbedMode = currentRow?.mode ?? stripLegacyStagePrefix(p.currentMode);
+    const scrubbedBot = currentRow?.holder ?? p.currentBot;
     const scrubbedNext = stripLegacyStagePrefix(p.nextAction);
     const handoffs = p.handoffs.map((h) => {
-      const cleanedMode = stripLegacyStagePrefix(h.mode);
-      if (cleanedMode !== h.mode) {
+      const handoffRow = canonicalRowForStage(h.mode, h.bot);
+      const cleanedMode = handoffRow?.mode ?? stripLegacyStagePrefix(h.mode);
+      const cleanedBot = handoffRow?.holder ?? h.bot;
+      if (cleanedMode !== h.mode || cleanedBot !== h.bot) {
         changed = true;
-        return { ...h, mode: cleanedMode };
+        return { ...h, mode: cleanedMode, bot: cleanedBot };
       }
       return h;
     });
     if (
       scrubbedMode !== p.currentMode ||
+      scrubbedBot !== p.currentBot ||
       scrubbedNext !== p.nextAction ||
       handoffs !== p.handoffs
     ) {
@@ -1756,11 +1850,35 @@ function scrubLegacyStageLabels(projects: Project[]): {
       return {
         ...p,
         currentMode: scrubbedMode || p.currentMode,
+        currentBot: scrubbedBot || p.currentBot,
         nextAction: scrubbedNext || p.nextAction,
         handoffs,
       };
     }
     return p;
+  });
+  return { projects: next, changed };
+}
+
+function repairKnownVisibleCurrentStages(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = projects.map((p) => {
+    const isWr1Repair =
+      p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
+    if (!isWr1Repair) return p;
+    const row = CANONICAL_BY_CODE.get("wr1-s16");
+    if (!row) return p;
+    if (p.currentMode === row.mode && p.currentBot === row.holder) return p;
+    changed = true;
+    return {
+      ...p,
+      currentMode: row.mode,
+      currentBot: row.holder,
+      nextAction: visibleWorkflowText(p.nextAction) || `Complete ${row.mode}`,
+    };
   });
   return { projects: next, changed };
 }
@@ -1775,10 +1893,7 @@ function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   return true;
 }
 
-type WorkflowSyncStatus =
-  | "workflow_synced"
-  | "workflow_sync_blocked"
-  | "not_applicable";
+type WorkflowSyncStatus = "workflow_synced" | "workflow_sync_blocked" | "not_applicable";
 
 type WorkflowSyncReport = {
   status: WorkflowSyncStatus;
@@ -1793,8 +1908,7 @@ type WorkflowSyncReport = {
 
 function computeWorkflowSync(project: Project): WorkflowSyncReport {
   const handoffs = project.handoffs;
-  if (!handoffs || handoffs.length === 0)
-    return { status: "not_applicable", mismatches: [] };
+  if (!handoffs || handoffs.length === 0) return { status: "not_applicable", mismatches: [] };
   const mismatches: WorkflowSyncReport["mismatches"] = [];
   const len = Math.max(handoffs.length, CANONICAL_WORKFLOW_ROWS.length);
   for (let i = 0; i < len; i++) {
@@ -1806,7 +1920,7 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
         code: canonical?.code ?? "n/a",
         field: "row order",
         expected: canonical?.mode ?? "(end of canonical list)",
-        actual: h?.mode ?? "(missing row)",
+        actual: h ? legacySafeWorkflowText(h.mode) : "(missing row)",
       });
       continue;
     }
@@ -1818,7 +1932,7 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
         code: canonical.code,
         field: "row order",
         expected: canonical.mode,
-        actual: h.mode ?? "(unset)",
+        actual: legacySafeWorkflowText(h.mode),
       });
       continue;
     }
@@ -1833,8 +1947,7 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
     }
     if (
       canonical.nextStep &&
-      (h.nextStep ?? "").trim().toLowerCase() !==
-        canonical.nextStep.trim().toLowerCase()
+      (h.nextStep ?? "").trim().toLowerCase() !== canonical.nextStep.trim().toLowerCase()
     ) {
       mismatches.push({
         index: i,
@@ -1908,7 +2021,9 @@ function repairToCanonicalWorkflow(projects: Project[]): {
     "Not Started": 0,
   };
   const titleKey = (mode?: string | null) =>
-    splitStepTitle(mode ?? "").title.trim().toLowerCase();
+    splitStepTitle(mode ?? "")
+      .title.trim()
+      .toLowerCase();
 
   const next = projects.map((project) => {
     if (project.handoffs.length === target && handoffsMatchCanonicalOrder(project.handoffs))
@@ -1934,12 +2049,7 @@ function repairToCanonicalWorkflow(projects: Project[]): {
         });
       } else {
         canonical.push(
-          createRequiredStageHandoff(
-            project.id,
-            stage.id,
-            canonical.length + 1,
-            "canonical",
-          ),
+          createRequiredStageHandoff(project.id, stage.id, canonical.length + 1, "canonical"),
         );
       }
     }
@@ -1948,14 +2058,11 @@ function repairToCanonicalWorkflow(projects: Project[]): {
     for (const existing of project.handoffs) {
       const stageId = stageForHandoff(existing).id;
       const exTitle = titleKey(existing.mode);
-      const slotIdx =
-        canonical.findIndex(
-          (c) => stageForHandoff(c).id === stageId && titleKey(c.mode) === exTitle,
-        );
+      const slotIdx = canonical.findIndex(
+        (c) => stageForHandoff(c).id === stageId && titleKey(c.mode) === exTitle,
+      );
       const fallbackIdx =
-        slotIdx >= 0
-          ? slotIdx
-          : canonical.findIndex((c) => stageForHandoff(c).id === stageId);
+        slotIdx >= 0 ? slotIdx : canonical.findIndex((c) => stageForHandoff(c).id === stageId);
       if (fallbackIdx < 0) continue;
       const slot = canonical[fallbackIdx];
       const betterStatus =
@@ -2078,7 +2185,11 @@ function saveProjects(projects: Project[]) {
 }
 
 function samePersistedProjects(a: Project[], b: Project[]) {
-  try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
 }
 
 function fmtTime(iso: string) {
@@ -2184,9 +2295,10 @@ function activeWorkflowEntry(handoffs: Handoff[]): WorkflowEntry | null {
 
 function currentStageEntry(project: Project): WorkflowEntry | null {
   const entries = workflowEntries(project.handoffs);
-  const modeKey = workflowTextKey(project.currentMode);
+  const canonicalMode = canonicalRowForStage(project.currentMode, project.currentBot)?.mode;
+  const modeKey = workflowTextKey(canonicalMode ?? stripLegacyStagePrefix(project.currentMode));
   const botKey = workflowTextKey(project.currentBot);
-  const nextActionKey = workflowTextKey(project.nextAction);
+  const nextActionKey = workflowTextKey(stripLegacyStagePrefix(project.nextAction));
   const inFlight = new Set<HandoffStatus>(["Sent", "Working", "Needs Review", "Blocked"]);
   const isOpen = (h: Handoff) => h.status !== "Complete" && h.status !== "Parked";
   const findMode = (mode: string) =>
@@ -2199,16 +2311,16 @@ function currentStageEntry(project: Project): WorkflowEntry | null {
     if (projectTypeGate) return projectTypeGate;
   }
 
+  if (modeKey) {
+    const savedMode = findMode(modeKey);
+    if (savedMode) return savedMode;
+  }
+
   const ownedInFlight = entries.find(
     ({ handoff }) =>
       inFlight.has(handoff.status) && (!botKey || workflowTextKey(handoff.bot) === botKey),
   );
   if (ownedInFlight) return ownedInFlight;
-
-  if (modeKey) {
-    const savedMode = findMode(modeKey);
-    if (savedMode) return savedMode;
-  }
 
   return entries.find(({ handoff }) => inFlight.has(handoff.status)) ?? null;
 }
@@ -2360,22 +2472,28 @@ function ProjectCreatorPage() {
     const stored = loadProjects();
     const { projects: migrated, changed: migratedChanged } = migrateProjects(stored);
     const { projects: ensured, changed: ensuredChanged } = ensureRequiredStages(migrated);
-    const { projects: repaired, changed: repairedChanged } =
-      repairToCanonicalWorkflow(ensured);
-    const { projects: scrubbed, changed: scrubbedChanged } =
-      scrubLegacyStageLabels(repaired);
-    if (migratedChanged || ensuredChanged || repairedChanged || scrubbedChanged)
-      saveProjects(scrubbed);
-    setProjects(scrubbed);
+    const { projects: repaired, changed: repairedChanged } = repairToCanonicalWorkflow(ensured);
+    const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
+    const { projects: currentRepaired, changed: currentRepairedChanged } =
+      repairKnownVisibleCurrentStages(scrubbed);
+    if (
+      migratedChanged ||
+      ensuredChanged ||
+      repairedChanged ||
+      scrubbedChanged ||
+      currentRepairedChanged
+    )
+      saveProjects(currentRepaired);
+    setProjects(currentRepaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = repaired.find(
+    const redDonkey = currentRepaired.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = repaired.find(
+    const firstVisible = currentRepaired.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? currentRepaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2385,11 +2503,13 @@ function ProjectCreatorPage() {
   useEffect(() => {
     if (!hydrated) return;
     const { projects: ensured, changed } = ensureRequiredStages(projects);
-    const { projects: repaired, changed: repairedChanged } =
-      repairToCanonicalWorkflow(ensured);
-    if (changed || repairedChanged) {
-      saveProjects(repaired);
-      if (!samePersistedProjects(projects, repaired)) setProjects(repaired);
+    const { projects: repaired, changed: repairedChanged } = repairToCanonicalWorkflow(ensured);
+    const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
+    const { projects: currentRepaired, changed: currentRepairedChanged } =
+      repairKnownVisibleCurrentStages(scrubbed);
+    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged) {
+      saveProjects(currentRepaired);
+      if (!samePersistedProjects(projects, currentRepaired)) setProjects(currentRepaired);
       return;
     }
     saveProjects(projects);
@@ -2747,6 +2867,7 @@ function ProjectCreatorPage() {
 
   function moveHandoff(id: string, dir: -1 | 1) {
     updateSelected((p) => {
+      if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const idx = p.handoffs.findIndex((h) => h.id === id);
       if (idx < 0) return p;
       const target = idx + dir;
@@ -2774,6 +2895,7 @@ function ProjectCreatorPage() {
 
   function changeHandoffStatus(id: string, status: HandoffStatus) {
     updateSelected((p) => {
+      if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const h = p.handoffs.find((x) => x.id === id);
       if (!h || h.status === status) return p;
       // Snapshot project-level Step Result fields onto the handoff record
@@ -3041,12 +3163,13 @@ function ProjectCreatorPage() {
               <ul className="space-y-1.5">
                 {filteredProjects.map((p) => {
                   const active = selected?.id === p.id;
-                  const workflow = currentStageEntry(p)?.handoff;
-                  const rawMode = workflow?.mode || p.currentMode;
-                  const split = splitStepTitle(rawMode);
-                  const displayBot = workflow?.bot || p.currentBot;
-                  const displayMode = split.title || rawMode;
-                  const displayPhase = split.phase;
+                  const current = currentStageDisplay(p);
+                  const split = splitStepTitle(current.row?.mode ?? "");
+                  const displayBot = current.row?.holder || current.handoff?.bot || p.currentBot;
+                  const displayMode = current.row
+                    ? `${current.row.code} — ${split.title || current.row.mode}`
+                    : current.label;
+                  const displayPhase = current.row ? split.phase : "";
                   return (
                     <li key={p.id}>
                       <div
@@ -3071,9 +3194,7 @@ function ProjectCreatorPage() {
                               ? p.projectTypeCustom || "Other / Custom"
                               : p.projectType || "Unclassified"}{" "}
                             · {displayMode} · {displayBot}
-                            {displayPhase && (
-                              <span className="opacity-60"> · {displayPhase}</span>
-                            )}
+                            {displayPhase && <span className="opacity-60"> · {displayPhase}</span>}
                           </div>
                           <div className="mt-0.5 text-[10px] text-muted-foreground/70">
                             updated {fmtTime(p.updatedAt)}
@@ -3230,9 +3351,7 @@ function ProjectCreatorPage() {
             >
               Delete project
             </div>
-            <div className="mt-1 font-display text-lg font-semibold">
-              {deleteTarget.name}
-            </div>
+            <div className="mt-1 font-display text-lg font-semibold">{deleteTarget.name}</div>
 
             {deletePhase === 1 && (
               <>
@@ -3240,8 +3359,8 @@ function ProjectCreatorPage() {
                   You are about to delete this project. Are you sure?
                 </p>
                 <p className="mt-2 text-[11px] text-muted-foreground/70">
-                  This removes the project from local app state and localStorage.
-                  Export your data first if you want a copy.
+                  This removes the project from local app state and localStorage. Export your data
+                  first if you want a copy.
                 </p>
                 <div className="mt-4 flex justify-end gap-2">
                   <button
@@ -3271,8 +3390,10 @@ function ProjectCreatorPage() {
                 <p className="mt-3 text-sm text-muted-foreground">
                   Type the phrase below exactly to enable deletion.
                 </p>
-                <div className="mt-2 rounded-md border px-2 py-1.5 font-mono text-xs"
-                  style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.4)" }}>
+                <div
+                  className="mt-2 rounded-md border px-2 py-1.5 font-mono text-xs"
+                  style={{ borderColor: AMBER_SOFT, background: "oklch(0.15 0.02 60 / 0.4)" }}
+                >
                   delete {deleteTarget.name}
                 </div>
                 <input
@@ -3327,6 +3448,7 @@ function StatusPanel({
   const latestActivity = [...project.activity].sort((a, b) => b.at.localeCompare(a.at))[0];
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
+  const current = currentStageDisplay(project);
   const hasBlocker = !!project.blocker;
 
   return (
@@ -3353,12 +3475,18 @@ function StatusPanel({
           Current stage
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
-          {active
-            ? `${canonicalCodeFor(active.mode) ?? "(non-canonical)"} — ${splitStepTitle(active.mode).title || "untitled"} — ${active.bot || "—"}`
-            : stripLegacyStagePrefix(project.currentMode) || "—"}
+          {current.label}
         </div>
+        {current.blocked && current.note && (
+          <div className="mt-1 text-[11px]" style={{ color: AMBER }}>
+            {current.note}
+          </div>
+        )}
         <div className="mt-0.5 text-[11px] text-muted-foreground">
-          owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          owner{" "}
+          <span className="text-foreground">
+            {current.row?.holder || active?.bot || project.currentBot || "—"}
+          </span>
           {active && (
             <>
               {" "}
@@ -3437,7 +3565,7 @@ function StatusPanel({
           </Field>
           <Field label="Mode">
             <input
-              value={project.currentMode}
+              value={current.row?.mode ?? visibleWorkflowText(project.currentMode)}
               onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
               className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
               style={{ borderColor: AMBER_SOFT }}
@@ -3759,8 +3887,9 @@ function WorkflowRail({
               : isPhaseSelected
                 ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 4px 10px -6px ${phaseColor}66`
                 : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
+            const activeRow = canonicalRowForHandoff(activeItem?.handoff ?? null);
             const summary = activeItem
-              ? `Current: ${splitStepTitle(activeItem.handoff.mode).title || "—"}`
+              ? `Current: ${activeRow ? canonicalStageLabel(activeRow) : "workflow_sync_blocked"}`
               : outOfOrderComplete
                 ? `${total} on file (filed early)`
                 : allComplete
@@ -3903,8 +4032,9 @@ function WorkflowRail({
                                 : isActive
                                   ? "●"
                                   : "○";
-                        const { title } = splitStepTitle(h.mode);
-                        const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNum}.${itemIdx + 1}`;
+                        const row = canonicalRowForHandoff(h);
+                        const { title } = splitStepTitle(row?.mode ?? h.mode);
+                        const nestedNum = row?.code ?? "workflow_sync_blocked";
                         return (
                           <li key={h.id}>
                             <button
@@ -3919,7 +4049,7 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${nestedNum} — ${h.mode} — ${h.bot || "—"} · ${h.status}`}
+                              title={`${nestedNum} — ${row?.mode ?? "workflow_sync_blocked"} — ${row?.holder || h.bot || "—"} · ${h.status}`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
@@ -4021,26 +4151,29 @@ function PhaseOverview({
             Phase {phaseNumber} overview
           </div>
           <div className="mt-1 flex flex-wrap items-baseline gap-2">
-            <h3 className="font-display text-xl font-semibold leading-tight" style={{ color: AMBER }}>
+            <h3
+              className="font-display text-xl font-semibold leading-tight"
+              style={{ color: AMBER }}
+            >
               {bucket.phase.label}
             </h3>
-        {isActivePhase && (
-          <span
-            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
-            style={{ borderColor: AMBER, color: "oklch(0.2 0.04 60)", background: AMBER }}
-          >
-            now
-          </span>
-        )}
-        {isHistoricalComplete && (
-          <span
-            className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-            style={{ borderColor: AMBER_SOFT }}
-            title="These steps were completed earlier — not the project's final delivery."
-          >
-            on file
-          </span>
-        )}
+            {isActivePhase && (
+              <span
+                className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em]"
+                style={{ borderColor: AMBER, color: "oklch(0.2 0.04 60)", background: AMBER }}
+              >
+                now
+              </span>
+            )}
+            {isHistoricalComplete && (
+              <span
+                className="rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+                style={{ borderColor: AMBER_SOFT }}
+                title="These steps were completed earlier — not the project's final delivery."
+              >
+                on file
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{bucket.phase.blurb}</p>
         </div>
@@ -4069,14 +4202,16 @@ function PhaseOverview({
           <span>
             <span className="opacity-60">Current step: </span>
             <span className="text-foreground">
-              {splitStepTitle(activeItem.handoff.mode).title || "—"}
+              {canonicalRowForHandoff(activeItem.handoff)
+                ? canonicalStageLabel(canonicalRowForHandoff(activeItem.handoff)!)
+                : "workflow_sync_blocked"}
             </span>
           </span>
         )}
         {isActivePhase && project.nextAction && (
           <span>
             <span className="opacity-60">Next action: </span>
-            <span className="text-foreground">{project.nextAction}</span>
+            <span className="text-foreground">{visibleWorkflowText(project.nextAction)}</span>
           </span>
         )}
         {isHistoricalComplete && (
@@ -4105,8 +4240,9 @@ function PhaseOverview({
                   : isActive
                     ? AMBER
                     : NEUTRAL;
-          const { title } = splitStepTitle(h.mode);
-          const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNumber}.${itemIdx + 1}`;
+          const row = canonicalRowForHandoff(h);
+          const { title } = splitStepTitle(row?.mode ?? h.mode);
+          const nestedNum = row?.code ?? "workflow_sync_blocked";
           return (
             <li key={h.id}>
               <button
@@ -4141,10 +4277,10 @@ function PhaseOverview({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">
-                    {title || <span className="italic opacity-60">untitled</span>}
+                    {row ? `${row.code} — ${title || row.mode}` : "workflow_sync_blocked"}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    {h.bot || "—"} · {h.status}
+                    {row?.holder || h.bot || "—"} · {h.status}
                   </span>
                 </span>
                 <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
@@ -4229,7 +4365,8 @@ function CommandReceiptModal({
 // ---------- All steps / receipts table (used inside Command Receipt) ----------
 function AllStepsReceiptsTable({ project }: { project: Project }) {
   const rows = project.handoffs.map((h, i) => {
-    const split = splitStepTitle(h.mode);
+    const row = canonicalRowForHandoff(h);
+    const split = splitStepTitle(row?.mode ?? h.mode);
     const phase = phaseForHandoff(h);
     const hasReceipt =
       !!h.receiptLink ||
@@ -4239,8 +4376,8 @@ function AllStepsReceiptsTable({ project }: { project: Project }) {
     return {
       idx: i + 1,
       phaseLabel: phase.label,
-      title: split.title || h.mode || "—",
-      owner: h.bot || "—",
+      title: row ? `${row.code} — ${split.title || row.mode}` : "workflow_sync_blocked",
+      owner: row?.holder || h.bot || "—",
       status: h.status,
       hasReceipt,
       nextOwner: h.nextBot,
@@ -4430,7 +4567,7 @@ function deriveSourcePacket(project: Project): string {
   }
   for (const h of project.handoffs) {
     const body = h.artifactBody ?? "";
-    const m = body.match(/(?:packet|source)[^\n:]*[:\-]\s*([^\n]+)/i);
+    const m = body.match(/(?:packet|source)[^\n:]*[:-]\s*([^\n]+)/i);
     if (m && m[1]) return m[1].trim();
     if (h.receiptLink && /packet/i.test(h.receiptLink)) return h.receiptLink;
   }
@@ -4449,17 +4586,19 @@ function ProjectContextStrip({ project }: { project: Project }) {
   const sourcePacket = deriveSourcePacket(project);
   const mode = project.creatorMode ?? "Better";
   const liveReceipts = hasRealReceiptLinks(project);
-  const processType =
-    mode === "Good" || !liveReceipts ? "Board walkthrough" : "Live lane run";
+  const processType = mode === "Good" || !liveReceipts ? "Board walkthrough" : "Live lane run";
   const processNote =
     processType === "Board walkthrough"
       ? "Board walkthrough completion proves Project Board movement only — not that every named lane owner produced a real report."
       : "Real receipt links detected on this project.";
-  const gateStatus =
-    "No live dispatch · No publish · No spend · No runtime unless approved";
+  const gateStatus = "No live dispatch · No publish · No spend · No runtime unless approved";
 
   const items: Array<{ label: string; value: string; note?: string; tone?: "amber" | "muted" }> = [
-    { label: "Source Packet", value: sourcePacket, tone: sourcePacket === "not recorded" ? "muted" : "amber" },
+    {
+      label: "Source Packet",
+      value: sourcePacket,
+      tone: sourcePacket === "not recorded" ? "muted" : "amber",
+    },
     { label: "Process Type", value: processType, note: processNote, tone: "amber" },
     { label: "Gate Status", value: "All closed by default", note: gateStatus, tone: "muted" },
   ];
@@ -4483,9 +4622,7 @@ function ProjectContextStrip({ project }: { project: Project }) {
             >
               {it.value}
             </div>
-            {it.note && (
-              <div className="text-[10px] text-muted-foreground/80">{it.note}</div>
-            )}
+            {it.note && <div className="text-[10px] text-muted-foreground/80">{it.note}</div>}
           </div>
         ))}
       </div>
@@ -4521,7 +4658,8 @@ function detectBotBridge(): { available: boolean; detail: string } {
   }
   return {
     available: false,
-    detail: "No window.__DABOTTREE_BOT_BRIDGE__ in this preview. No live dispatch, publish, spend, or runtime route is wired.",
+    detail:
+      "No window.__DABOTTREE_BOT_BRIDGE__ in this preview. No live dispatch, publish, spend, or runtime route is wired.",
   };
 }
 
@@ -4547,7 +4685,9 @@ function RealRoutePreflight({
     try {
       if (bridge.available && typeof window !== "undefined") {
         const w = window as unknown as {
-          __DABOTTREE_BOT_BRIDGE__?: { sendReceipt?: (bot: string, text: string) => Promise<string> };
+          __DABOTTREE_BOT_BRIDGE__?: {
+            sendReceipt?: (bot: string, text: string) => Promise<string>;
+          };
         };
         const evidence = await w.__DABOTTREE_BOT_BRIDGE__!.sendReceipt!(bot, GG_RECEIPT_TEXT);
         result = {
@@ -4612,8 +4752,8 @@ function RealRoutePreflight({
             {statusLabel}
           </div>
           <div className="mt-0.5 text-[10px] text-muted-foreground/80">
-            {bridge.detail} Any receipt captured here is board-simulated unless a
-            real bot route returns evidence.
+            {bridge.detail} Any receipt captured here is board-simulated unless a real bot route
+            returns evidence.
           </div>
         </div>
         <div className="flex shrink-0 gap-1.5">
@@ -4684,14 +4824,14 @@ function HHBridgeReadinessPanel({ project }: { project: Project }) {
           </div>
         </div>
         <div className="text-[10px] text-muted-foreground/80">
-          Local files can be prepared for Ghost / local-runner mirroring. This
-          preview still has no real bot route.
+          Local files can be prepared for Ghost / local-runner mirroring. This preview still has no
+          real bot route.
         </div>
       </div>
 
       <p className="mt-2 text-[11px] text-muted-foreground/90">
-        H/H prepares the board for local report and Lovable mirror payload
-        handling. It does not prove a real bot route.
+        H/H prepares the board for local report and Lovable mirror payload handling. It does not
+        prove a real bot route.
       </p>
 
       <div className="mt-2 grid gap-2 md:grid-cols-2">
@@ -4762,7 +4902,9 @@ function HHBridgeReadinessPanel({ project }: { project: Project }) {
                   <td className="pr-2 py-1 align-top">{row.label}</td>
                   <td className="pr-2 py-1 align-top">{row.out.bridge_status ?? "local_only"}</td>
                   <td className="pr-2 py-1 align-top">{row.out.local_report_path ?? "pending"}</td>
-                  <td className="pr-2 py-1 align-top">{row.out.mirror_payload_path ?? "pending"}</td>
+                  <td className="pr-2 py-1 align-top">
+                    {row.out.mirror_payload_path ?? "pending"}
+                  </td>
                   <td className="pr-2 py-1 align-top">{row.out.receipt_type ?? "none"}</td>
                 </tr>
               ))}
@@ -4791,14 +4933,8 @@ function StableBridgeProcessPanel() {
       aria-label="Stable Bridge Process panel"
     >
       <div className="mb-2 flex items-center gap-2">
-        <div
-          className="h-2 w-2 rounded-full"
-          style={{ background: EMERALD }}
-        />
-        <h3
-          className="font-display text-sm font-semibold tracking-tight"
-          style={{ color: AMBER }}
-        >
+        <div className="h-2 w-2 rounded-full" style={{ background: EMERALD }} />
+        <h3 className="font-display text-sm font-semibold tracking-tight" style={{ color: AMBER }}>
           Stable Bridge Process
         </h3>
       </div>
@@ -4811,9 +4947,7 @@ function StableBridgeProcessPanel() {
           <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
             bridge_process_status
           </div>
-          <div className="mt-0.5 font-semibold text-foreground/90">
-            stable_local_only
-          </div>
+          <div className="mt-0.5 font-semibold text-foreground/90">stable_local_only</div>
         </div>
         <div
           className="rounded-md border px-2 py-1.5 text-[11px]"
@@ -4822,9 +4956,7 @@ function StableBridgeProcessPanel() {
           <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
             runner
           </div>
-          <div className="mt-0.5 font-semibold text-foreground/90">
-            local-bridge-runner.mjs
-          </div>
+          <div className="mt-0.5 font-semibold text-foreground/90">local-bridge-runner.mjs</div>
         </div>
       </div>
 
@@ -4836,7 +4968,8 @@ function StableBridgeProcessPanel() {
           source_material_policy
         </div>
         <div className="mt-0.5 text-muted-foreground/90">
-          Blue Lantern and double-letter runs are reference / proof / history only, not required by the stable process.
+          Blue Lantern and double-letter runs are reference / proof / history only, not required by
+          the stable process.
         </div>
       </div>
 
@@ -4847,9 +4980,7 @@ function StableBridgeProcessPanel() {
         <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
           test_artifacts_status
         </div>
-        <div className="mt-0.5 font-semibold text-foreground/90">
-          disposable
-        </div>
+        <div className="mt-0.5 font-semibold text-foreground/90">disposable</div>
       </div>
 
       <div
@@ -4883,10 +5014,7 @@ function StableBridgeProcessPanel() {
                     item.status === "yes"
                       ? "oklch(0.7 0.14 160 / 0.12)"
                       : "oklch(0.78 0.18 50 / 0.12)",
-                  color:
-                    item.status === "yes"
-                      ? EMERALD
-                      : AMBER,
+                  color: item.status === "yes" ? EMERALD : AMBER,
                 }}
               >
                 {item.status}
@@ -4930,10 +5058,7 @@ function WorkflowSyncPanel({ project }: { project: Project }) {
     >
       <div className="mb-2 flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ background: tone }} />
-        <h3
-          className="font-display text-sm font-semibold tracking-tight"
-          style={{ color: tone }}
-        >
+        <h3 className="font-display text-sm font-semibold tracking-tight" style={{ color: tone }}>
           Workflow Sync (Lovable ↔ Ghost / Controller)
         </h3>
         <span
@@ -4960,9 +5085,7 @@ function WorkflowSyncPanel({ project }: { project: Project }) {
                 <span style={{ color: AMBER }}>{m.actual}</span>
               </li>
             ))}
-            {report.mismatches.length > 6 && (
-              <li>… {report.mismatches.length - 6} more</li>
-            )}
+            {report.mismatches.length > 6 && <li>… {report.mismatches.length - 6} more</li>}
           </ul>
         </div>
       ) : (
@@ -4970,7 +5093,10 @@ function WorkflowSyncPanel({ project }: { project: Project }) {
           Lovable visible workflow matches Ghost/controller canonical workflow.
         </div>
       )}
-      <div className="mt-2 rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+      <div
+        className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+        style={{ borderColor: AMBER_SOFT }}
+      >
         <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
           group gates (explicit)
         </div>
@@ -4999,16 +5125,11 @@ function WorkflowStepTrackingPanel({
   const out = handoff?.stepOutput ?? {};
   const holder = handoff?.bot || "unassigned";
   const stepMeaning = handoff?.mode || "no active step";
-  const handoffPath =
-    out["handoffPath"] || out["handoffId"] || handoff?.id || "not recorded";
+  const handoffPath = out["handoffPath"] || out["handoffId"] || handoff?.id || "not recorded";
   const expectedReceipt =
-    out["expectedReceiptPath"] ||
-    out["receiptPath"] ||
-    handoff?.receiptLink ||
-    "not recorded";
+    out["expectedReceiptPath"] || out["receiptPath"] || handoff?.receiptLink || "not recorded";
   const doneMeans =
-    out["doneMeans"] ||
-    "Terminal receipt filed: Completed, Blocked, or Needs Boss/Chief decision.";
+    out["doneMeans"] || "Terminal receipt filed: Completed, Blocked, or Needs Boss/Chief decision.";
 
   const status = handoff?.status ?? "Not Started";
   const terminalStates: HandoffStatus[] = ["Complete", "Blocked", "Parked"];
@@ -5029,8 +5150,7 @@ function WorkflowStepTrackingPanel({
   const recoveryTerminal = out["recoveryTerminal"] || "n/a";
 
   const recoveryActive =
-    recoveryStatus.toLowerCase() !== "not in recovery" &&
-    recoveryStatus.toLowerCase() !== "n/a";
+    recoveryStatus.toLowerCase() !== "not in recovery" && recoveryStatus.toLowerCase() !== "n/a";
   const recoverySucceeded = /succeed|recovered|resolved/i.test(recoveryStatus);
   const sessionSaysBlocked = /block/i.test(sessionVerified) || status === "Blocked";
   const staleNoise = recoverySucceeded && sessionSaysBlocked;
@@ -5063,22 +5183,12 @@ function WorkflowStepTrackingPanel({
     value: string;
     tone?: "amber" | "muted" | "emerald";
   }) => (
-    <div
-      className="rounded-md border px-2 py-1.5 text-[11px]"
-      style={{ borderColor: AMBER_SOFT }}
-    >
-      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
-        {label}
-      </div>
+    <div className="rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">{label}</div>
       <div
         className="mt-0.5 break-words font-medium"
         style={{
-          color:
-            tone === "amber"
-              ? AMBER
-              : tone === "emerald"
-                ? EMERALD
-                : undefined,
+          color: tone === "amber" ? AMBER : tone === "emerald" ? EMERALD : undefined,
         }}
       >
         {value}
@@ -5094,10 +5204,7 @@ function WorkflowStepTrackingPanel({
     >
       <div className="mb-2 flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ background: AMBER }} />
-        <h3
-          className="font-display text-sm font-semibold tracking-tight"
-          style={{ color: AMBER }}
-        >
+        <h3 className="font-display text-sm font-semibold tracking-tight" style={{ color: AMBER }}>
           Workflow Step Tracking
         </h3>
       </div>
@@ -5133,14 +5240,12 @@ function WorkflowStepTrackingPanel({
             className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
             style={{ borderColor: AMBER_SOFT, color: AMBER }}
           >
-            stale status noise: recovery succeeded but older session/status text
-            still reads blocked. Treat older blocked text as stale, not as a
-            live blocker.
+            stale status noise: recovery succeeded but older session/status text still reads
+            blocked. Treat older blocked text as stale, not as a live blocker.
           </div>
         )}
         <div className="mt-2 text-[10px] text-muted-foreground/80">
-          Failed holder recovery requires receipt-first proof before the step
-          can move.
+          Failed holder recovery requires receipt-first proof before the step can move.
         </div>
       </div>
 
@@ -5226,13 +5331,16 @@ function SelectedStepDetail({
   useEffect(() => {
     setTab("output");
   }, [handoff.id, project.id]);
-  const { title: parsedTitle } = splitStepTitle(handoff.mode);
+  const canonicalRow = canonicalRowForHandoff(handoff);
+  const { title: parsedTitle } = splitStepTitle(canonicalRow?.mode ?? handoff.mode);
   // Phase label should reflect the actual workflow phase the step is
   // grouped under in the rail, not whatever suffix the legacy mode
   // string happens to carry (e.g. "Chief Intake Summary / Clarity"
   // belongs to the Chief Review phase, not Clarity).
   const phase = phaseForHandoff(handoff).label;
-  const title = parsedTitle || "Untitled step";
+  const title = canonicalRow
+    ? `${canonicalRow.code} — ${parsedTitle || canonicalRow.mode}`
+    : "workflow_sync_blocked";
   const stageColor =
     handoff.status === "Complete"
       ? EMERALD
@@ -5260,7 +5368,8 @@ function SelectedStepDetail({
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span>
-              <span className="opacity-60">Owner:</span> {handoff.bot || "—"}
+              <span className="opacity-60">Owner:</span>{" "}
+              {canonicalRow?.holder || handoff.bot || "—"}
             </span>
             {phase && (
               <span>
@@ -5545,8 +5654,7 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           label: "Starting instruction",
           multiline: true,
           rows: 3,
-          placeholder:
-            "What Chief is setting up on the board before pressing Done / Go / Start.",
+          placeholder: "What Chief is setting up on the board before pressing Done / Go / Start.",
         },
         {
           key: "bossDecisions",
@@ -5608,8 +5716,7 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           label: "Lantern kickoff / stage-step job",
           multiline: true,
           rows: 3,
-          placeholder:
-            "Stage + Step + exact Column G instruction Compass is running here.",
+          placeholder: "Stage + Step + exact Column G instruction Compass is running here.",
         },
         {
           key: "researchFrame",
@@ -5647,8 +5754,18 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 3,
           placeholder: "Things that could break the run if ignored.",
         },
-        { key: "vaultAssignment", label: "Vault lane (money / sustainability)", multiline: true, rows: 2 },
-        { key: "bloomAssignment", label: "Bloom lane (audience / growth)", multiline: true, rows: 2 },
+        {
+          key: "vaultAssignment",
+          label: "Vault lane (money / sustainability)",
+          multiline: true,
+          rows: 2,
+        },
+        {
+          key: "bloomAssignment",
+          label: "Bloom lane (audience / growth)",
+          multiline: true,
+          rows: 2,
+        },
         { key: "lumaAssignment", label: "Luma lane (design / trust)", multiline: true, rows: 2 },
         {
           key: "evidenceReceipt",
@@ -5745,7 +5862,12 @@ const STEP_TEMPLATE_MATCHERS: Array<{
             "Past: visual languages that earned trust. Present: current direction. Future: parked polish / theme passes.",
         },
         { key: "visualDirection", label: "Visual direction", multiline: true, rows: 3 },
-        { key: "readabilityAccessibility", label: "Readability / accessibility", multiline: true, rows: 3 },
+        {
+          key: "readabilityAccessibility",
+          label: "Readability / accessibility",
+          multiline: true,
+          rows: 3,
+        },
         { key: "designRisks", label: "Design risks", multiline: true, rows: 3 },
       ],
     },
@@ -5796,7 +5918,12 @@ const STEP_TEMPLATE_MATCHERS: Array<{
         },
         { key: "includedInputs", label: "Included inputs", multiline: true, rows: 3 },
         { key: "parkedHooks", label: "Parked future hooks", multiline: true, rows: 3 },
-        { key: "rookImplications", label: "Implications for Rook (Knowledge)", multiline: true, rows: 3 },
+        {
+          key: "rookImplications",
+          label: "Implications for Rook (Knowledge)",
+          multiline: true,
+          rows: 3,
+        },
         {
           key: "evidenceReceipt",
           label: "Evidence / receipt",
@@ -5823,7 +5950,12 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 4,
         },
         { key: "scopeBoundaries", label: "Scope boundaries", multiline: true, rows: 3 },
-        { key: "expectedEvidence", label: "Expected evidence from Tinker", multiline: true, rows: 3 },
+        {
+          key: "expectedEvidence",
+          label: "Expected evidence from Tinker",
+          multiline: true,
+          rows: 3,
+        },
         { key: "bossReviewNeeded", label: "Boss review needed?", placeholder: "yes / no + what" },
       ],
     },
@@ -5934,7 +6066,12 @@ const STEP_TEMPLATE_MATCHERS: Array<{
           rows: 4,
         },
         { key: "technicalNotes", label: "Technical notes", multiline: true, rows: 3 },
-        { key: "contentBehaviorNotes", label: "Content / behavior notes", multiline: true, rows: 3 },
+        {
+          key: "contentBehaviorNotes",
+          label: "Content / behavior notes",
+          multiline: true,
+          rows: 3,
+        },
         { key: "nextSliceGuidance", label: "Next-slice guidance", multiline: true, rows: 3 },
       ],
     },
@@ -6518,8 +6655,13 @@ function CompletedReceiptBanner({
 }) {
   if (handoff.status !== "Complete") return null;
   const nextEntry = nextOpenWorkflowEntryAfter(project.handoffs, handoff.id);
-  const nextTitle = nextEntry ? splitStepTitle(nextEntry.handoff.mode).title : null;
-  const nextOwner = nextEntry?.handoff.bot;
+  const nextRow = canonicalRowForHandoff(nextEntry?.handoff ?? null);
+  const nextTitle = nextRow
+    ? canonicalStageLabel(nextRow)
+    : nextEntry
+      ? "workflow_sync_blocked"
+      : null;
+  const nextOwner = nextRow?.holder || nextEntry?.handoff.bot;
   return (
     <div
       className="mb-3 rounded-md border px-3 py-2 text-[11px]"
@@ -7049,18 +7191,19 @@ function ProjectMain({
             }
           />
           {(() => {
-            const split = splitStepTitle(project.currentMode);
+            const current = currentStageDisplay(project);
+            const split = splitStepTitle(current.row?.mode ?? "");
             return (
               <>
                 <MetaItem
                   label="Project Mode"
                   value={
-                    split.phase
-                      ? `${split.title || project.currentMode} · ${split.phase}`
-                      : split.title || project.currentMode
+                    current.row
+                      ? `${current.row.code} — ${split.title || current.row.mode}${split.phase ? ` · ${split.phase}` : ""}`
+                      : current.label
                   }
                 />
-                <MetaItem label="Owner" value={displayBot} />
+                <MetaItem label="Owner" value={current.row?.holder || displayBot} />
               </>
             );
           })()}
@@ -7073,10 +7216,10 @@ function ProjectMain({
       {project.id === GIGI_GARDEN_ID && (
         <RealRoutePreflight project={project} onChange={onChange} />
       )}
-      {project.id === HENRY_HANDOFF_ID && (
-        <HHBridgeReadinessPanel project={project} />
+      {project.id === HENRY_HANDOFF_ID && <HHBridgeReadinessPanel project={project} />}
+      {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && (
+        <StableBridgeProcessPanel />
       )}
-      {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && <StableBridgeProcessPanel />}
       <WorkflowSyncPanel project={project} />
       <WorkflowStepTrackingPanel project={project} handoff={selectedHandoff ?? null} />
 
@@ -7135,7 +7278,8 @@ function MetaItem({ label, value, muted }: { label: string; value: string; muted
 function CurrentStageIndicator({ project, onClick }: { project: Project; onClick?: () => void }) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
-  const hasBlocker = !!project.blocker || active?.status === "Blocked";
+  const current = currentStageDisplay(project);
+  const hasBlocker = !!project.blocker || active?.status === "Blocked" || current.blocked;
   const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
   const nextAction = project.nextAction?.trim();
 
@@ -7162,15 +7306,21 @@ function CurrentStageIndicator({ project, onClick }: { project: Project; onClick
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {project.handoffs.indexOf(active) + 1}.{" "}
-            {splitStepTitle(active.mode).title || "untitled stage"}
+            {current.label}
           </span>
           <span className="text-xs text-muted-foreground">
-            owner <strong className="text-foreground">{active.bot || "—"}</strong>
+            owner{" "}
+            <strong className="text-foreground">{current.row?.holder || active.bot || "—"}</strong>
             {" · "}phase{" "}
             <strong className="text-foreground">{phaseForHandoff(active).label}</strong>
           </span>
           <StatusPill status={active.status} />
+        </div>
+      )}
+
+      {current.blocked && current.note && (
+        <div className="mt-2 text-xs" style={{ color: accent }}>
+          {current.note}
         </div>
       )}
 
@@ -7180,7 +7330,7 @@ function CurrentStageIndicator({ project, onClick }: { project: Project; onClick
             Next required action
           </span>
           <span className="text-foreground">
-            {nextAction ||
+            {visibleWorkflowText(nextAction) ||
               `${active?.nextStep ?? ""}${active?.nextBot ? ` — by ${active.nextBot}` : ""}`}
           </span>
         </div>
@@ -7550,6 +7700,7 @@ function HandoffCard({
   const isComplete = handoff.status === "Complete";
   const isBlocked = handoff.status === "Blocked";
   const isParked = handoff.status === "Parked";
+  const canonicalRow = canonicalRowForHandoff(handoff);
 
   const borderColor = isBlocked
     ? "oklch(0.65 0.22 25 / 0.55)"
@@ -7623,11 +7774,11 @@ function HandoffCard({
           {/* title row */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
-              {handoff.mode || <span className="italic opacity-60">untitled step</span>}
+              {canonicalRow ? canonicalStageLabel(canonicalRow) : "workflow_sync_blocked"}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="opacity-60">owner</span>
-              <span className="text-foreground">{handoff.bot || "—"}</span>
+              <span className="text-foreground">{canonicalRow?.holder || handoff.bot || "—"}</span>
             </div>
             <StatusPill status={handoff.status} />
           </div>
