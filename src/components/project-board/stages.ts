@@ -205,10 +205,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
     step("wr1-s31", "High Council Review / Council", "High Council Gate", "Group gate: complete High Council review and return Completed or Blocked.", "Ward", "Intake & Install / Ward", { groupGate: true }),
   ],
   ward: [
-    step("wr1-s32", "Intake & Install / Ward", "Ward", "Accept the final package for Ward-level intake and install planning.", "Ward / Helper Gate", "Squirrel and Trunk Orientation / Ward"),
-    step("wr1-s33", "Squirrel and Trunk Orientation / Ward", "Ward / Helper Gate", "Orient required squirrels and trunk helpers.", "Ward / Boomer", "Boomer Setup / Ward"),
-    step("wr1-s34", "Boomer Setup / Ward", "Ward / Boomer", "Prepare Boomer setup path and return Completed or Blocked.", "Ward", "Live Watch / Ward"),
-    step("wr1-s35", "Live Watch / Ward", "Ward", "Begin live watch and return status updates or blockers. Next: Workflow Complete."),
+    step("wr1-s32", "Intake & Install / Ward", "Ward", "Accept the final package for Ward-level intake and install planning. Final canonical row.", undefined, "Workflow Complete"),
   ],
 };
 
@@ -243,7 +240,10 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   "final links and assets / final package": "Review and Final Package / Weaver",
   "final links and assets [chief added] / weaver": "Review and Final Package / Weaver",
   "decision record / official record": "Live Watch / Ward",
-  "final record receipt [chief added] / ward": "Live Watch / Ward",
+  "final record receipt [chief added] / ward": "Intake & Install / Ward",
+  "squirrel and trunk orientation / ward": "Intake & Install / Ward",
+  "boomer setup / ward": "Intake & Install / Ward",
+  "live watch / ward": "Intake & Install / Ward",
   "official record": "Official Project Record / Intake",
   "memory alignment": "Memory Alignment / Intake",
 };
