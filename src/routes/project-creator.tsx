@@ -3872,8 +3872,9 @@ function WorkflowRail({
               : isPhaseSelected
                 ? `0 1px 0 oklch(1 0 0 / 0.04) inset, 0 4px 10px -6px ${phaseColor}66`
                 : "0 1px 0 oklch(1 0 0 / 0.03) inset, 0 1px 2px oklch(0.12 0.02 60 / 0.35)";
+            const activeRow = canonicalRowForHandoff(activeItem?.handoff ?? null);
             const summary = activeItem
-              ? `Current: ${splitStepTitle(activeItem.handoff.mode).title || "—"}`
+              ? `Current: ${activeRow ? canonicalStageLabel(activeRow) : "workflow_sync_blocked"}`
               : outOfOrderComplete
                 ? `${total} on file (filed early)`
                 : allComplete
@@ -4191,7 +4192,7 @@ function PhaseOverview({
         {isActivePhase && project.nextAction && (
           <span>
             <span className="opacity-60">Next action: </span>
-            <span className="text-foreground">{project.nextAction}</span>
+            <span className="text-foreground">{visibleWorkflowText(project.nextAction)}</span>
           </span>
         )}
         {isHistoricalComplete && (
@@ -4344,7 +4345,8 @@ function CommandReceiptModal({
 // ---------- All steps / receipts table (used inside Command Receipt) ----------
 function AllStepsReceiptsTable({ project }: { project: Project }) {
   const rows = project.handoffs.map((h, i) => {
-    const split = splitStepTitle(h.mode);
+    const row = canonicalRowForHandoff(h);
+    const split = splitStepTitle(row?.mode ?? h.mode);
     const phase = phaseForHandoff(h);
     const hasReceipt =
       !!h.receiptLink ||
@@ -4354,8 +4356,8 @@ function AllStepsReceiptsTable({ project }: { project: Project }) {
     return {
       idx: i + 1,
       phaseLabel: phase.label,
-      title: split.title || h.mode || "—",
-      owner: h.bot || "—",
+      title: row ? `${row.code} — ${split.title || row.mode}` : "workflow_sync_blocked",
+      owner: row?.holder || h.bot || "—",
       status: h.status,
       hasReceipt,
       nextOwner: h.nextBot,
