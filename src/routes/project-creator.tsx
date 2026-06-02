@@ -1860,6 +1860,28 @@ function scrubLegacyStageLabels(projects: Project[]): {
   return { projects: next, changed };
 }
 
+function repairKnownVisibleCurrentStages(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = projects.map((p) => {
+    const isWr1Repair = p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
+    if (!isWr1Repair) return p;
+    const row = CANONICAL_BY_CODE.get("wr1-s16");
+    if (!row) return p;
+    if (p.currentMode === row.mode && p.currentBot === row.holder) return p;
+    changed = true;
+    return {
+      ...p,
+      currentMode: row.mode,
+      currentBot: row.holder,
+      nextAction: visibleWorkflowText(p.nextAction) || `Complete ${row.mode}`,
+    };
+  });
+  return { projects: next, changed };
+}
+
 function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
   for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
