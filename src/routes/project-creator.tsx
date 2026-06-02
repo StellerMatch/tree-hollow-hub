@@ -1730,7 +1730,13 @@ function canonicalCodeFor(mode?: string | null): string | null {
 function stripLegacyStagePrefix(value?: string | null): string {
   if (!value) return "";
   if (/^\s*\d+(?:\.\d+)?\s*$/.test(value)) return "";
-  return value.replace(/^\s*\d+(?:\.\d+)?[.)]\s+/, "").trimStart();
+  return value
+    .replace(/^\s*\d+(?:\.\d+)?[.)]\s+/, "")
+    .replace(
+      /\b(Complete|Fill|Start|Open|Review|Prepare|Confirm|Continue|Send|Await)\s+\d+(?:\.\d+)?[.)]?\s+/gi,
+      "$1 ",
+    )
+    .trimStart();
 }
 
 function legacySafeWorkflowText(value?: string | null): string {
