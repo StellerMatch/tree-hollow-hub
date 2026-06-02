@@ -4017,8 +4017,9 @@ function WorkflowRail({
                                 : isActive
                                   ? "●"
                                   : "○";
-                        const { title } = splitStepTitle(h.mode);
-                        const nestedNum = canonicalCodeFor(h.mode) ?? "workflow_sync_blocked";
+                        const row = canonicalRowForHandoff(h);
+                        const { title } = splitStepTitle(row?.mode ?? h.mode);
+                        const nestedNum = row?.code ?? "workflow_sync_blocked";
                         return (
                           <li key={h.id}>
                             <button
@@ -4033,7 +4034,7 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${nestedNum} — ${canonicalRowForHandoff(h)?.mode ?? "workflow_sync_blocked"} — ${canonicalRowForHandoff(h)?.holder || h.bot || "—"} · ${h.status}`}
+                              title={`${nestedNum} — ${row?.mode ?? "workflow_sync_blocked"} — ${row?.holder || h.bot || "—"} · ${h.status}`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
@@ -4221,8 +4222,9 @@ function PhaseOverview({
                   : isActive
                     ? AMBER
                     : NEUTRAL;
-          const { title } = splitStepTitle(h.mode);
-          const nestedNum = canonicalCodeFor(h.mode) ?? "workflow_sync_blocked";
+          const row = canonicalRowForHandoff(h);
+          const { title } = splitStepTitle(row?.mode ?? h.mode);
+          const nestedNum = row?.code ?? "workflow_sync_blocked";
           return (
             <li key={h.id}>
               <button
@@ -4257,10 +4259,10 @@ function PhaseOverview({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">
-                    {title || <span className="italic opacity-60">untitled</span>}
+                    {row ? `${row.code} — ${title || row.mode}` : "workflow_sync_blocked"}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    {h.bot || "—"} · {h.status}
+                    {row?.holder || h.bot || "—"} · {h.status}
                   </span>
                 </span>
                 <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
