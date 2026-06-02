@@ -1800,7 +1800,6 @@ function currentStageDisplay(project: Project): {
           : "",
     };
   }
-  const raw = active?.mode || project.currentMode || "unset";
   return {
     handoff: active,
     row: null,
@@ -1896,7 +1895,7 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
         code: canonical?.code ?? "n/a",
         field: "row order",
         expected: canonical?.mode ?? "(end of canonical list)",
-        actual: h?.mode ?? "(missing row)",
+        actual: h ? legacySafeWorkflowText(h.mode) : "(missing row)",
       });
       continue;
     }
@@ -1908,7 +1907,7 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
         code: canonical.code,
         field: "row order",
         expected: canonical.mode,
-        actual: h.mode ?? "(unset)",
+        actual: legacySafeWorkflowText(h.mode),
       });
       continue;
     }
