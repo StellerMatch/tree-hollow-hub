@@ -2142,10 +2142,13 @@ function ProjectCreatorPage() {
     setProjects(repaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
+    const redDonkey = repaired.find(
+      (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
+    );
     const firstVisible = repaired.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(firstVisible?.id ?? repaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
