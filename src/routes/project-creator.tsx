@@ -1314,7 +1314,7 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
         (p) => normalizeProjectName(p.name) === "untitled project",
       );
       if (untitledIdx >= 0) {
-        next = next.map((p, i) => (i === untitledIdx ? { ...seeded, id: p.id } : p));
+        next = next.map((p, i) => (i === untitledIdx ? seeded : p));
       } else {
         next = [seeded, ...next];
       }
