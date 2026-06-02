@@ -3128,12 +3128,13 @@ function ProjectCreatorPage() {
               <ul className="space-y-1.5">
                 {filteredProjects.map((p) => {
                   const active = selected?.id === p.id;
-                  const workflow = currentStageEntry(p)?.handoff;
-                  const rawMode = workflow?.mode || p.currentMode;
-                  const split = splitStepTitle(rawMode);
-                  const displayBot = workflow?.bot || p.currentBot;
-                  const displayMode = split.title || rawMode;
-                  const displayPhase = split.phase;
+                  const current = currentStageDisplay(p);
+                  const split = splitStepTitle(current.row?.mode ?? "");
+                  const displayBot = current.row?.holder || current.handoff?.bot || p.currentBot;
+                  const displayMode = current.row
+                    ? `${current.row.code} — ${split.title || current.row.mode}`
+                    : current.label;
+                  const displayPhase = current.row ? split.phase : "";
                   return (
                     <li key={p.id}>
                       <div
@@ -3414,6 +3415,7 @@ function StatusPanel({
   const latestActivity = [...project.activity].sort((a, b) => b.at.localeCompare(a.at))[0];
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
+  const current = currentStageDisplay(project);
   const hasBlocker = !!project.blocker;
 
   return (
@@ -3440,12 +3442,15 @@ function StatusPanel({
           Current stage
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
-          {active
-            ? `${canonicalCodeFor(active.mode) ?? "(non-canonical)"} — ${splitStepTitle(active.mode).title || "untitled"} — ${active.bot || "—"}`
-            : stripLegacyStagePrefix(project.currentMode) || "—"}
+          {current.label}
         </div>
+        {current.blocked && current.note && (
+          <div className="mt-1 text-[11px]" style={{ color: AMBER }}>
+            {current.note}
+          </div>
+        )}
         <div className="mt-0.5 text-[11px] text-muted-foreground">
-          owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
+          owner <span className="text-foreground">{current.row?.holder || active?.bot || project.currentBot || "—"}</span>
           {active && (
             <>
               {" "}
