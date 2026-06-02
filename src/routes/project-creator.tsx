@@ -7141,18 +7141,19 @@ function ProjectMain({
             }
           />
           {(() => {
-            const split = splitStepTitle(project.currentMode);
+            const current = currentStageDisplay(project);
+            const split = splitStepTitle(current.row?.mode ?? "");
             return (
               <>
                 <MetaItem
                   label="Project Mode"
                   value={
-                    split.phase
-                      ? `${split.title || project.currentMode} · ${split.phase}`
-                      : split.title || project.currentMode
+                    current.row
+                      ? `${current.row.code} — ${split.title || current.row.mode}${split.phase ? ` · ${split.phase}` : ""}`
+                      : current.label
                   }
                 />
-                <MetaItem label="Owner" value={displayBot} />
+                <MetaItem label="Owner" value={current.row?.holder || displayBot} />
               </>
             );
           })()}
@@ -7227,7 +7228,8 @@ function MetaItem({ label, value, muted }: { label: string; value: string; muted
 function CurrentStageIndicator({ project, onClick }: { project: Project; onClick?: () => void }) {
   const activeEntry = currentStageEntry(project);
   const active = activeEntry?.handoff ?? null;
-  const hasBlocker = !!project.blocker || active?.status === "Blocked";
+  const current = currentStageDisplay(project);
+  const hasBlocker = !!project.blocker || active?.status === "Blocked" || current.blocked;
   const accent = hasBlocker ? "oklch(0.65 0.22 25)" : AMBER;
   const nextAction = project.nextAction?.trim();
 
@@ -7254,15 +7256,20 @@ function CurrentStageIndicator({ project, onClick }: { project: Project; onClick
             Current stage
           </span>
           <span className="font-display text-base font-semibold" style={{ color: accent }}>
-            {project.handoffs.indexOf(active) + 1}.{" "}
-            {splitStepTitle(active.mode).title || "untitled stage"}
+            {current.label}
           </span>
           <span className="text-xs text-muted-foreground">
-            owner <strong className="text-foreground">{active.bot || "—"}</strong>
+            owner <strong className="text-foreground">{current.row?.holder || active.bot || "—"}</strong>
             {" · "}phase{" "}
             <strong className="text-foreground">{phaseForHandoff(active).label}</strong>
           </span>
           <StatusPill status={active.status} />
+        </div>
+      )}
+
+      {current.blocked && current.note && (
+        <div className="mt-2 text-xs" style={{ color: accent }}>
+          {current.note}
         </div>
       )}
 
