@@ -1738,6 +1738,13 @@ function legacySafeWorkflowText(value?: string | null): string {
   return stripped || "non-canonical stored label";
 }
 
+function visibleWorkflowText(value?: string | null): string {
+  const stripped = stripLegacyStagePrefix(value);
+  if (!stripped) return "";
+  if (/^\s*\d+(?:\.\d+)?(?:[.)]?\s*)?$/i.test(stripped)) return "workflow_sync_blocked";
+  return stripped;
+}
+
 function canonicalRowForStage(mode?: string | null, holder?: string | null): CanonicalWorkflowRow | null {
   const raw = (mode ?? "").trim();
   const code = raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase();
