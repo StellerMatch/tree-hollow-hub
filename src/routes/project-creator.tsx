@@ -2839,6 +2839,7 @@ function ProjectCreatorPage() {
 
   function moveHandoff(id: string, dir: -1 | 1) {
     updateSelected((p) => {
+      if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const idx = p.handoffs.findIndex((h) => h.id === id);
       if (idx < 0) return p;
       const target = idx + dir;
@@ -2866,6 +2867,7 @@ function ProjectCreatorPage() {
 
   function changeHandoffStatus(id: string, status: HandoffStatus) {
     updateSelected((p) => {
+      if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const h = p.handoffs.find((x) => x.id === id);
       if (!h || h.status === status) return p;
       // Snapshot project-level Step Result fields onto the handoff record
