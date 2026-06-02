@@ -1732,6 +1732,12 @@ function stripLegacyStagePrefix(value?: string | null): string {
   return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
 }
 
+function legacySafeWorkflowText(value?: string | null): string {
+  const stripped = stripLegacyStagePrefix(value);
+  if (/^\s*\d+(?:\.\d+)?(?:[.)]?\s*)?$/i.test(stripped)) return "non-canonical stored label";
+  return stripped || "non-canonical stored label";
+}
+
 function canonicalRowForStage(mode?: string | null, holder?: string | null): CanonicalWorkflowRow | null {
   const raw = (mode ?? "").trim();
   const code = raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase();
@@ -1800,7 +1806,7 @@ function currentStageDisplay(project: Project): {
     row: null,
     label: "workflow_sync_blocked",
     blocked: true,
-    note: `Current stage does not map to the 36-row canonical workflow: ${raw}`,
+    note: "Current stage does not map to the 36-row canonical workflow.",
   };
 }
 
