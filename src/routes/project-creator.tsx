@@ -4689,7 +4689,7 @@ function StableBridgeProcessPanel() {
   );
 }
 
-// ---------- Selected step detail panel ----------
+// ---------- Workflow step tracking panel ----------
 function WorkflowStepTrackingPanel({
   project,
   handoff,
