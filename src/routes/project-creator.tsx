@@ -3544,7 +3544,7 @@ function StatusPanel({
           </Field>
           <Field label="Mode">
             <input
-              value={project.currentMode}
+              value={current.row?.mode ?? visibleWorkflowText(project.currentMode)}
               onChange={(e) => onChange((p) => ({ ...p, currentMode: e.target.value }))}
               className="w-full rounded-md border bg-transparent px-2 py-1.5 text-sm"
               style={{ borderColor: AMBER_SOFT }}
@@ -4011,7 +4011,7 @@ function WorkflowRail({
                                   ? "●"
                                   : "○";
                         const { title } = splitStepTitle(h.mode);
-                        const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNum}.${itemIdx + 1}`;
+                        const nestedNum = canonicalCodeFor(h.mode) ?? "workflow_sync_blocked";
                         return (
                           <li key={h.id}>
                             <button
@@ -4176,7 +4176,9 @@ function PhaseOverview({
           <span>
             <span className="opacity-60">Current step: </span>
             <span className="text-foreground">
-              {splitStepTitle(activeItem.handoff.mode).title || "—"}
+              {canonicalRowForHandoff(activeItem.handoff)
+                ? canonicalStageLabel(canonicalRowForHandoff(activeItem.handoff)!)
+                : "workflow_sync_blocked"}
             </span>
           </span>
         )}
@@ -4213,7 +4215,7 @@ function PhaseOverview({
                     ? AMBER
                     : NEUTRAL;
           const { title } = splitStepTitle(h.mode);
-          const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNumber}.${itemIdx + 1}`;
+          const nestedNum = canonicalCodeFor(h.mode) ?? "workflow_sync_blocked";
           return (
             <li key={h.id}>
               <button
