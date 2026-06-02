@@ -1710,6 +1710,22 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
 
 const CANONICAL_WORKFLOW_ROWS: CanonicalWorkflowRow[] = buildCanonicalWorkflowRows();
 
+const CANONICAL_BY_MODE: Map<string, CanonicalWorkflowRow> = new Map(
+  CANONICAL_WORKFLOW_ROWS.map((r) => [r.mode.trim().toLowerCase(), r]),
+);
+
+/** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
+function canonicalCodeFor(mode?: string | null): string | null {
+  const row = CANONICAL_BY_MODE.get((mode ?? "").trim().toLowerCase());
+  return row?.code ?? null;
+}
+
+/** Strip leading numeric/decimal stage prefixes (e.g. "20. ", "2.2 ", "1. ") from user-visible strings. */
+function stripLegacyStagePrefix(value?: string | null): string {
+  if (!value) return "";
+  return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
+}
+
 function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
   for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
