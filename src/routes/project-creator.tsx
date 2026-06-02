@@ -3862,7 +3862,7 @@ function WorkflowRail({
                                   ? "●"
                                   : "○";
                         const { title } = splitStepTitle(h.mode);
-                        const nestedNum = `${phaseNum}.${itemIdx + 1}`;
+                        const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNum}.${itemIdx + 1}`;
                         return (
                           <li key={h.id}>
                             <button
@@ -3877,7 +3877,7 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${nestedNum} ${h.mode} · ${h.status} (overall step ${globalIndex + 1})`}
+                              title={`${nestedNum} — ${h.mode} — ${h.bot || "—"} · ${h.status}`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
