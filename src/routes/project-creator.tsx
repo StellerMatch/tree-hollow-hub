@@ -1726,6 +1726,45 @@ function stripLegacyStagePrefix(value?: string | null): string {
   return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
 }
 
+/**
+ * One-shot cleanup: remove legacy "20. " / "2.2 " style numeric prefixes that
+ * older project records persisted into currentMode / nextAction / mode fields.
+ * Idempotent — strings without a numeric prefix pass through unchanged.
+ */
+function scrubLegacyStageLabels(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = projects.map((p) => {
+    const scrubbedMode = stripLegacyStagePrefix(p.currentMode);
+    const scrubbedNext = stripLegacyStagePrefix(p.nextAction);
+    const handoffs = p.handoffs.map((h) => {
+      const cleanedMode = stripLegacyStagePrefix(h.mode);
+      if (cleanedMode !== h.mode) {
+        changed = true;
+        return { ...h, mode: cleanedMode };
+      }
+      return h;
+    });
+    if (
+      scrubbedMode !== p.currentMode ||
+      scrubbedNext !== p.nextAction ||
+      handoffs !== p.handoffs
+    ) {
+      changed = true;
+      return {
+        ...p,
+        currentMode: scrubbedMode || p.currentMode,
+        nextAction: scrubbedNext || p.nextAction,
+        handoffs,
+      };
+    }
+    return p;
+  });
+  return { projects: next, changed };
+}
+
 function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
   for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
