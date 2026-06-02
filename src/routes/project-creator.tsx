@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 22; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 23; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1714,9 +1714,15 @@ const CANONICAL_BY_MODE: Map<string, CanonicalWorkflowRow> = new Map(
   CANONICAL_WORKFLOW_ROWS.map((r) => [r.mode.trim().toLowerCase(), r]),
 );
 
+const CANONICAL_BY_CODE: Map<string, CanonicalWorkflowRow> = new Map(
+  CANONICAL_WORKFLOW_ROWS.map((r) => [r.code.trim().toLowerCase(), r]),
+);
+
+const WORKFLOW_ROW_CODE_RE = /\bwr1-(?:pre\d{2}|s\d{2})\b/i;
+
 /** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
 function canonicalCodeFor(mode?: string | null): string | null {
-  const row = CANONICAL_BY_MODE.get((mode ?? "").trim().toLowerCase());
+  const row = canonicalRowForStage(mode);
   return row?.code ?? null;
 }
 
@@ -1724,6 +1730,78 @@ function canonicalCodeFor(mode?: string | null): string | null {
 function stripLegacyStagePrefix(value?: string | null): string {
   if (!value) return "";
   return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
+}
+
+function canonicalRowForStage(mode?: string | null, holder?: string | null): CanonicalWorkflowRow | null {
+  const raw = (mode ?? "").trim();
+  const code = raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase();
+  if (code) return CANONICAL_BY_CODE.get(code) ?? null;
+
+  const stripped = stripLegacyStagePrefix(raw);
+  const renamed = NESTED_STEP_RENAMES[workflowTextKey(stripped)] ?? stripped;
+  const exact = CANONICAL_BY_MODE.get(workflowTextKey(renamed));
+  if (exact) return exact;
+
+  const split = splitStepTitle(renamed);
+  const titleKey = workflowTextKey(split.title || renamed);
+  const phaseKey = workflowTextKey(split.phase);
+  const holderKey = workflowTextKey(holder);
+  let candidates = CANONICAL_WORKFLOW_ROWS.filter(
+    (row) => workflowTextKey(splitStepTitle(row.mode).title) === titleKey,
+  );
+  if (phaseKey) {
+    const phaseMatches = candidates.filter(
+      (row) => workflowTextKey(splitStepTitle(row.mode).phase) === phaseKey,
+    );
+    if (phaseMatches.length > 0) candidates = phaseMatches;
+  }
+  if (holderKey) {
+    const holderMatches = candidates.filter((row) => workflowTextKey(row.holder) === holderKey);
+    if (holderMatches.length > 0) candidates = holderMatches;
+  }
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function canonicalRowForHandoff(handoff?: Handoff | null): CanonicalWorkflowRow | null {
+  if (!handoff) return null;
+  const fromAssignment = canonicalRowForStage(handoff.assignment, handoff.bot);
+  return fromAssignment ?? canonicalRowForStage(handoff.mode, handoff.bot);
+}
+
+function canonicalStageLabel(row: CanonicalWorkflowRow): string {
+  return `${row.code} — ${row.mode} — ${row.holder}`;
+}
+
+function currentStageDisplay(project: Project): {
+  handoff: Handoff | null;
+  row: CanonicalWorkflowRow | null;
+  label: string;
+  blocked: boolean;
+  note: string;
+} {
+  const active = currentStageEntry(project)?.handoff ?? null;
+  const row = canonicalRowForHandoff(active) ?? canonicalRowForStage(project.currentMode, project.currentBot);
+  const sync = computeWorkflowSync(project);
+  if (row) {
+    return {
+      handoff: active,
+      row,
+      label: canonicalStageLabel(row),
+      blocked: sync.status === "workflow_sync_blocked",
+      note:
+        sync.status === "workflow_sync_blocked"
+          ? "workflow_sync_blocked: Lovable and Ghost/controller row sources disagree."
+          : "",
+    };
+  }
+  const raw = active?.mode || project.currentMode || "unset";
+  return {
+    handoff: active,
+    row: null,
+    label: "workflow_sync_blocked",
+    blocked: true,
+    note: `Current stage does not map to the 36-row canonical workflow: ${raw}`,
+  };
 }
 
 /**
