@@ -4033,7 +4033,7 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${nestedNum} — ${h.mode} — ${h.bot || "—"} · ${h.status}`}
+                              title={`${nestedNum} — ${canonicalRowForHandoff(h)?.mode ?? "workflow_sync_blocked"} — ${canonicalRowForHandoff(h)?.holder || h.bot || "—"} · ${h.status}`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
