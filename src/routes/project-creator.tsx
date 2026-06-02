@@ -5343,13 +5343,16 @@ function SelectedStepDetail({
   useEffect(() => {
     setTab("output");
   }, [handoff.id, project.id]);
-  const { title: parsedTitle } = splitStepTitle(handoff.mode);
+  const canonicalRow = canonicalRowForHandoff(handoff);
+  const { title: parsedTitle } = splitStepTitle(canonicalRow?.mode ?? handoff.mode);
   // Phase label should reflect the actual workflow phase the step is
   // grouped under in the rail, not whatever suffix the legacy mode
   // string happens to carry (e.g. "Chief Intake Summary / Clarity"
   // belongs to the Chief Review phase, not Clarity).
   const phase = phaseForHandoff(handoff).label;
-  const title = parsedTitle || "Untitled step";
+  const title = canonicalRow
+    ? `${canonicalRow.code} — ${parsedTitle || canonicalRow.mode}`
+    : "workflow_sync_blocked";
   const stageColor =
     handoff.status === "Complete"
       ? EMERALD
@@ -5377,7 +5380,7 @@ function SelectedStepDetail({
           </h3>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
             <span>
-              <span className="opacity-60">Owner:</span> {handoff.bot || "—"}
+              <span className="opacity-60">Owner:</span> {canonicalRow?.holder || handoff.bot || "—"}
             </span>
             {phase && (
               <span>
@@ -6635,8 +6638,9 @@ function CompletedReceiptBanner({
 }) {
   if (handoff.status !== "Complete") return null;
   const nextEntry = nextOpenWorkflowEntryAfter(project.handoffs, handoff.id);
-  const nextTitle = nextEntry ? splitStepTitle(nextEntry.handoff.mode).title : null;
-  const nextOwner = nextEntry?.handoff.bot;
+  const nextRow = canonicalRowForHandoff(nextEntry?.handoff ?? null);
+  const nextTitle = nextRow ? canonicalStageLabel(nextRow) : nextEntry ? "workflow_sync_blocked" : null;
+  const nextOwner = nextRow?.holder || nextEntry?.handoff.bot;
   return (
     <div
       className="mb-3 rounded-md border px-3 py-2 text-[11px]"
