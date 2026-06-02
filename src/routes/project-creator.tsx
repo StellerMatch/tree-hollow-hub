@@ -2473,18 +2473,26 @@ function ProjectCreatorPage() {
     const { projects: ensured, changed: ensuredChanged } = ensureRequiredStages(migrated);
     const { projects: repaired, changed: repairedChanged } = repairToCanonicalWorkflow(ensured);
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
-    if (migratedChanged || ensuredChanged || repairedChanged || scrubbedChanged)
-      saveProjects(scrubbed);
-    setProjects(scrubbed);
+    const { projects: currentRepaired, changed: currentRepairedChanged } =
+      repairKnownVisibleCurrentStages(scrubbed);
+    if (
+      migratedChanged ||
+      ensuredChanged ||
+      repairedChanged ||
+      scrubbedChanged ||
+      currentRepairedChanged
+    )
+      saveProjects(currentRepaired);
+    setProjects(currentRepaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = scrubbed.find(
+    const redDonkey = currentRepaired.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = scrubbed.find(
+    const firstVisible = currentRepaired.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? scrubbed[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? currentRepaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2496,9 +2504,11 @@ function ProjectCreatorPage() {
     const { projects: ensured, changed } = ensureRequiredStages(projects);
     const { projects: repaired, changed: repairedChanged } = repairToCanonicalWorkflow(ensured);
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
-    if (changed || repairedChanged || scrubbedChanged) {
-      saveProjects(scrubbed);
-      if (!samePersistedProjects(projects, scrubbed)) setProjects(scrubbed);
+    const { projects: currentRepaired, changed: currentRepairedChanged } =
+      repairKnownVisibleCurrentStages(scrubbed);
+    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged) {
+      saveProjects(currentRepaired);
+      if (!samePersistedProjects(projects, currentRepaired)) setProjects(currentRepaired);
       return;
     }
     saveProjects(projects);
