@@ -4859,6 +4859,76 @@ function StableBridgeProcessPanel() {
 }
 
 // ---------- Workflow step tracking panel ----------
+function WorkflowSyncPanel({ project }: { project: Project }) {
+  const report = computeWorkflowSync(project);
+  const blocked = report.status === "workflow_sync_blocked";
+  const tone = blocked ? AMBER : EMERALD;
+  const groupGateRows = CANONICAL_WORKFLOW_ROWS.filter((r) => r.groupGate);
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Workflow sync"
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: tone }} />
+        <h3
+          className="font-display text-sm font-semibold tracking-tight"
+          style={{ color: tone }}
+        >
+          Workflow Sync (Lovable ↔ Ghost / Controller)
+        </h3>
+        <span
+          className="ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+          style={{ background: "oklch(0.78 0.18 50 / 0.12)", color: tone }}
+        >
+          {report.status}
+        </span>
+      </div>
+      <div className="text-[11px] text-muted-foreground/90">
+        Canonical source: <code>STAGE_NESTED_STEPS</code> ({CANONICAL_WORKFLOW_ROWS.length} rows).
+        Board rows, workflow tracking, and Ghost handoff payload all derive from this list.
+      </div>
+      {blocked ? (
+        <div className="mt-2 space-y-1">
+          <div className="text-[11px] font-medium" style={{ color: AMBER }}>
+            Dispatch and complete movement are blocked until reconciled.
+          </div>
+          <ul className="text-[11px] text-muted-foreground/90">
+            {report.mismatches.slice(0, 6).map((m, i) => (
+              <li key={i}>
+                row {m.index + 1} ({m.code}) — {m.field}: expected{" "}
+                <span style={{ color: AMBER }}>{m.expected}</span>, got{" "}
+                <span style={{ color: AMBER }}>{m.actual}</span>
+              </li>
+            ))}
+            {report.mismatches.length > 6 && (
+              <li>… {report.mismatches.length - 6} more</li>
+            )}
+          </ul>
+        </div>
+      ) : (
+        <div className="mt-2 text-[11px]" style={{ color: EMERALD }}>
+          Lovable visible workflow matches Ghost/controller canonical workflow.
+        </div>
+      )}
+      <div className="mt-2 rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          group gates (explicit)
+        </div>
+        <ul className="mt-1 grid gap-0.5 sm:grid-cols-2">
+          {groupGateRows.map((r) => (
+            <li key={r.code} className="text-[11px]">
+              <span className="font-mono text-[10px] text-muted-foreground/70">{r.code}</span>{" "}
+              {r.mode} — <span style={{ color: AMBER }}>{r.holder}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 function WorkflowStepTrackingPanel({
   project,
   handoff,
