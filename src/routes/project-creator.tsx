@@ -1815,18 +1815,23 @@ function scrubLegacyStageLabels(projects: Project[]): {
 } {
   let changed = false;
   const next = projects.map((p) => {
-    const scrubbedMode = stripLegacyStagePrefix(p.currentMode);
+    const currentRow = canonicalRowForStage(p.currentMode, p.currentBot);
+    const scrubbedMode = currentRow?.mode ?? stripLegacyStagePrefix(p.currentMode);
+    const scrubbedBot = currentRow?.holder ?? p.currentBot;
     const scrubbedNext = stripLegacyStagePrefix(p.nextAction);
     const handoffs = p.handoffs.map((h) => {
-      const cleanedMode = stripLegacyStagePrefix(h.mode);
-      if (cleanedMode !== h.mode) {
+      const handoffRow = canonicalRowForStage(h.mode, h.bot);
+      const cleanedMode = handoffRow?.mode ?? stripLegacyStagePrefix(h.mode);
+      const cleanedBot = handoffRow?.holder ?? h.bot;
+      if (cleanedMode !== h.mode || cleanedBot !== h.bot) {
         changed = true;
-        return { ...h, mode: cleanedMode };
+        return { ...h, mode: cleanedMode, bot: cleanedBot };
       }
       return h;
     });
     if (
       scrubbedMode !== p.currentMode ||
+      scrubbedBot !== p.currentBot ||
       scrubbedNext !== p.nextAction ||
       handoffs !== p.handoffs
     ) {
@@ -1834,6 +1839,7 @@ function scrubLegacyStageLabels(projects: Project[]): {
       return {
         ...p,
         currentMode: scrubbedMode || p.currentMode,
+        currentBot: scrubbedBot || p.currentBot,
         nextAction: scrubbedNext || p.nextAction,
         handoffs,
       };
