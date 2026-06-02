@@ -1729,6 +1729,7 @@ function canonicalCodeFor(mode?: string | null): string | null {
 /** Strip leading numeric/decimal stage prefixes (e.g. "20. ", "2.2 ", "1. ") from user-visible strings. */
 function stripLegacyStagePrefix(value?: string | null): string {
   if (!value) return "";
+  if (/^\s*\d+(?:\.\d+)?\s*$/.test(value)) return "";
   return value.replace(/^\s*\d+(?:\.\d+)?[.)]\s+/, "").trimStart();
 }
 
