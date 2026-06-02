@@ -310,6 +310,79 @@ function ensureStableId(prefix: string, existing: unknown): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
 }
 
+// Red Donkey — run label for the DaBotTree.com Bot Cards Phase One
+// Project Board walkthrough. The underlying product remains Bot Card
+// Studio. Creator Control = Good. Status = Active. Hard gates stay
+// closed by default (no live dispatch, publish, spend, backend/auth,
+// storage, cloud, config, credentials, runtime, authority, or final
+// product sign-off unless approved).
+function makeRedDonkeyProject(): Project {
+  const ts = new Date().toISOString();
+  const sourcePacketValue = `${RED_DONKEY_PACKET_PATH}\nAddendum: ${RED_DONKEY_ADDENDUM_PATH}`;
+  // Seed only the first handoff with the source packet path; the rest of
+  // the canonical workflow is appended by ensureNestedSteps on next tick.
+  const firstHandoff: Handoff = {
+    id: `rd-step-1`,
+    step: 1,
+    mode: "Collection / Clarity",
+    bot: "Clarity",
+    assignment:
+      "Red Donkey run label. Source: Bot Cards Phase One Chief-first clean packet + Boss/Bear release-gate addendum. Walk the Project Board from Clarity intake forward in Good mode. Hard gates closed by default.",
+    status: "Working",
+    authorityNotes:
+      "Run label only — underlying product is DaBotTree.com Bot Cards Phase One / Bot Card Studio. No live dispatch, publish, spend, backend, auth, storage, cloud, config, credentials, runtime, authority, or final product sign-off unless approved.",
+    stepOutput: {
+      sourcePacket: sourcePacketValue,
+      cleanPacketPath: RED_DONKEY_PACKET_PATH,
+      addendumPath: RED_DONKEY_ADDENDUM_PATH,
+      runLabel: "red donkey",
+      processType: "WR1 / Project Creator Good-mode run / Board walkthrough",
+      gateStatus:
+        "All hard gates closed by default: no live dispatch, no publish, no spend, no backend/auth/storage/cloud/config/credentials/runtime/authority/final product sign-off unless approved.",
+      capturedMaterial:
+        "Tree import/create first, bot cards second. Living tree hierarchy. Editable corrections. Character-forward bot cards. QR/mobile rare reveal experience. Privacy warning. No real install/download/activation claims. No public gallery / marketplace / voting in Phase One.",
+      goalScope:
+        "Phase One: import or create a private bot tree, then generate character-forward bot cards from that tree. Keep rare-card feel. Honest about Phase One limits.",
+    },
+    artifactTitle: "Red Donkey source packet",
+    artifactBody: `Run label: red donkey\nUnderlying product: DaBotTree.com Bot Cards Phase One / Bot Card Studio\nSource packet: ${RED_DONKEY_PACKET_PATH}\nAddendum: ${RED_DONKEY_ADDENDUM_PATH}`,
+  };
+  return {
+    id: RED_DONKEY_ID,
+    name: "red donkey",
+    summary:
+      "Run label: red donkey. Underlying product: DaBotTree.com Bot Cards Phase One / Bot Card Studio. WR1 / Project Creator Good-mode Board walkthrough. Tree import/create first, bot cards second; living tree hierarchy; editable corrections; character-forward bot cards; QR/mobile rare reveal; privacy warning; no real install/download/activation claims; no public gallery / marketplace / voting in Phase One.",
+    status: "Active",
+    projectType: undefined,
+    projectTypeCustom: undefined,
+    currentMode: "Collection / Clarity",
+    currentBot: "Clarity",
+    nextAction:
+      "Continue Clarity intake from the clean packet — Good-mode board walkthrough may proceed until a real blocker.",
+    blocker: undefined,
+    updatedAt: ts,
+    creatorMode: "Good",
+    clarity:
+      "Goal: walk DaBotTree.com Bot Cards Phase One through the Project Board in Good mode using the Clarity clean packet + release-gate addendum. Audience: Boss and trusted operators. Done: board reflects honest packet state with hard gates closed; no live route, publish, or spend is claimed.",
+    shapeNotes: "",
+    shapeBotOutput: "",
+    planNotes: "",
+    planBotOutput: "",
+    handoffs: [firstHandoff],
+    artifacts: [],
+    activity: [
+      {
+        id: `rd-ev-${Date.now().toString(36)}`,
+        at: ts,
+        bot: "Boss",
+        action:
+          "started red donkey run (Bot Cards Phase One clean packet + release-gate addendum; Good mode; hard gates closed)",
+        status: "Active",
+      },
+    ],
+  };
+}
+
 // Walk every project + handoff and guarantee a string id. Old localStorage
 // data and imported JSON may be missing ids, which previously crashed any
 // `h.id.startsWith(...)` check. Returns changed=true when any id was minted.
