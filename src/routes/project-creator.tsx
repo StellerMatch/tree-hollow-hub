@@ -1866,7 +1866,8 @@ function repairKnownVisibleCurrentStages(projects: Project[]): {
 } {
   let changed = false;
   const next = projects.map((p) => {
-    const isWr1Repair = p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
+    const isWr1Repair =
+      p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
     if (!isWr1Repair) return p;
     const row = CANONICAL_BY_CODE.get("wr1-s16");
     if (!row) return p;
