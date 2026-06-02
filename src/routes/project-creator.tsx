@@ -1669,6 +1669,174 @@ function canonicalHandoffCount(): number {
   }, 0);
 }
 
+// Flat canonical row list (in PIPELINE_STAGES order). Single source of truth
+// shared by: new project creation, board display, workflow step tracking,
+// and Ghost/handoff payload generation.
+export type CanonicalWorkflowRow = {
+  code: string;
+  stageId: string;
+  mode: string;
+  holder: string;
+  nextStep?: string;
+  nextBot?: string;
+  groupGate: boolean;
+  doneMeans: string;
+  expectedReceipt?: string;
+};
+
+function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
+  const rows: CanonicalWorkflowRow[] = [];
+  for (const stage of PIPELINE_STAGES) {
+    const tpls = STAGE_NESTED_STEPS[stage.id];
+    if (!tpls) continue;
+    for (const tpl of tpls) {
+      rows.push({
+        code: tpl.code ?? "uncoded",
+        stageId: stage.id,
+        mode: tpl.mode,
+        holder: tpl.bot,
+        nextStep: tpl.nextStep,
+        nextBot: tpl.nextBot,
+        groupGate: Boolean(tpl.groupGate),
+        doneMeans:
+          tpl.doneMeans ??
+          "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision.",
+        expectedReceipt: tpl.expectedReceipt,
+      });
+    }
+  }
+  return rows;
+}
+
+const CANONICAL_WORKFLOW_ROWS: CanonicalWorkflowRow[] = buildCanonicalWorkflowRows();
+
+function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
+  if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
+  for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
+    const expected = CANONICAL_WORKFLOW_ROWS[i].mode.trim().toLowerCase();
+    const actual = (handoffs[i].mode ?? "").trim().toLowerCase();
+    if (expected !== actual) return false;
+  }
+  return true;
+}
+
+type WorkflowSyncStatus =
+  | "workflow_synced"
+  | "workflow_sync_blocked"
+  | "not_applicable";
+
+type WorkflowSyncReport = {
+  status: WorkflowSyncStatus;
+  mismatches: Array<{
+    index: number;
+    code: string;
+    field: "row order" | "holder" | "next step" | "group gate";
+    expected: string;
+    actual: string;
+  }>;
+};
+
+function computeWorkflowSync(project: Project): WorkflowSyncReport {
+  const handoffs = project.handoffs;
+  if (!handoffs || handoffs.length === 0)
+    return { status: "not_applicable", mismatches: [] };
+  const mismatches: WorkflowSyncReport["mismatches"] = [];
+  const len = Math.max(handoffs.length, CANONICAL_WORKFLOW_ROWS.length);
+  for (let i = 0; i < len; i++) {
+    const canonical = CANONICAL_WORKFLOW_ROWS[i];
+    const h = handoffs[i];
+    if (!canonical || !h) {
+      mismatches.push({
+        index: i,
+        code: canonical?.code ?? "n/a",
+        field: "row order",
+        expected: canonical?.mode ?? "(end of canonical list)",
+        actual: h?.mode ?? "(missing row)",
+      });
+      continue;
+    }
+    const eMode = canonical.mode.trim().toLowerCase();
+    const aMode = (h.mode ?? "").trim().toLowerCase();
+    if (eMode !== aMode) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "row order",
+        expected: canonical.mode,
+        actual: h.mode ?? "(unset)",
+      });
+      continue;
+    }
+    if ((h.bot ?? "").trim().toLowerCase() !== canonical.holder.toLowerCase()) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "holder",
+        expected: canonical.holder,
+        actual: h.bot ?? "(unset)",
+      });
+    }
+    if (
+      canonical.nextStep &&
+      (h.nextStep ?? "").trim().toLowerCase() !==
+        canonical.nextStep.trim().toLowerCase()
+    ) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "next step",
+        expected: canonical.nextStep,
+        actual: h.nextStep ?? "(unset)",
+      });
+    }
+    if (canonical.groupGate) {
+      const looksLikeGate = /gate|group|squirrel|lantern|shadows|council|bears/i.test(
+        canonical.holder,
+      );
+      if (!looksLikeGate) {
+        mismatches.push({
+          index: i,
+          code: canonical.code,
+          field: "group gate",
+          expected: "group gate holder",
+          actual: h.bot ?? "(unset)",
+        });
+      }
+    }
+  }
+  return {
+    status: mismatches.length === 0 ? "workflow_synced" : "workflow_sync_blocked",
+    mismatches,
+  };
+}
+
+// Ghost / controller handoff payload. Generated from the same canonical row
+// list as the visible board so the two sources cannot drift.
+function buildGhostHandoffPayload(project: Project) {
+  const sync = computeWorkflowSync(project);
+  return {
+    projectId: project.id,
+    projectName: project.name,
+    workflowSource: "STAGE_NESTED_STEPS @ canonical-v1",
+    workflowSync: sync.status,
+    rows: CANONICAL_WORKFLOW_ROWS.map((row, i) => {
+      const h = project.handoffs[i];
+      return {
+        code: row.code,
+        mode: row.mode,
+        holder: row.holder,
+        nextStep: row.nextStep ?? null,
+        nextBot: row.nextBot ?? null,
+        groupGate: row.groupGate,
+        expectedReceipt: row.expectedReceipt ?? null,
+        doneMeans: row.doneMeans,
+        liveStatus: h?.status ?? "Not Started",
+        liveReceipt: h?.receiptLink ?? null,
+      };
+    }),
+  };
+}
+
 function repairToCanonicalWorkflow(projects: Project[]): {
   projects: Project[];
   changed: boolean;
