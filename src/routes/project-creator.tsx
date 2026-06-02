@@ -4064,7 +4064,7 @@ function PhaseOverview({
                     ? AMBER
                     : NEUTRAL;
           const { title } = splitStepTitle(h.mode);
-          const nestedNum = `${phaseNumber}.${itemIdx + 1}`;
+          const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNumber}.${itemIdx + 1}`;
           return (
             <li key={h.id}>
               <button
