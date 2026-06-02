@@ -1299,6 +1299,29 @@ function migrateProjects(existing: Project[]): { projects: Project[]; changed: b
     }
   }
 
+  // v19: start the "red donkey" run on the Project Board. Convert any
+  // current Untitled draft into the seeded red donkey project if present;
+  // otherwise create a fresh red donkey project. Underlying product is
+  // DaBotTree.com Bot Cards Phase One / Bot Card Studio; "red donkey" is
+  // only the run label. Preserves all other existing projects.
+  if (stored < 19) {
+    const hasRedDonkey = next.some(
+      (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
+    );
+    if (!hasRedDonkey) {
+      const seeded = makeRedDonkeyProject();
+      const untitledIdx = next.findIndex(
+        (p) => normalizeProjectName(p.name) === "untitled project",
+      );
+      if (untitledIdx >= 0) {
+        next = next.map((p, i) => (i === untitledIdx ? { ...seeded, id: p.id } : p));
+      } else {
+        next = [seeded, ...next];
+      }
+      changed = true;
+    }
+  }
+
   try {
     if (stored < SCHEMA_VERSION) {
       localStorage.setItem(SCHEMA_KEY, String(SCHEMA_VERSION));
