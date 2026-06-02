@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 21; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 22; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1710,6 +1710,61 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
 
 const CANONICAL_WORKFLOW_ROWS: CanonicalWorkflowRow[] = buildCanonicalWorkflowRows();
 
+const CANONICAL_BY_MODE: Map<string, CanonicalWorkflowRow> = new Map(
+  CANONICAL_WORKFLOW_ROWS.map((r) => [r.mode.trim().toLowerCase(), r]),
+);
+
+/** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
+function canonicalCodeFor(mode?: string | null): string | null {
+  const row = CANONICAL_BY_MODE.get((mode ?? "").trim().toLowerCase());
+  return row?.code ?? null;
+}
+
+/** Strip leading numeric/decimal stage prefixes (e.g. "20. ", "2.2 ", "1. ") from user-visible strings. */
+function stripLegacyStagePrefix(value?: string | null): string {
+  if (!value) return "";
+  return value.replace(/^\s*\d+(?:\.\d+)?[.\)]\s+/, "").trimStart();
+}
+
+/**
+ * One-shot cleanup: remove legacy "20. " / "2.2 " style numeric prefixes that
+ * older project records persisted into currentMode / nextAction / mode fields.
+ * Idempotent — strings without a numeric prefix pass through unchanged.
+ */
+function scrubLegacyStageLabels(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = projects.map((p) => {
+    const scrubbedMode = stripLegacyStagePrefix(p.currentMode);
+    const scrubbedNext = stripLegacyStagePrefix(p.nextAction);
+    const handoffs = p.handoffs.map((h) => {
+      const cleanedMode = stripLegacyStagePrefix(h.mode);
+      if (cleanedMode !== h.mode) {
+        changed = true;
+        return { ...h, mode: cleanedMode };
+      }
+      return h;
+    });
+    if (
+      scrubbedMode !== p.currentMode ||
+      scrubbedNext !== p.nextAction ||
+      handoffs !== p.handoffs
+    ) {
+      changed = true;
+      return {
+        ...p,
+        currentMode: scrubbedMode || p.currentMode,
+        nextAction: scrubbedNext || p.nextAction,
+        handoffs,
+      };
+    }
+    return p;
+  });
+  return { projects: next, changed };
+}
+
 function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
   for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
@@ -2307,8 +2362,11 @@ function ProjectCreatorPage() {
     const { projects: ensured, changed: ensuredChanged } = ensureRequiredStages(migrated);
     const { projects: repaired, changed: repairedChanged } =
       repairToCanonicalWorkflow(ensured);
-    if (migratedChanged || ensuredChanged || repairedChanged) saveProjects(repaired);
-    setProjects(repaired);
+    const { projects: scrubbed, changed: scrubbedChanged } =
+      scrubLegacyStageLabels(repaired);
+    if (migratedChanged || ensuredChanged || repairedChanged || scrubbedChanged)
+      saveProjects(scrubbed);
+    setProjects(scrubbed);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
     const redDonkey = repaired.find(
@@ -3296,8 +3354,8 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
           {active
-            ? `${project.handoffs.indexOf(active) + 1}. ${splitStepTitle(active.mode).title || "untitled"}`
-            : project.currentMode || "—"}
+            ? `${canonicalCodeFor(active.mode) ?? "(non-canonical)"} — ${splitStepTitle(active.mode).title || "untitled"} — ${active.bot || "—"}`
+            : stripLegacyStagePrefix(project.currentMode) || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
@@ -3846,7 +3904,7 @@ function WorkflowRail({
                                   ? "●"
                                   : "○";
                         const { title } = splitStepTitle(h.mode);
-                        const nestedNum = `${phaseNum}.${itemIdx + 1}`;
+                        const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNum}.${itemIdx + 1}`;
                         return (
                           <li key={h.id}>
                             <button
@@ -3861,7 +3919,7 @@ function WorkflowRail({
                                     ? `color-mix(in oklab, ${AMBER} 8%, oklch(0.26 0.035 65))`
                                     : "oklch(0.28 0.035 70 / 0.4)",
                               }}
-                              title={`${nestedNum} ${h.mode} · ${h.status} (overall step ${globalIndex + 1})`}
+                              title={`${nestedNum} — ${h.mode} — ${h.bot || "—"} · ${h.status}`}
                             >
                               <span
                                 className="shrink-0 text-[9px] font-mono tabular-nums text-muted-foreground/60"
@@ -4048,7 +4106,7 @@ function PhaseOverview({
                     ? AMBER
                     : NEUTRAL;
           const { title } = splitStepTitle(h.mode);
-          const nestedNum = `${phaseNumber}.${itemIdx + 1}`;
+          const nestedNum = canonicalCodeFor(h.mode) ?? `${phaseNumber}.${itemIdx + 1}`;
           return (
             <li key={h.id}>
               <button
