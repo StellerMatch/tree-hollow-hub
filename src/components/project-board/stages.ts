@@ -118,6 +118,14 @@ export type NestedStepTemplate = {
   authorityNotes?: string;
   nextBot?: string;
   nextStep?: string;
+  /** Canonical row code (e.g. "wr1-s11"). Used by Ghost handoff payload + sync. */
+  code?: string;
+  /** Marks a row that is a group-gate, not a single-holder receipt. */
+  groupGate?: boolean;
+  /** Default expected-receipt path/label for terminal close-out. */
+  expectedReceipt?: string;
+  /** Default Done means line. */
+  doneMeans?: string;
 };
 
 const step = (
@@ -127,6 +135,7 @@ const step = (
   action: string,
   nextBot?: string,
   nextStep?: string,
+  opts: { groupGate?: boolean; expectedReceipt?: string; doneMeans?: string } = {},
 ): NestedStepTemplate => ({
   mode,
   bot,
@@ -135,47 +144,51 @@ const step = (
     "Source: WR1 handoff foundation sheet. Visible owner is the row owner; branch owner is context only.",
   nextBot,
   nextStep,
+  code,
+  groupGate: opts.groupGate,
+  expectedReceipt: opts.expectedReceipt,
+  doneMeans:
+    opts.doneMeans ??
+    "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision. Route success, acknowledgement, or Working does not complete this row.",
 });
 
 export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   clarity: [
     step("wr1-pre01", "Collection / Clarity", "Clarity", "Collect everything Boss gives for this project over time.", "Clarity", "Organize / Clarity"),
     step("wr1-pre02", "Organize / Clarity", "Clarity", "Organize the collected material and make the goal/order clear.", "Clarity", "Deep Dive / Clarity"),
-    step("wr1-pre03", "Deep Dive / Clarity", "Clarity", "Deep dive this packet and find what makes it unique.", "Chief", "Chief Starts Project Board / Intake"),
+    step("wr1-pre03", "Deep Dive / Clarity", "Clarity", "Deep dive this packet and find what makes it unique.", "Chief", "Chief War Room Gate / Intake"),
   ],
   intake: [
-    step("wr1-s00", "Chief Starts Project Board / Intake", "Chief", "Open Project Creator / Project Board, name the project, enter Clarity's information, fill the required basic setup fields, get the project ready, then press Done / Go / Start. Pressing Done is the trigger Ghost watches to advance the workflow.", "Ghost -> Echo", "Memory Alignment / Intake"),
-    step("wr1-s02", "Memory Alignment / Intake", "Echo", "Ghost hands the project to Echo after Chief presses Done / Go / Start. Echo checks Boss intent, installed memory, and drift risk before the project moves forward.", "Ledger", "Official Project Record / Intake"),
+    step("wr1-s00", "Chief War Room Gate / Intake", "Chief", "Open Project Creator / Project Board, name the project, enter Clarity's information, and confirm the war-room gate before dispatch.", "Chief -> Ivy", "Ivy Dispatcher Start Gate / Intake"),
+    step("wr1-s01", "Ivy Dispatcher Start Gate / Intake", "Chief -> Ivy", "Ivy opens the dispatcher start gate so Ghost can advance the workflow.", "Echo", "Memory Alignment / Intake"),
+    step("wr1-s02", "Memory Alignment / Intake", "Echo", "Echo checks Boss intent, installed memory, and drift risk before the project moves forward.", "Ledger", "Official Project Record / Intake"),
     step("wr1-s03", "Official Project Record / Intake", "Ledger", "Clarify the official project record path.", "Shield", "Safety and Authority / Intake"),
     step("wr1-s04", "Safety and Authority / Intake", "Shield", "Check safety, authority, account, privacy, and public-action risk.", "Compass", "R&D Owner / Trunk"),
   ],
   trunk: [
-    step("wr1-s05", "R&D Owner / Trunk", "Compass", "Take the project through the Trunk R&D layer.", "Vault", "Money and Sustainability Input / Trunk"),
+    step("wr1-s05", "R&D Owner / Trunk", "Compass", "Take this packet through Trunk R&D.", "Vault", "Money and Sustainability Input / Trunk"),
     step("wr1-s06", "Money and Sustainability Input / Trunk", "Vault", "Prepare R&D money and sustainability input.", "Bloom", "Audience and Growth Input / Trunk"),
     step("wr1-s07", "Audience and Growth Input / Trunk", "Bloom", "Prepare R&D audience and growth input.", "Luma", "Design and Trust Input / Trunk"),
     step("wr1-s08", "Design and Trust Input / Trunk", "Luma", "Return design, trust, readability, and visual input.", "Compass", "R&D Synthesis / Trunk"),
-    step("wr1-s09", "R&D Synthesis / Trunk", "Compass", "Synthesize R&D and return the project direction brief.", "Rook", "Knowledge Intake / Knowledge"),
+    step("wr1-s09", "R&D Synthesis / Trunk", "Compass", "Synthesize R&D and return Past/Present/Future file plus Boss highlight brief.", "Rook", "Knowledge Intake / Knowledge"),
   ],
   knowledge: [
     step("wr1-s10", "Knowledge Intake / Knowledge", "Rook", "Accept the project packet and start the Knowledge level.", "Squirrel Gate / Assigned Check Bots", "Narrow Checks / Knowledge"),
-    step("wr1-s11", "Narrow Checks / Knowledge", "Squirrel Gate / Assigned Check Bots", "Group gate: run assigned narrow checks and return findings/receipts.", "Luma", "Practical Design Input / Knowledge"),
+    step("wr1-s11", "Narrow Checks / Knowledge", "Squirrel Gate / Assigned Check Bots", "Group gate: assigned checks each return Completed, Blocked, or No finding.", "Luma", "Practical Design Input / Knowledge", { groupGate: true }),
     step("wr1-s12", "Practical Design Input / Knowledge", "Luma", "Return practical design input for Rook's Knowledge packet.", "Vault", "Practical Money Input / Knowledge"),
     step("wr1-s13", "Practical Money Input / Knowledge", "Vault", "Return practical money input for Rook's Knowledge packet.", "Bloom", "Practical Growth Input / Knowledge"),
-    step("wr1-s14", "Practical Growth Input / Knowledge", "Bloom", "Return practical audience and growth input for Rook's Knowledge packet.", "Rook", "Acceptance Criteria Check [Chief Added] / Knowledge"),
-    step("chief-add-01", "Acceptance Criteria Check [Chief Added] / Knowledge", "Rook", "Confirm success criteria, scope boundaries, and evidence expectations before Tinker starts.", "Rook", "Tinker-Ready Packet / Knowledge"),
+    step("wr1-s14", "Practical Growth Input / Knowledge", "Bloom", "Return practical audience and growth input for Rook's Knowledge packet.", "Rook", "Tinker-Ready Packet / Knowledge"),
     step("wr1-s15", "Tinker-Ready Packet / Knowledge", "Rook", "Assemble the clean Tinker-ready packet.", "Tinker", "Tinker Intake / Experiment"),
   ],
   experiment: [
     step("wr1-s16", "Tinker Intake / Experiment", "Tinker", "Accept the Rook packet and organize the Experiment branch.", "Squirrel Gate / Assigned Squirrels", "Squirrel Help / Experiment"),
-    step("wr1-s17", "Squirrel Help / Experiment", "Squirrel Gate / Assigned Squirrels", "Group gate: complete Tinker's assigned help and return findings/receipts.", "Lantern Gate / Shield", "Trunk Help / Experiment"),
+    step("wr1-s17", "Squirrel Help / Experiment", "Squirrel Gate / Assigned Squirrels", "Group gate: Tinker helper checks each return Completed, Blocked, or No finding.", "Lantern Gate / Shield", "Trunk Help / Experiment", { groupGate: true }),
     step("wr1-s18", "Trunk Help / Experiment", "Lantern Gate / Shield", "Coordinate trunk help through Lantern; Shield handles safety/authority only if called.", "Echo", "Pre-Momma Memory Alignment / Experiment"),
     step("wr1-s19", "Pre-Momma Memory Alignment / Experiment", "Echo", "Run the standard pre-Momma memory alignment check.", "Momma", "Momma Package Prep / Experiment"),
     step("wr1-s20", "Momma Package Prep / Experiment", "Momma", "Prepare the neutral Build-A-Bears package for the Bears group.", "Build-A-Bears Gate", "Baby Bear Directions / Experiment"),
-    step("wr1-s21", "Baby Bear Directions / Experiment", "Build-A-Bears Gate", "Group gate: Ace, Bolt, and Craft create independent Bear directions and return receipts.", "Momma", "Bear Output Collection + Master Prompt Assembly / Experiment"),
+    step("wr1-s21", "Baby Bear Directions / Experiment", "Build-A-Bears Gate", "Group gate: Ace, Bolt, and Craft create independent Bear directions and return receipts.", "Momma", "Bear Output Collection + Master Prompt Assembly / Experiment", { groupGate: true }),
     step("wr1-s22", "Bear Output Collection + Master Prompt Assembly / Experiment", "Momma", "Collect Bear outputs and assemble the Master Prompt.", "Echo", "Echo Lovable Build Pass / Experiment"),
-    step("wr1-s23", "Echo Lovable Build Pass / Experiment", "Echo", "Review the Master Prompt and hold Lovable submission until approval is clear.", "Tinker", "Prototype Evidence [Chief Added] / Experiment"),
-    step("chief-add-02", "Prototype Evidence [Chief Added] / Experiment", "Tinker", "Capture prototype proof, self-test evidence, and any failed tests or blockers.", "Tinker", "Demo Notes [Chief Added] / Experiment"),
-    step("chief-add-03", "Demo Notes [Chief Added] / Experiment", "Tinker", "Write what works, what to click, what is rough, and what is parked.", "Boss / Tinker / Chief", "Project Overlook / Next Movement Review / Experiment"),
+    step("wr1-s23", "Echo Lovable Build Pass / Experiment", "Echo", "Review the Master Prompt and hold Lovable submission until approval is clear.", "Boss / Tinker / Chief", "Project Overlook / Next Movement Review / Experiment"),
     step("wr1-s24", "Project Overlook / Next Movement Review / Experiment", "Boss / Tinker / Chief", "Review the project result and decide the next movement.", "Echo", "Memory Alignment / Branch Gate"),
   ],
   "branch-gate": [
@@ -184,32 +197,29 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   weaver: [
     step("wr1-s26", "Package Intake and Review / Weaver", "Weaver", "Accept the package and begin Weaver-level package review.", "Byte / Bubba", "Byte + Bubba Prototype Handoff / Weaver"),
     step("wr1-s27", "Byte + Bubba Prototype Handoff / Weaver", "Byte / Bubba", "Review prototype/build handoff needs and return next-slice guidance.", "Squirrel Gate / Assigned Squirrels", "Squirrel Checks / Weaver"),
-    step("wr1-s28", "Squirrel Checks / Weaver", "Squirrel Gate / Assigned Squirrels", "Group gate: complete Weaver's assigned checks and return Completed or Blocked.", "Lantern Gate / Shadows Gate / Requested Groups", "Trunk Checks / Weaver"),
-    step("wr1-s29", "Trunk Checks / Weaver", "Lantern Gate / Shadows Gate / Requested Groups", "Group gates: complete Weaver's requested trunk checks and return Completed or Blocked.", "Weaver", "Final Links and Assets [Chief Added] / Weaver"),
-    step("chief-add-04", "Final Links and Assets [Chief Added] / Weaver", "Weaver", "Collect final links, assets, receipts, package references, and owner notes before final package review.", "Weaver", "Review and Final Package / Weaver"),
+    step("wr1-s28", "Squirrel Checks / Weaver", "Squirrel Gate / Assigned Squirrels", "Group gate: Weaver assigned checks each return Completed, Blocked, or No finding.", "Lantern Gate / Shadows Gate / Requested Groups", "Trunk Checks / Weaver", { groupGate: true }),
+    step("wr1-s29", "Trunk Checks / Weaver", "Lantern Gate / Shadows Gate / Requested Groups", "Each group returns Completed or Blocked.", "Weaver", "Review and Final Package / Weaver", { groupGate: true }),
     step("wr1-s30", "Review and Final Package / Weaver", "Weaver", "Assemble the reviewed final package and return Completed or Blocked.", "High Council Gate", "High Council Review / Council"),
   ],
   council: [
-    step("wr1-s31", "High Council Review / Council", "High Council Gate", "Group gate: complete High Council review and return Completed or Blocked.", "Ward", "Intake & Install / Ward"),
+    step("wr1-s31", "High Council Review / Council", "High Council Gate", "Group gate: complete High Council review and return Completed or Blocked.", "Ward", "Intake & Install / Ward", { groupGate: true }),
   ],
   ward: [
     step("wr1-s32", "Intake & Install / Ward", "Ward", "Accept the final package for Ward-level intake and install planning.", "Ward / Helper Gate", "Squirrel and Trunk Orientation / Ward"),
-    step("wr1-s33", "Squirrel and Trunk Orientation / Ward", "Ward / Helper Gate", "Coordinate the Ward helper gate for required squirrel and trunk orientation.", "Ward / Boomer", "Boomer Setup / Ward"),
-    step("wr1-s34", "Boomer Setup / Ward", "Ward / Boomer", "Prepare Boomer setup path and return Completed or Blocked.", "Ledger", "Final Record Receipt [Chief Added] / Ward"),
-    step("chief-add-05", "Final Record Receipt [Chief Added] / Ward", "Ledger", "Capture what shipped, what stayed parked, who owns next, and where artifacts live.", "Ward", "Live Watch / Ward"),
-    step("wr1-s35", "Live Watch / Ward", "Ward", "Begin live watch and return status updates or blockers."),
+    step("wr1-s33", "Squirrel and Trunk Orientation / Ward", "Ward / Helper Gate", "Orient required squirrels and trunk helpers.", "Ward / Boomer", "Boomer Setup / Ward"),
+    step("wr1-s34", "Boomer Setup / Ward", "Ward / Boomer", "Prepare Boomer setup path and return Completed or Blocked.", "Ward", "Live Watch / Ward"),
+    step("wr1-s35", "Live Watch / Ward", "Ward", "Begin live watch and return status updates or blockers. Next: Workflow Complete."),
   ],
 };
 
 export const NESTED_STEP_RENAMES: Record<string, string> = {
   "mode 0 / raw idea": "Collection / Clarity",
   "mode 0 / clarity intake": "Collection / Clarity",
-  "project type confirmation / clarity": "Chief Starts Project Board / Intake",
+  "project type confirmation / clarity": "Chief War Room Gate / Intake",
   "mode 1 / shape": "Organize / Clarity",
   "mode 2 / project brief": "Deep Dive / Clarity",
-  "chief intake summary / clarity": "Chief Starts Project Board / Intake",
-  "chief war room gate / intake": "Chief Starts Project Board / Intake",
-  "ivy dispatcher start gate / intake": "Chief Starts Project Board / Intake",
+  "chief intake summary / clarity": "Chief War Room Gate / Intake",
+  "chief starts project board / intake": "Chief War Room Gate / Intake",
   "lantern team kickoff / r&d": "R&D Owner / Trunk",
   "past landscape pass / r&d": "Money and Sustainability Input / Trunk",
   "present landscape pass / r&d": "Audience and Growth Input / Trunk",
@@ -217,18 +227,23 @@ export const NESTED_STEP_RENAMES: Record<string, string> = {
   "risks and unknowns pass / r&d": "R&D Synthesis / Trunk",
   "research scope and synthesis / r&d": "R&D Synthesis / Trunk",
   "r&d highlight brief": "R&D Synthesis / Trunk",
+  "acceptance criteria check [chief added] / knowledge": "Tinker-Ready Packet / Knowledge",
   "packet intake / knowledge packet": "Knowledge Intake / Knowledge",
   "business plan draft / knowledge packet": "Knowledge Intake / Knowledge",
   "tinker-ready handoff / knowledge packet": "Tinker-Ready Packet / Knowledge",
   "prototype kickoff / prototype": "Tinker Intake / Experiment",
-  "build v1 / prototype": "Prototype Evidence [Chief Added] / Experiment",
-  "self-test and evidence / prototype": "Prototype Evidence [Chief Added] / Experiment",
-  "demo notes / prototype": "Demo Notes [Chief Added] / Experiment",
+  "build v1 / prototype": "Tinker Intake / Experiment",
+  "self-test and evidence / prototype": "Tinker Intake / Experiment",
+  "prototype evidence [chief added] / experiment": "Tinker Intake / Experiment",
+  "demo notes / prototype": "Project Overlook / Next Movement Review / Experiment",
+  "demo notes [chief added] / experiment": "Project Overlook / Next Movement Review / Experiment",
   "prototype handoff / prototype": "Project Overlook / Next Movement Review / Experiment",
   "visual review / design polish": "Package Intake and Review / Weaver",
   "package intake / final package": "Package Intake and Review / Weaver",
-  "final links and assets / final package": "Final Links and Assets [Chief Added] / Weaver",
-  "decision record / official record": "Final Record Receipt [Chief Added] / Ward",
+  "final links and assets / final package": "Review and Final Package / Weaver",
+  "final links and assets [chief added] / weaver": "Review and Final Package / Weaver",
+  "decision record / official record": "Live Watch / Ward",
+  "final record receipt [chief added] / ward": "Live Watch / Ward",
   "official record": "Official Project Record / Intake",
   "memory alignment": "Memory Alignment / Intake",
 };

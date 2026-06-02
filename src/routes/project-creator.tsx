@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 19; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 20; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1669,6 +1669,174 @@ function canonicalHandoffCount(): number {
   }, 0);
 }
 
+// Flat canonical row list (in PIPELINE_STAGES order). Single source of truth
+// shared by: new project creation, board display, workflow step tracking,
+// and Ghost/handoff payload generation.
+export type CanonicalWorkflowRow = {
+  code: string;
+  stageId: string;
+  mode: string;
+  holder: string;
+  nextStep?: string;
+  nextBot?: string;
+  groupGate: boolean;
+  doneMeans: string;
+  expectedReceipt?: string;
+};
+
+function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
+  const rows: CanonicalWorkflowRow[] = [];
+  for (const stage of PIPELINE_STAGES) {
+    const tpls = STAGE_NESTED_STEPS[stage.id];
+    if (!tpls) continue;
+    for (const tpl of tpls) {
+      rows.push({
+        code: tpl.code ?? "uncoded",
+        stageId: stage.id,
+        mode: tpl.mode,
+        holder: tpl.bot,
+        nextStep: tpl.nextStep,
+        nextBot: tpl.nextBot,
+        groupGate: Boolean(tpl.groupGate),
+        doneMeans:
+          tpl.doneMeans ??
+          "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision.",
+        expectedReceipt: tpl.expectedReceipt,
+      });
+    }
+  }
+  return rows;
+}
+
+const CANONICAL_WORKFLOW_ROWS: CanonicalWorkflowRow[] = buildCanonicalWorkflowRows();
+
+function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
+  if (handoffs.length !== CANONICAL_WORKFLOW_ROWS.length) return false;
+  for (let i = 0; i < CANONICAL_WORKFLOW_ROWS.length; i++) {
+    const expected = CANONICAL_WORKFLOW_ROWS[i].mode.trim().toLowerCase();
+    const actual = (handoffs[i].mode ?? "").trim().toLowerCase();
+    if (expected !== actual) return false;
+  }
+  return true;
+}
+
+type WorkflowSyncStatus =
+  | "workflow_synced"
+  | "workflow_sync_blocked"
+  | "not_applicable";
+
+type WorkflowSyncReport = {
+  status: WorkflowSyncStatus;
+  mismatches: Array<{
+    index: number;
+    code: string;
+    field: "row order" | "holder" | "next step" | "group gate";
+    expected: string;
+    actual: string;
+  }>;
+};
+
+function computeWorkflowSync(project: Project): WorkflowSyncReport {
+  const handoffs = project.handoffs;
+  if (!handoffs || handoffs.length === 0)
+    return { status: "not_applicable", mismatches: [] };
+  const mismatches: WorkflowSyncReport["mismatches"] = [];
+  const len = Math.max(handoffs.length, CANONICAL_WORKFLOW_ROWS.length);
+  for (let i = 0; i < len; i++) {
+    const canonical = CANONICAL_WORKFLOW_ROWS[i];
+    const h = handoffs[i];
+    if (!canonical || !h) {
+      mismatches.push({
+        index: i,
+        code: canonical?.code ?? "n/a",
+        field: "row order",
+        expected: canonical?.mode ?? "(end of canonical list)",
+        actual: h?.mode ?? "(missing row)",
+      });
+      continue;
+    }
+    const eMode = canonical.mode.trim().toLowerCase();
+    const aMode = (h.mode ?? "").trim().toLowerCase();
+    if (eMode !== aMode) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "row order",
+        expected: canonical.mode,
+        actual: h.mode ?? "(unset)",
+      });
+      continue;
+    }
+    if ((h.bot ?? "").trim().toLowerCase() !== canonical.holder.toLowerCase()) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "holder",
+        expected: canonical.holder,
+        actual: h.bot ?? "(unset)",
+      });
+    }
+    if (
+      canonical.nextStep &&
+      (h.nextStep ?? "").trim().toLowerCase() !==
+        canonical.nextStep.trim().toLowerCase()
+    ) {
+      mismatches.push({
+        index: i,
+        code: canonical.code,
+        field: "next step",
+        expected: canonical.nextStep,
+        actual: h.nextStep ?? "(unset)",
+      });
+    }
+    if (canonical.groupGate) {
+      const looksLikeGate = /gate|group|squirrel|lantern|shadows|council|bears/i.test(
+        canonical.holder,
+      );
+      if (!looksLikeGate) {
+        mismatches.push({
+          index: i,
+          code: canonical.code,
+          field: "group gate",
+          expected: "group gate holder",
+          actual: h.bot ?? "(unset)",
+        });
+      }
+    }
+  }
+  return {
+    status: mismatches.length === 0 ? "workflow_synced" : "workflow_sync_blocked",
+    mismatches,
+  };
+}
+
+// Ghost / controller handoff payload. Generated from the same canonical row
+// list as the visible board so the two sources cannot drift.
+function buildGhostHandoffPayload(project: Project) {
+  const sync = computeWorkflowSync(project);
+  return {
+    projectId: project.id,
+    projectName: project.name,
+    workflowSource: "STAGE_NESTED_STEPS @ canonical-v1",
+    workflowSync: sync.status,
+    rows: CANONICAL_WORKFLOW_ROWS.map((row, i) => {
+      const h = project.handoffs[i];
+      return {
+        code: row.code,
+        mode: row.mode,
+        holder: row.holder,
+        nextStep: row.nextStep ?? null,
+        nextBot: row.nextBot ?? null,
+        groupGate: row.groupGate,
+        expectedReceipt: row.expectedReceipt ?? null,
+        doneMeans: row.doneMeans,
+        liveStatus: h?.status ?? "Not Started",
+        liveReceipt: h?.receiptLink ?? null,
+      };
+    }),
+  };
+}
+
 function repairToCanonicalWorkflow(projects: Project[]): {
   projects: Project[];
   changed: boolean;
@@ -1688,7 +1856,8 @@ function repairToCanonicalWorkflow(projects: Project[]): {
     splitStepTitle(mode ?? "").title.trim().toLowerCase();
 
   const next = projects.map((project) => {
-    if (project.handoffs.length <= target) return project;
+    if (project.handoffs.length === target && handoffsMatchCanonicalOrder(project.handoffs))
+      return project;
 
     // Build canonical handoffs in PIPELINE_STAGES order.
     const canonical: Handoff[] = [];
@@ -4690,6 +4859,76 @@ function StableBridgeProcessPanel() {
 }
 
 // ---------- Workflow step tracking panel ----------
+function WorkflowSyncPanel({ project }: { project: Project }) {
+  const report = computeWorkflowSync(project);
+  const blocked = report.status === "workflow_sync_blocked";
+  const tone = blocked ? AMBER : EMERALD;
+  const groupGateRows = CANONICAL_WORKFLOW_ROWS.filter((r) => r.groupGate);
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Workflow sync"
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: tone }} />
+        <h3
+          className="font-display text-sm font-semibold tracking-tight"
+          style={{ color: tone }}
+        >
+          Workflow Sync (Lovable ↔ Ghost / Controller)
+        </h3>
+        <span
+          className="ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
+          style={{ background: "oklch(0.78 0.18 50 / 0.12)", color: tone }}
+        >
+          {report.status}
+        </span>
+      </div>
+      <div className="text-[11px] text-muted-foreground/90">
+        Canonical source: <code>STAGE_NESTED_STEPS</code> ({CANONICAL_WORKFLOW_ROWS.length} rows).
+        Board rows, workflow tracking, and Ghost handoff payload all derive from this list.
+      </div>
+      {blocked ? (
+        <div className="mt-2 space-y-1">
+          <div className="text-[11px] font-medium" style={{ color: AMBER }}>
+            Dispatch and complete movement are blocked until reconciled.
+          </div>
+          <ul className="text-[11px] text-muted-foreground/90">
+            {report.mismatches.slice(0, 6).map((m, i) => (
+              <li key={i}>
+                row {m.index + 1} ({m.code}) — {m.field}: expected{" "}
+                <span style={{ color: AMBER }}>{m.expected}</span>, got{" "}
+                <span style={{ color: AMBER }}>{m.actual}</span>
+              </li>
+            ))}
+            {report.mismatches.length > 6 && (
+              <li>… {report.mismatches.length - 6} more</li>
+            )}
+          </ul>
+        </div>
+      ) : (
+        <div className="mt-2 text-[11px]" style={{ color: EMERALD }}>
+          Lovable visible workflow matches Ghost/controller canonical workflow.
+        </div>
+      )}
+      <div className="mt-2 rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: AMBER_SOFT }}>
+        <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          group gates (explicit)
+        </div>
+        <ul className="mt-1 grid gap-0.5 sm:grid-cols-2">
+          {groupGateRows.map((r) => (
+            <li key={r.code} className="text-[11px]">
+              <span className="font-mono text-[10px] text-muted-foreground/70">{r.code}</span>{" "}
+              {r.mode} — <span style={{ color: AMBER }}>{r.holder}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 function WorkflowStepTrackingPanel({
   project,
   handoff,
@@ -6780,6 +7019,7 @@ function ProjectMain({
         <HHBridgeReadinessPanel project={project} />
       )}
       {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && <StableBridgeProcessPanel />}
+      <WorkflowSyncPanel project={project} />
       <WorkflowStepTrackingPanel project={project} handoff={selectedHandoff ?? null} />
 
       {selectedHandoff ? (
