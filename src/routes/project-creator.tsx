@@ -2288,16 +2288,16 @@ function currentStageEntry(project: Project): WorkflowEntry | null {
     if (projectTypeGate) return projectTypeGate;
   }
 
+  if (modeKey) {
+    const savedMode = findMode(modeKey);
+    if (savedMode) return savedMode;
+  }
+
   const ownedInFlight = entries.find(
     ({ handoff }) =>
       inFlight.has(handoff.status) && (!botKey || workflowTextKey(handoff.bot) === botKey),
   );
   if (ownedInFlight) return ownedInFlight;
-
-  if (modeKey) {
-    const savedMode = findMode(modeKey);
-    if (savedMode) return savedMode;
-  }
 
   return entries.find(({ handoff }) => inFlight.has(handoff.status)) ?? null;
 }
