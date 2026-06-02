@@ -2323,8 +2323,11 @@ function ProjectCreatorPage() {
     const { projects: ensured, changed: ensuredChanged } = ensureRequiredStages(migrated);
     const { projects: repaired, changed: repairedChanged } =
       repairToCanonicalWorkflow(ensured);
-    if (migratedChanged || ensuredChanged || repairedChanged) saveProjects(repaired);
-    setProjects(repaired);
+    const { projects: scrubbed, changed: scrubbedChanged } =
+      scrubLegacyStageLabels(repaired);
+    if (migratedChanged || ensuredChanged || repairedChanged || scrubbedChanged)
+      saveProjects(scrubbed);
+    setProjects(scrubbed);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
     const redDonkey = repaired.find(
