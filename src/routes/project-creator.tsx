@@ -7308,7 +7308,7 @@ function CurrentStageIndicator({ project, onClick }: { project: Project; onClick
             Next required action
           </span>
           <span className="text-foreground">
-            {nextAction ||
+            {visibleWorkflowText(nextAction) ||
               `${active?.nextStep ?? ""}${active?.nextBot ? ` — by ${active.nextBot}` : ""}`}
           </span>
         </div>
@@ -7678,6 +7678,7 @@ function HandoffCard({
   const isComplete = handoff.status === "Complete";
   const isBlocked = handoff.status === "Blocked";
   const isParked = handoff.status === "Parked";
+  const canonicalRow = canonicalRowForHandoff(handoff);
 
   const borderColor = isBlocked
     ? "oklch(0.65 0.22 25 / 0.55)"
@@ -7751,11 +7752,11 @@ function HandoffCard({
           {/* title row */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <div className="min-w-0 flex-1 truncate font-display text-sm font-semibold">
-              {handoff.mode || <span className="italic opacity-60">untitled step</span>}
+              {canonicalRow ? canonicalStageLabel(canonicalRow) : "workflow_sync_blocked"}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="opacity-60">owner</span>
-              <span className="text-foreground">{handoff.bot || "—"}</span>
+              <span className="text-foreground">{canonicalRow?.holder || handoff.bot || "—"}</span>
             </div>
             <StatusPill status={handoff.status} />
           </div>
