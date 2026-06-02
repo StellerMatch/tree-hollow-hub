@@ -1688,7 +1688,8 @@ function repairToCanonicalWorkflow(projects: Project[]): {
     splitStepTitle(mode ?? "").title.trim().toLowerCase();
 
   const next = projects.map((project) => {
-    if (project.handoffs.length <= target) return project;
+    if (project.handoffs.length === target && handoffsMatchCanonicalOrder(project.handoffs))
+      return project;
 
     // Build canonical handoffs in PIPELINE_STAGES order.
     const canonical: Handoff[] = [];
