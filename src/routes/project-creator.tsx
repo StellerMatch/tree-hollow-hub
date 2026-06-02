@@ -3312,8 +3312,8 @@ function StatusPanel({
         </div>
         <div className="mt-0.5 font-display text-base font-semibold" style={{ color: AMBER }}>
           {active
-            ? `${project.handoffs.indexOf(active) + 1}. ${splitStepTitle(active.mode).title || "untitled"}`
-            : project.currentMode || "—"}
+            ? `${canonicalCodeFor(active.mode) ?? "(non-canonical)"} — ${splitStepTitle(active.mode).title || "untitled"} — ${active.bot || "—"}`
+            : stripLegacyStagePrefix(project.currentMode) || "—"}
         </div>
         <div className="mt-0.5 text-[11px] text-muted-foreground">
           owner <span className="text-foreground">{active?.bot || project.currentBot || "—"}</span>
