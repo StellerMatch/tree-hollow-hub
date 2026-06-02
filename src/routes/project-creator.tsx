@@ -4690,6 +4690,209 @@ function StableBridgeProcessPanel() {
 }
 
 // ---------- Selected step detail panel ----------
+function WorkflowStepTrackingPanel({
+  project,
+  handoff,
+}: {
+  project: Project;
+  handoff: Handoff | null;
+}) {
+  const sourcePacket = deriveSourcePacket(project);
+  const liveReceipts = hasRealReceiptLinks(project);
+  const out = handoff?.stepOutput ?? {};
+  const holder = handoff?.bot || "unassigned";
+  const stepMeaning = handoff?.mode || "no active step";
+  const handoffPath =
+    out["handoffPath"] || out["handoffId"] || handoff?.id || "not recorded";
+  const expectedReceipt =
+    out["expectedReceiptPath"] ||
+    out["receiptPath"] ||
+    handoff?.receiptLink ||
+    "not recorded";
+  const doneMeans =
+    out["doneMeans"] ||
+    "Terminal receipt filed: Completed, Blocked, or Needs Boss/Chief decision.";
+
+  const status = handoff?.status ?? "Not Started";
+  const terminalStates: HandoffStatus[] = ["Complete", "Blocked", "Parked"];
+  const isTerminal = terminalStates.includes(status);
+  const terminalLabel = isTerminal
+    ? status === "Complete"
+      ? "Completed (receipt filed)"
+      : status === "Blocked"
+        ? "Blocked"
+        : "Parked / Needs Boss or Chief decision"
+    : "Not terminal — route success or 'working' does not close this step";
+
+  const recoveryStatus = out["recoveryStatus"] || "not in recovery";
+  const receiptVerified = out["receiptVerified"] || "unverified";
+  const sessionVerified = out["sessionVerified"] || "unverified";
+  const priorAnchor = out["priorSourceAnchor"] || sourcePacket;
+  const missingReceipt = out["missingReceiptPath"] || "n/a";
+  const recoveryTerminal = out["recoveryTerminal"] || "n/a";
+
+  const recoveryActive =
+    recoveryStatus.toLowerCase() !== "not in recovery" &&
+    recoveryStatus.toLowerCase() !== "n/a";
+  const recoverySucceeded = /succeed|recovered|resolved/i.test(recoveryStatus);
+  const sessionSaysBlocked = /block/i.test(sessionVerified) || status === "Blocked";
+  const staleNoise = recoverySucceeded && sessionSaysBlocked;
+
+  const boardSync: string = liveReceipts
+    ? "current"
+    : isTerminal && status === "Complete"
+      ? "stale (local terminal, no live receipt yet)"
+      : recoveryActive
+        ? "blocked (holder recovery in progress)"
+        : "intentionally not touched (preview / local only)";
+
+  const closeoutGates = [
+    { label: "build", status: "closed" },
+    { label: "Lovable submit / spend", status: "closed" },
+    { label: "backend / runtime / config", status: "closed" },
+    { label: "public / live", status: "closed" },
+    { label: "final approval", status: "closed" },
+    { label: "launch", status: "closed" },
+  ];
+  const finalStatus = isTerminal ? status : "in progress (no canonical final yet)";
+  const finalReceipt = out["finalReceiptPath"] || expectedReceipt;
+
+  const Field = ({
+    label,
+    value,
+    tone,
+  }: {
+    label: string;
+    value: string;
+    tone?: "amber" | "muted" | "emerald";
+  }) => (
+    <div
+      className="rounded-md border px-2 py-1.5 text-[11px]"
+      style={{ borderColor: AMBER_SOFT }}
+    >
+      <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+        {label}
+      </div>
+      <div
+        className="mt-0.5 break-words font-medium"
+        style={{
+          color:
+            tone === "amber"
+              ? AMBER
+              : tone === "emerald"
+                ? EMERALD
+                : undefined,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+
+  return (
+    <section
+      className="rounded-xl border bark-texture px-3 py-2.5 md:px-4"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Workflow step tracking"
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: AMBER }} />
+        <h3
+          className="font-display text-sm font-semibold tracking-tight"
+          style={{ color: AMBER }}
+        >
+          Workflow Step Tracking
+        </h3>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Field label="holder" value={holder} tone="amber" />
+        <Field label="step meaning" value={stepMeaning} />
+        <Field label="handoff path / id" value={handoffPath} />
+        <Field label="expected receipt path" value={expectedReceipt} />
+        <Field label="done means" value={doneMeans} />
+        <Field
+          label="terminal state"
+          value={terminalLabel}
+          tone={isTerminal ? "emerald" : "amber"}
+        />
+      </div>
+
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          holder recovery state
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="recovery status" value={recoveryStatus} />
+          <Field label="missing receipt path" value={missingReceipt} />
+          <Field label="prior source anchor" value={priorAnchor} />
+          <Field label="handoff path / id" value={handoffPath} />
+          <Field label="receipt verified" value={receiptVerified} />
+          <Field label="session / status verified" value={sessionVerified} />
+          <Field label="recovery terminal state" value={recoveryTerminal} />
+        </div>
+        {staleNoise && (
+          <div
+            className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+            style={{ borderColor: AMBER_SOFT, color: AMBER }}
+          >
+            stale status noise: recovery succeeded but older session/status text
+            still reads blocked. Treat older blocked text as stale, not as a
+            live blocker.
+          </div>
+        )}
+        <div className="mt-2 text-[10px] text-muted-foreground/80">
+          Failed holder recovery requires receipt-first proof before the step
+          can move.
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          board sync state
+        </div>
+        <Field label="run sync" value={boardSync} tone="amber" />
+      </div>
+
+      <div className="mt-3">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          final closeout
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="canonical final status" value={finalStatus} />
+          <Field label="final receipt path" value={finalReceipt} />
+          <Field label="normal board sync state" value={boardSync} />
+        </div>
+        <div
+          className="mt-2 rounded-md border px-2 py-1.5 text-[11px]"
+          style={{ borderColor: AMBER_SOFT }}
+        >
+          <div className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+            closed gates
+          </div>
+          <ul className="mt-1 grid grid-cols-1 gap-0.5 sm:grid-cols-2">
+            {closeoutGates.map((g) => (
+              <li key={g.label} className="flex items-start gap-2 text-[11px]">
+                <span
+                  className="inline-block rounded px-1 py-0 text-[9px] font-semibold leading-tight"
+                  style={{
+                    background: "oklch(0.78 0.18 50 / 0.12)",
+                    color: AMBER,
+                  }}
+                >
+                  {g.status}
+                </span>
+                <span className="text-muted-foreground/90">{g.label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------- Selected step detail panel ----------
 function SelectedStepDetail({
   project,
   onChange,
