@@ -2268,9 +2268,10 @@ function activeWorkflowEntry(handoffs: Handoff[]): WorkflowEntry | null {
 
 function currentStageEntry(project: Project): WorkflowEntry | null {
   const entries = workflowEntries(project.handoffs);
-  const modeKey = workflowTextKey(project.currentMode);
+  const canonicalMode = canonicalRowForStage(project.currentMode, project.currentBot)?.mode;
+  const modeKey = workflowTextKey(canonicalMode ?? stripLegacyStagePrefix(project.currentMode));
   const botKey = workflowTextKey(project.currentBot);
-  const nextActionKey = workflowTextKey(project.nextAction);
+  const nextActionKey = workflowTextKey(stripLegacyStagePrefix(project.nextAction));
   const inFlight = new Set<HandoffStatus>(["Sent", "Working", "Needs Review", "Blocked"]);
   const isOpen = (h: Handoff) => h.status !== "Complete" && h.status !== "Parked";
   const findMode = (mode: string) =>
@@ -2453,13 +2454,13 @@ function ProjectCreatorPage() {
     setProjects(scrubbed);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = repaired.find(
+    const redDonkey = scrubbed.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = repaired.find(
+    const firstVisible = scrubbed.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? repaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? scrubbed[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2471,9 +2472,11 @@ function ProjectCreatorPage() {
     const { projects: ensured, changed } = ensureRequiredStages(projects);
     const { projects: repaired, changed: repairedChanged } =
       repairToCanonicalWorkflow(ensured);
-    if (changed || repairedChanged) {
-      saveProjects(repaired);
-      if (!samePersistedProjects(projects, repaired)) setProjects(repaired);
+    const { projects: scrubbed, changed: scrubbedChanged } =
+      scrubLegacyStageLabels(repaired);
+    if (changed || repairedChanged || scrubbedChanged) {
+      saveProjects(scrubbed);
+      if (!samePersistedProjects(projects, scrubbed)) setProjects(scrubbed);
       return;
     }
     saveProjects(projects);
