@@ -4534,7 +4534,7 @@ function deriveSourcePacket(project: Project): string {
   }
   for (const h of project.handoffs) {
     const body = h.artifactBody ?? "";
-    const m = body.match(/(?:packet|source)[^\n:]*[:\-]\s*([^\n]+)/i);
+    const m = body.match(/(?:packet|source)[^\n:]*[:-]\s*([^\n]+)/i);
     if (m && m[1]) return m[1].trim();
     if (h.receiptLink && /packet/i.test(h.receiptLink)) return h.receiptLink;
   }
