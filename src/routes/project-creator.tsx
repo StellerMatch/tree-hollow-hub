@@ -6780,6 +6780,7 @@ function ProjectMain({
         <HHBridgeReadinessPanel project={project} />
       )}
       {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && <StableBridgeProcessPanel />}
+      <WorkflowStepTrackingPanel project={project} handoff={selectedHandoff ?? null} />
 
       {selectedHandoff ? (
         <SelectedStepDetail
