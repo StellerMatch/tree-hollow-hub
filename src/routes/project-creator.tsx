@@ -2525,24 +2525,27 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
+    const { projects: metaRepaired, changed: metaChanged } =
+      repairCanonicalHandoffMetadata(currentRepaired);
     if (
       migratedChanged ||
       ensuredChanged ||
       repairedChanged ||
       scrubbedChanged ||
-      currentRepairedChanged
+      currentRepairedChanged ||
+      metaChanged
     )
-      saveProjects(currentRepaired);
-    setProjects(currentRepaired);
+      saveProjects(metaRepaired);
+    setProjects(metaRepaired);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = currentRepaired.find(
+    const redDonkey = metaRepaired.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = currentRepaired.find(
+    const firstVisible = metaRepaired.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? currentRepaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? metaRepaired[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2556,9 +2559,11 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
-    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged) {
-      saveProjects(currentRepaired);
-      if (!samePersistedProjects(projects, currentRepaired)) setProjects(currentRepaired);
+    const { projects: metaRepaired, changed: metaChanged } =
+      repairCanonicalHandoffMetadata(currentRepaired);
+    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged || metaChanged) {
+      saveProjects(metaRepaired);
+      if (!samePersistedProjects(projects, metaRepaired)) setProjects(metaRepaired);
       return;
     }
     saveProjects(projects);
