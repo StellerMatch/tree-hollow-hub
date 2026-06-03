@@ -104,7 +104,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 31; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 32; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1717,7 +1717,7 @@ const CANONICAL_BY_CODE: Map<string, CanonicalWorkflowRow> = new Map(
   CANONICAL_WORKFLOW_ROWS.map((r) => [r.code.trim().toLowerCase(), r]),
 );
 
-const WORKFLOW_ROW_CODE_RE = /\b(?:wr1-(?:pre\d{2}|s\d{2})|trunk-s\d{2})\b/i;
+const WORKFLOW_ROW_CODE_RE = /\b(?:\d+\.\d+|wr1-(?:pre\d{2}|s\d{2})|trunk-s\d{2})\b/i;
 
 /** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
 function canonicalCodeFor(mode?: string | null): string | null {
@@ -1880,7 +1880,7 @@ function repairKnownVisibleCurrentStages(projects: Project[]): {
     const isWr1Repair =
       p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
     if (!isWr1Repair) return p;
-    const row = CANONICAL_BY_CODE.get("wr1-s18");
+    const row = CANONICAL_BY_CODE.get("5.1");
     if (!row) return p;
     if (p.currentMode === row.mode && p.currentBot === row.holder) return p;
     changed = true;
