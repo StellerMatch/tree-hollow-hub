@@ -126,6 +126,23 @@ export type NestedStepTemplate = {
   expectedReceipt?: string;
   /** Default Done means line. */
   doneMeans?: string;
+  /**
+   * Optional per-assignee sub-checks for a group-gate row. Each sub-check
+   * is independently trackable as Completed / Blocked / No finding. The
+   * group-gate row only passes once all sub-checks are settled (no entry
+   * still at "Not Started"). Empty / undefined means the gate is a
+   * single-receipt gate, not a fan-out of named checks.
+   */
+  subChecks?: SubCheckTemplate[];
+};
+
+export type SubCheckTemplate = {
+  /** Stable id used for canonical sync. Lowercase, kebab-case. */
+  id: string;
+  /** Short label of what this assignee is checking for. */
+  label: string;
+  /** Named assignee that owns this individual check. */
+  assignee: string;
 };
 
 const step = (
@@ -135,7 +152,12 @@ const step = (
   action: string,
   nextBot?: string,
   nextStep?: string,
-  opts: { groupGate?: boolean; expectedReceipt?: string; doneMeans?: string } = {},
+  opts: {
+    groupGate?: boolean;
+    expectedReceipt?: string;
+    doneMeans?: string;
+    subChecks?: SubCheckTemplate[];
+  } = {},
 ): NestedStepTemplate => ({
   mode,
   bot,
@@ -150,6 +172,7 @@ const step = (
   doneMeans:
     opts.doneMeans ??
     "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision. Route success, acknowledgement, or Working does not complete this row.",
+  subChecks: opts.subChecks,
 });
 
 export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
@@ -166,15 +189,30 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
     step("wr1-s04", "Safety and Authority / Intake", "Shield", "Check safety, authority, account, privacy, and public-action risk.", "Compass", "R&D Owner / Trunk"),
   ],
   trunk: [
-    step("wr1-s05", "R&D Owner / Trunk", "Compass", "Take this packet through Trunk R&D.", "Vault", "Money and Sustainability Input / Trunk"),
-    step("wr1-s06", "Money and Sustainability Input / Trunk", "Vault", "Prepare R&D money and sustainability input.", "Bloom", "Audience and Growth Input / Trunk"),
-    step("wr1-s07", "Audience and Growth Input / Trunk", "Bloom", "Prepare R&D audience and growth input.", "Luma", "Design and Trust Input / Trunk"),
-    step("wr1-s08", "Design and Trust Input / Trunk", "Luma", "Return design, trust, readability, and visual input.", "Compass", "R&D Synthesis / Trunk"),
-    step("wr1-s09", "R&D Synthesis / Trunk", "Compass", "Synthesize R&D and return Past/Present/Future file plus Boss highlight brief.", "Rook", "Knowledge Intake / Knowledge"),
+    step("wr1-s05", "R&D Owner / Trunk", "Compass", "Own Trunk R&D. Open the Past / Present / Future scaffold and request lane input from Vault, Bloom, and Luma where useful.", "Vault", "Money and Sustainability Input / Trunk"),
+    step("wr1-s06", "Money and Sustainability Input / Trunk", "Vault", "Return money/risk/sustainability input as Past (prior monetization patterns), Present (current revenue role, constraints), Future (parked monetization hooks).", "Bloom", "Audience and Growth Input / Trunk"),
+    step("wr1-s07", "Audience and Growth Input / Trunk", "Bloom", "Return audience/growth input as Past (prior audience patterns), Present (current user + story), Future (parked growth expansion).", "Luma", "Design and Trust Input / Trunk"),
+    step("wr1-s08", "Design and Trust Input / Trunk", "Luma", "Return design/readability/trust input as Past (visual languages that earned trust), Present (current direction), Future (parked polish, themes, mobile reveals).", "Compass", "R&D Synthesis / Trunk"),
+    step("wr1-s09", "R&D Synthesis / Trunk", "Compass", "Synthesize Trunk R&D into a deep Past / Present / Future file (history & rejects · current goal, constraints, active risks · future hooks & out-of-scope) plus a short Boss-facing highlight brief.", "Rook", "Knowledge Intake / Knowledge"),
   ],
   knowledge: [
     step("wr1-s10", "Knowledge Intake / Knowledge", "Rook", "Accept the project packet and start the Knowledge level.", "Squirrel Gate / Assigned Check Bots", "Narrow Checks / Knowledge"),
-    step("wr1-s11", "Narrow Checks / Knowledge", "Squirrel Gate / Assigned Check Bots", "Group gate: assigned checks each return Completed, Blocked, or No finding.", "Luma", "Practical Design Input / Knowledge", { groupGate: true }),
+    step(
+      "wr1-s11",
+      "Narrow Checks / Knowledge",
+      "Squirrel Gate / Assigned Check Bots",
+      "Group gate: each assigned Squirrel runs its own narrow check and returns Completed, Blocked, or No finding. Gate passes only when every assigned check is settled (no Not Started).",
+      "Luma",
+      "Practical Design Input / Knowledge",
+      {
+        groupGate: true,
+        subChecks: [
+          { id: "knowledge-squirrel-fact", label: "Fact / source check", assignee: "Squirrel · Fact" },
+          { id: "knowledge-squirrel-scope", label: "Scope / acceptance check", assignee: "Squirrel · Scope" },
+          { id: "knowledge-squirrel-risk", label: "Risk / unknown check", assignee: "Squirrel · Risk" },
+        ],
+      },
+    ),
     step("wr1-s12", "Practical Design Input / Knowledge", "Luma", "Return practical design input for Rook's Knowledge packet.", "Vault", "Practical Money Input / Knowledge"),
     step("wr1-s13", "Practical Money Input / Knowledge", "Vault", "Return practical money input for Rook's Knowledge packet.", "Bloom", "Practical Growth Input / Knowledge"),
     step("wr1-s14", "Practical Growth Input / Knowledge", "Bloom", "Return practical audience and growth input for Rook's Knowledge packet.", "Rook", "Tinker-Ready Packet / Knowledge"),
@@ -182,7 +220,22 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   ],
   experiment: [
     step("wr1-s16", "Tinker Intake / Experiment", "Tinker", "Accept the Rook packet and organize the Experiment branch.", "Squirrel Gate / Assigned Squirrels", "Squirrel Help / Experiment"),
-    step("wr1-s17", "Squirrel Help / Experiment", "Squirrel Gate / Assigned Squirrels", "Group gate: Tinker helper checks each return Completed, Blocked, or No finding.", "Lantern Gate / Shield", "Trunk Help / Experiment", { groupGate: true }),
+    step(
+      "wr1-s17",
+      "Squirrel Help / Experiment",
+      "Squirrel Gate / Assigned Squirrels",
+      "Group gate: each assigned Tinker helper Squirrel runs its own narrow check and returns Completed, Blocked, or No finding. Gate passes only when every assigned check is settled.",
+      "Lantern Gate / Shield",
+      "Trunk Help / Experiment",
+      {
+        groupGate: true,
+        subChecks: [
+          { id: "experiment-squirrel-build", label: "Build / feasibility helper check", assignee: "Squirrel · Build" },
+          { id: "experiment-squirrel-test", label: "Test / evidence helper check", assignee: "Squirrel · Test" },
+          { id: "experiment-squirrel-edge", label: "Edge case / regression helper check", assignee: "Squirrel · Edge" },
+        ],
+      },
+    ),
     step("wr1-s18", "Trunk Help / Experiment", "Lantern Gate / Shield", "Coordinate trunk help through Lantern; Shield handles safety/authority only if called.", "Echo", "Pre-Momma Memory Alignment / Experiment"),
     step("wr1-s19", "Pre-Momma Memory Alignment / Experiment", "Echo", "Run the standard pre-Momma memory alignment check.", "Momma", "Momma Package Prep / Experiment"),
     step("wr1-s20", "Momma Package Prep / Experiment", "Momma", "Prepare the neutral Build-A-Bears package for the Bears group.", "Build-A-Bears Gate", "Baby Bear Directions / Experiment"),
@@ -197,7 +250,22 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   weaver: [
     step("wr1-s26", "Package Intake and Review / Weaver", "Weaver", "Accept the package and begin Weaver-level package review.", "Byte / Bubba", "Byte + Bubba Prototype Handoff / Weaver"),
     step("wr1-s27", "Byte + Bubba Prototype Handoff / Weaver", "Byte / Bubba", "Review prototype/build handoff needs and return next-slice guidance.", "Squirrel Gate / Assigned Squirrels", "Squirrel Checks / Weaver"),
-    step("wr1-s28", "Squirrel Checks / Weaver", "Squirrel Gate / Assigned Squirrels", "Group gate: Weaver assigned checks each return Completed, Blocked, or No finding.", "Lantern Gate / Shadows Gate / Requested Groups", "Trunk Checks / Weaver", { groupGate: true }),
+    step(
+      "wr1-s28",
+      "Squirrel Checks / Weaver",
+      "Squirrel Gate / Assigned Squirrels",
+      "Group gate: each assigned Weaver Squirrel runs its own narrow check and returns Completed, Blocked, or No finding. Gate passes only when every assigned check is settled.",
+      "Lantern Gate / Shadows Gate / Requested Groups",
+      "Trunk Checks / Weaver",
+      {
+        groupGate: true,
+        subChecks: [
+          { id: "weaver-squirrel-links", label: "Final links / assets check", assignee: "Squirrel · Links" },
+          { id: "weaver-squirrel-copy", label: "Copy / readability check", assignee: "Squirrel · Copy" },
+          { id: "weaver-squirrel-receipt", label: "Receipt / handoff completeness check", assignee: "Squirrel · Receipt" },
+        ],
+      },
+    ),
     step("wr1-s29", "Trunk Checks / Weaver", "Lantern Gate / Shadows Gate / Requested Groups", "Each group returns Completed or Blocked.", "Weaver", "Review and Final Package / Weaver", { groupGate: true }),
     step("wr1-s30", "Review and Final Package / Weaver", "Weaver", "Assemble the reviewed final package and return Completed or Blocked.", "High Council Gate", "High Council Review / Council"),
   ],
