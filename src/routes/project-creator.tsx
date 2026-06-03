@@ -5662,6 +5662,109 @@ function SelectedStepDetail({
   );
 }
 
+function GroupGateSubCheckPanel({
+  handoff,
+  onChange,
+}: {
+  handoff: Handoff;
+  onChange: (mut: (p: Project) => Project) => void;
+}) {
+  const subChecks = handoff.subChecks ?? [];
+  if (subChecks.length === 0) return null;
+  const total = subChecks.length;
+  const settled = subChecks.filter((sc) => sc.status !== "Not Started").length;
+  const blocked = subChecks.some((sc) => sc.status === "Blocked");
+  const allDone = settled === total;
+  const tone = blocked ? "oklch(0.65 0.22 25)" : allDone ? EMERALD : AMBER;
+
+  function setStatus(id: string, status: SubCheckStatus) {
+    onChange((p) => {
+      const next = p.handoffs.map((h) => {
+        if (h.id !== handoff.id) return h;
+        const updated = (h.subChecks ?? []).map((sc) =>
+          sc.id === id ? { ...sc, status } : sc,
+        );
+        return { ...h, subChecks: updated };
+      });
+      return logActivity(
+        { ...p, handoffs: next },
+        {
+          bot: handoff.bot,
+          action: `sub-check "${id}" → ${status}`,
+          status: handoff.status,
+        },
+      );
+    });
+  }
+
+  return (
+    <section
+      className="mb-3 rounded-xl border bark-texture px-3 py-2.5"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Group gate sub-checks"
+    >
+      <div className="mb-1.5 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: tone }} />
+        <div className="font-display text-xs font-semibold tracking-tight" style={{ color: tone }}>
+          Assigned sub-checks ({settled}/{total} settled)
+        </div>
+        <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          group gate
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] text-muted-foreground/90">
+        Each assignee runs its own narrow check. Gate stays open while any sub-check is Not
+        Started. Status options: Completed, Blocked, No finding.
+      </p>
+      <ul className="space-y-1.5">
+        {subChecks.map((sc) => {
+          const subTone =
+            sc.status === "Completed"
+              ? EMERALD
+              : sc.status === "Blocked"
+                ? "oklch(0.65 0.22 25)"
+                : sc.status === "No finding"
+                  ? "oklch(0.6 0.03 80)"
+                  : AMBER;
+          return (
+            <li
+              key={sc.id}
+              className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1.5 text-[11px]"
+              style={{ borderColor: AMBER_SOFT }}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: subTone }}
+              />
+              <span className="font-medium text-foreground/90">{sc.assignee}</span>
+              <span className="text-muted-foreground/80">— {sc.label}</span>
+              <span className="font-mono text-[10px] text-muted-foreground/60">{sc.id}</span>
+              <select
+                value={sc.status}
+                onChange={(e) => setStatus(sc.id, e.target.value as SubCheckStatus)}
+                className="ml-auto rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-[11px]"
+                style={{ borderColor: AMBER_SOFT, color: subTone }}
+                aria-label={`change sub-check status ${sc.id}`}
+              >
+                {SUB_CHECK_STATUSES.map((s) => (
+                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </li>
+          );
+        })}
+      </ul>
+      {!allDone && (
+        <div className="mt-2 text-[11px]" style={{ color: AMBER }}>
+          Gate cannot be marked Complete until every sub-check is settled.
+        </div>
+      )}
+    </section>
+  );
+}
+
 function StepSummaryPanel({ handoff }: { handoff: Handoff }) {
   return (
     <div className="space-y-3 text-sm">
