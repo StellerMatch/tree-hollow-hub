@@ -1893,6 +1893,53 @@ function handoffsMatchCanonicalOrder(handoffs: Handoff[]): boolean {
   return true;
 }
 
+/**
+ * For any handoff whose mode matches a canonical row, force holder/assignment/
+ * nextBot/nextStep to the canonical source. Repairs legacy Ivy holder text
+ * ("Chief -> Ivy") and legacy assignment strings without losing status or
+ * receipts. Idempotent.
+ */
+function repairCanonicalHandoffMetadata(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  let changed = false;
+  const next = projects.map((p) => {
+    let touched = false;
+    const handoffs = p.handoffs.map((h) => {
+      const row = canonicalRowForStage(h.mode, h.bot) ?? canonicalRowForHandoff(h);
+      if (!row) return h;
+      const wantBot = row.holder;
+      const wantAssignment = row.assignment;
+      const wantNextBot = row.nextBot ?? h.nextBot;
+      const wantNextStep = row.nextStep ?? h.nextStep;
+      const wantMode = row.mode;
+      if (
+        h.mode === wantMode &&
+        h.bot === wantBot &&
+        h.assignment === wantAssignment &&
+        (h.nextBot ?? "") === (wantNextBot ?? "") &&
+        (h.nextStep ?? "") === (wantNextStep ?? "")
+      ) {
+        return h;
+      }
+      touched = true;
+      return {
+        ...h,
+        mode: wantMode,
+        bot: wantBot,
+        assignment: wantAssignment,
+        nextBot: wantNextBot,
+        nextStep: wantNextStep,
+      };
+    });
+    if (!touched) return p;
+    changed = true;
+    return { ...p, handoffs };
+  });
+  return { projects: next, changed };
+}
+
 type WorkflowSyncStatus = "workflow_synced" | "workflow_sync_blocked" | "not_applicable";
 
 type WorkflowSyncReport = {
