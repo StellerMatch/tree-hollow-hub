@@ -3695,8 +3695,8 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     blurb: "Chief opens the path and core guardrail checks run.",
     purpose: "Open the war room, align memory, record, and check safety.",
     needsBefore: "A signed Clarity packet.",
-    produces: "Chief war room gate, dispatcher start, memory + safety checks.",
-    ownerTeam: "Chief, Ivy, Echo, Ledger, Shield",
+    produces: "Chief war room gate, Project Board start, memory + safety checks.",
+    ownerTeam: "Chief, Echo, Ledger, Shield",
     match: (h) => / \/ intake$/i.test(h.mode ?? ""),
   },
   {
@@ -5656,8 +5656,7 @@ const STEP_TEMPLATE_MATCHERS: Array<{
   // ----- Chief Starts Project Board / Intake -----
   // Chief opens the Project Board, fills basic setup, and presses Done / Go /
   // Start. That press is the trigger Ghost watches to advance the workflow
-  // directly to Echo for Memory Alignment. The Ivy Dispatcher Stargate is
-  // intentionally not part of this flow.
+  // directly to Echo for Memory Alignment.
   {
     match: (m) =>
       m.includes("chief starts project board") ||
