@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 24; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 25; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1666,6 +1666,7 @@ export type CanonicalWorkflowRow = {
   mode: string;
   holder: string;
   assignment: string;
+  authorityNotes?: string;
   nextStep?: string;
   nextBot?: string;
   groupGate: boolean;
@@ -1685,6 +1686,7 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
         mode: tpl.mode,
         holder: tpl.bot,
         assignment: tpl.assignment,
+        authorityNotes: tpl.authorityNotes,
         nextStep: tpl.nextStep,
         nextBot: tpl.nextBot,
         groupGate: Boolean(tpl.groupGate),
@@ -1913,15 +1915,17 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
       if (!row) return h;
       const wantBot = row.holder;
       const wantAssignment = row.assignment;
-      const wantNextBot = row.nextBot ?? h.nextBot;
-      const wantNextStep = row.nextStep ?? h.nextStep;
+      const wantNextBot = row.nextBot;
+      const wantNextStep = row.nextStep;
       const wantMode = row.mode;
+      const wantAuthority = row.authorityNotes;
       if (
         h.mode === wantMode &&
         h.bot === wantBot &&
         h.assignment === wantAssignment &&
         (h.nextBot ?? "") === (wantNextBot ?? "") &&
-        (h.nextStep ?? "") === (wantNextStep ?? "")
+        (h.nextStep ?? "") === (wantNextStep ?? "") &&
+        (h.authorityNotes ?? "") === (wantAuthority ?? "")
       ) {
         return h;
       }
@@ -1931,6 +1935,7 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
         mode: wantMode,
         bot: wantBot,
         assignment: wantAssignment,
+        authorityNotes: wantAuthority,
         nextBot: wantNextBot,
         nextStep: wantNextStep,
       };
@@ -1940,6 +1945,46 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
     return { ...p, handoffs };
   });
   return { projects: next, changed };
+}
+
+function repairProjectsForCanonicalStorage(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  const canonical = repairToCanonicalWorkflow(projects);
+  const metadata = repairCanonicalHandoffMetadata(canonical.projects);
+  const scrubbed = scrubRetiredIvyWorkflowText(metadata.projects);
+  return {
+    projects: scrubbed.projects,
+    changed: canonical.changed || metadata.changed || scrubbed.changed,
+  };
+}
+
+function scrubRetiredIvyWorkflowText(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  const next = scrubRetiredWorkflowText(projects) as Project[];
+  return { projects: next, changed: JSON.stringify(next) !== JSON.stringify(projects) };
+}
+
+function scrubRetiredWorkflowText(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value
+      .replace(/Chief\s*->\s*Ivy/g, "Chief")
+      .replace(/Ivy Dispatcher Start Gate\s*\/\s*Intake/g, "Chief Starts Project Board / Intake")
+      .replace(/Ivy Dispatcher Start Gate/g, "Chief Starts Project Board")
+      .replace(/Ivy Dispatcher Stargate/g, "Project Board start gate")
+      .replace(/Dispatcher Start Gate/g, "Project Board Start")
+      .replace(/\bIvy\b/g, "Chief");
+  }
+  if (Array.isArray(value)) return value.map((item) => scrubRetiredWorkflowText(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, scrubRetiredWorkflowText(entry)]),
+    );
+  }
+  return value;
 }
 
 type WorkflowSyncStatus = "workflow_synced" | "workflow_sync_blocked" | "not_applicable";
@@ -2030,14 +2075,15 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
 // Ghost / controller handoff payload. Generated from the same canonical row
 // list as the visible board so the two sources cannot drift.
 function buildGhostHandoffPayload(project: Project) {
-  const sync = computeWorkflowSync(project);
+  const repairedProject = repairProjectsForCanonicalStorage([project]).projects[0] ?? project;
+  const sync = computeWorkflowSync(repairedProject);
   return {
-    projectId: project.id,
-    projectName: project.name,
+    projectId: repairedProject.id,
+    projectName: repairedProject.name,
     workflowSource: "STAGE_NESTED_STEPS @ canonical-v1",
     workflowSync: sync.status,
     rows: CANONICAL_WORKFLOW_ROWS.map((row, i) => {
-      const h = project.handoffs[i];
+      const h = repairedProject.handoffs[i];
       return {
         code: row.code,
         mode: row.mode,
@@ -2058,89 +2104,76 @@ function repairToCanonicalWorkflow(projects: Project[]): {
   projects: Project[];
   changed: boolean;
 } {
-  const target = canonicalHandoffCount();
   let changed = false;
-  const statusRank: Record<string, number> = {
-    Complete: 6,
-    "Needs Review": 5,
-    Working: 4,
-    Sent: 3,
-    Blocked: 2,
-    Parked: 1,
-    "Not Started": 0,
-  };
-  const titleKey = (mode?: string | null) =>
-    splitStepTitle(mode ?? "")
-      .title.trim()
-      .toLowerCase();
-
   const next = projects.map((project) => {
-    if (project.handoffs.length === target && handoffsMatchCanonicalOrder(project.handoffs))
-      return project;
-
-    // Build canonical handoffs in PIPELINE_STAGES order.
-    const canonical: Handoff[] = [];
-    for (const stage of PIPELINE_STAGES) {
-      const tpls = STAGE_NESTED_STEPS[stage.id];
-      if (tpls && tpls.length > 0) {
-        tpls.forEach((tpl, i) => {
-          canonical.push({
-            id: `canonical-${project.id}-${stage.id}-${i + 1}`,
-            step: canonical.length + 1,
-            mode: tpl.mode,
-            bot: tpl.bot,
-            assignment: tpl.assignment,
-            status: "Not Started",
-            authorityNotes: tpl.authorityNotes,
-            nextBot: tpl.nextBot,
-            nextStep: tpl.nextStep,
-          });
-        });
-      } else {
-        canonical.push(
-          createRequiredStageHandoff(project.id, stage.id, canonical.length + 1, "canonical"),
-        );
-      }
-    }
-
-    // Merge data from existing handoffs into the matching canonical slot.
-    for (const existing of project.handoffs) {
-      const stageId = stageForHandoff(existing).id;
-      const exTitle = titleKey(existing.mode);
-      const slotIdx = canonical.findIndex(
-        (c) => stageForHandoff(c).id === stageId && titleKey(c.mode) === exTitle,
-      );
-      const fallbackIdx =
-        slotIdx >= 0 ? slotIdx : canonical.findIndex((c) => stageForHandoff(c).id === stageId);
-      if (fallbackIdx < 0) continue;
-      const slot = canonical[fallbackIdx];
-      const betterStatus =
-        (statusRank[existing.status] ?? 0) > (statusRank[slot.status] ?? 0)
-          ? existing.status
-          : slot.status;
-      canonical[fallbackIdx] = {
-        ...slot,
-        status: betterStatus,
-        receiptLink: slot.receiptLink || existing.receiptLink,
-        artifactLink: slot.artifactLink || existing.artifactLink,
-        artifactBody: slot.artifactBody || existing.artifactBody,
-        artifactTitle: slot.artifactTitle || existing.artifactTitle,
-        completedAt: slot.completedAt || existing.completedAt,
-        stepOutput: {
-          ...(existing.stepOutput ?? {}),
-          ...(slot.stepOutput ?? {}),
-        },
-      };
-    }
-
-    changed = true;
-    return {
-      ...project,
-      handoffs: canonical.map((h, i) => ({ ...h, step: i + 1 })),
-    };
+    const repaired = repairProjectHandoffsByCanonicalRows(project);
+    if (repaired.changed) changed = true;
+    return repaired.project;
   });
 
   return { projects: next, changed };
+}
+
+function repairProjectHandoffsByCanonicalRows(project: Project): {
+  project: Project;
+  changed: boolean;
+} {
+  const used = new Set<number>();
+  const handoffs = CANONICAL_WORKFLOW_ROWS.map((row, index) => {
+    const existing = selectExistingCanonicalSourceHandoff(project.handoffs, row, index, used);
+    if (existing) used.add(existing.index);
+    return canonicalHandoffFromRow(project.id, row, index, existing?.handoff);
+  });
+  const changed = JSON.stringify(project.handoffs) !== JSON.stringify(handoffs);
+  return { project: changed ? { ...project, handoffs } : project, changed };
+}
+
+function selectExistingCanonicalSourceHandoff(
+  handoffs: Handoff[],
+  row: CanonicalWorkflowRow,
+  rowIndex: number,
+  used: Set<number>,
+): { handoff: Handoff; index: number } | null {
+  const available = handoffs
+    .map((handoff, index) => ({ handoff, index }))
+    .filter(({ index }) => !used.has(index));
+  const coded = available.filter(({ handoff }) => canonicalCodeInHandoff(handoff) === row.code);
+  const semantic = available.filter(({ handoff }) => canonicalRowForHandoff(handoff)?.code === row.code);
+  const positional = available.filter(({ index }) => index === rowIndex);
+  const pool = coded.length > 0 ? coded : semantic.length > 0 ? semantic : positional;
+  if (pool.length === 0) return null;
+  return pool
+    .slice()
+    .sort((a, b) => {
+      const scoreDelta = workflowRecordScore(b.handoff) - workflowRecordScore(a.handoff);
+      if (scoreDelta !== 0) return scoreDelta;
+      return Math.abs(a.index - rowIndex) - Math.abs(b.index - rowIndex);
+    })[0];
+}
+
+function canonicalCodeInHandoff(handoff: Handoff): string | null {
+  const raw = `${handoff.mode ?? ""} ${handoff.assignment ?? ""}`;
+  return raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase() ?? null;
+}
+
+function canonicalHandoffFromRow(
+  projectId: string,
+  row: CanonicalWorkflowRow,
+  rowIndex: number,
+  existing?: Handoff,
+): Handoff {
+  return {
+    ...(existing ?? {}),
+    id: existing?.id || `canonical-${projectId}-${row.stageId}-${rowIndex + 1}`,
+    step: rowIndex + 1,
+    mode: row.mode,
+    bot: row.holder,
+    assignment: row.assignment,
+    status: existing?.status ?? "Not Started",
+    authorityNotes: row.authorityNotes,
+    nextBot: row.nextBot,
+    nextStep: row.nextStep,
+  };
 }
 
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
@@ -2227,7 +2260,8 @@ function workflowRecordScore(handoff: Handoff): number {
 function saveProjects(projects: Project[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    const canonical = repairProjectsForCanonicalStorage(projects).projects;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical));
   } catch {
     /* ignore */
   }
@@ -2441,28 +2475,9 @@ function advanceProjectAfterHandoffStatusChange(
 }
 
 function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
-  const handoffs: Handoff[] = [];
-  for (const stage of PIPELINE_STAGES) {
-    const templates = STAGE_NESTED_STEPS[stage.id];
-    if (templates) {
-      for (const tpl of templates) {
-        handoffs.push({
-          id: `nested-${projectId}-${stage.id}-${handoffs.length + 1}`,
-          step: handoffs.length + 1,
-          mode: tpl.mode,
-          bot: tpl.bot,
-          assignment: tpl.assignment,
-          status: "Not Started",
-          authorityNotes: tpl.authorityNotes,
-          nextBot: tpl.nextBot,
-          nextStep: tpl.nextStep,
-        });
-      }
-      continue;
-    }
-    handoffs.push(createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"));
-  }
-  return handoffs;
+  return CANONICAL_WORKFLOW_ROWS.map((row, index) =>
+    canonicalHandoffFromRow(projectId, row, index),
+  );
 }
 
 // ---------- Status pill ----------
@@ -2525,27 +2540,27 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
-    const { projects: metaRepaired, changed: metaChanged } =
-      repairCanonicalHandoffMetadata(currentRepaired);
+    const { projects: canonicalStored, changed: canonicalStoredChanged } =
+      repairProjectsForCanonicalStorage(currentRepaired);
     if (
       migratedChanged ||
       ensuredChanged ||
       repairedChanged ||
       scrubbedChanged ||
       currentRepairedChanged ||
-      metaChanged
+      canonicalStoredChanged
     )
-      saveProjects(metaRepaired);
-    setProjects(metaRepaired);
+      saveProjects(canonicalStored);
+    setProjects(canonicalStored);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = metaRepaired.find(
+    const redDonkey = canonicalStored.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = metaRepaired.find(
+    const firstVisible = canonicalStored.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? metaRepaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? canonicalStored[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2559,11 +2574,11 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
-    const { projects: metaRepaired, changed: metaChanged } =
-      repairCanonicalHandoffMetadata(currentRepaired);
-    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged || metaChanged) {
-      saveProjects(metaRepaired);
-      if (!samePersistedProjects(projects, metaRepaired)) setProjects(metaRepaired);
+    const { projects: canonicalStored, changed: canonicalStoredChanged } =
+      repairProjectsForCanonicalStorage(currentRepaired);
+    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged || canonicalStoredChanged) {
+      saveProjects(canonicalStored);
+      if (!samePersistedProjects(projects, canonicalStored)) setProjects(canonicalStored);
       return;
     }
     saveProjects(projects);
@@ -2826,7 +2841,8 @@ function ProjectCreatorPage() {
     // Normalize before export so every project + handoff in the saved file
     // carries a stable id, even if any legacy in-memory row slipped through.
     const { projects: normalized } = normalizeProjectIds(projects);
-    const blob = new Blob([JSON.stringify(normalized, null, 2)], {
+    const { projects: canonical } = repairProjectsForCanonicalStorage(normalized);
+    const blob = new Blob([JSON.stringify(canonical, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -3721,8 +3737,8 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     blurb: "Chief opens the path and core guardrail checks run.",
     purpose: "Open the war room, align memory, record, and check safety.",
     needsBefore: "A signed Clarity packet.",
-    produces: "Chief war room gate, dispatcher start, memory + safety checks.",
-    ownerTeam: "Chief, Ivy, Echo, Ledger, Shield",
+    produces: "Chief war room gate, Project Board start, memory + safety checks.",
+    ownerTeam: "Chief, Echo, Ledger, Shield",
     match: (h) => / \/ intake$/i.test(h.mode ?? ""),
   },
   {
@@ -5682,8 +5698,7 @@ const STEP_TEMPLATE_MATCHERS: Array<{
   // ----- Chief Starts Project Board / Intake -----
   // Chief opens the Project Board, fills basic setup, and presses Done / Go /
   // Start. That press is the trigger Ghost watches to advance the workflow
-  // directly to Echo for Memory Alignment. The Ivy Dispatcher Stargate is
-  // intentionally not part of this flow.
+  // directly to Echo for Memory Alignment.
   {
     match: (m) =>
       m.includes("chief starts project board") ||

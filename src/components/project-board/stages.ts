@@ -161,7 +161,7 @@ export const STAGE_NESTED_STEPS: Record<string, NestedStepTemplate[]> = {
   intake: [
     step("wr1-s00", "Chief War Room Gate / Intake", "Chief", "Receive Clarity's clean packet and confirm/open the Project Creator / Project Board path before dispatch.", "Chief", "Chief Starts Project Board / Intake"),
     step("wr1-s01", "Chief Starts Project Board / Intake", "Chief", "Chief names the project in Project Creator / Project Board, enters Clarity's clean information, fills the required setup fields, gets the project ready, then presses Done / Go / Start. That Done / Go / Start action is the Ghost trigger that advances the workflow.", "Echo", "Memory Alignment / Intake"),
-    step("wr1-s02", "Memory Alignment / Intake", "Echo", "Echo checks Boss intent, installed memory, and drift risk before the project moves forward.", "Ledger", "Official Project Record / Intake"),
+    step("wr1-s02", "Memory Alignment / Intake", "Echo", "Ghost brings Echo in after Chief wr1-s01 is done, then Echo checks Boss intent, installed memory, and drift risk before the project moves forward.", "Ledger", "Official Project Record / Intake"),
     step("wr1-s03", "Official Project Record / Intake", "Ledger", "Clarify the official project record path.", "Shield", "Safety and Authority / Intake"),
     step("wr1-s04", "Safety and Authority / Intake", "Shield", "Check safety, authority, account, privacy, and public-action risk.", "Compass", "R&D Owner / Trunk"),
   ],
