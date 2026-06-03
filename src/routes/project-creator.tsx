@@ -104,7 +104,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 26; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 27; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1880,7 +1880,7 @@ function repairKnownVisibleCurrentStages(projects: Project[]): {
     const isWr1Repair =
       p.id === "wr1-repair-system" || normalizeProjectName(p.name) === "wr1 repair system";
     if (!isWr1Repair) return p;
-    const row = CANONICAL_BY_CODE.get("wr1-s16");
+    const row = CANONICAL_BY_CODE.get("wr1-s18");
     if (!row) return p;
     if (p.currentMode === row.mode && p.currentBot === row.holder) return p;
     changed = true;
