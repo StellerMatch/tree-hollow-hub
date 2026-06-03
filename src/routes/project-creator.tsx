@@ -9,6 +9,8 @@ import type {
   ArtifactType,
   ArtifactSource,
   ProjectType,
+  HandoffSubCheck,
+  SubCheckStatus,
 } from "@/components/project-board/types";
 import {
   ARTIFACT_TYPES,
@@ -16,6 +18,7 @@ import {
   PROJECT_STATUSES,
   HANDOFF_STATUSES,
   PROJECT_TYPES,
+  SUB_CHECK_STATUSES,
 } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 import {
