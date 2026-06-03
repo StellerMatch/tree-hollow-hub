@@ -5686,14 +5686,7 @@ function GroupGateSubCheckPanel({
         );
         return { ...h, subChecks: updated };
       });
-      return logActivity(
-        { ...p, handoffs: next },
-        {
-          bot: handoff.bot,
-          action: `sub-check "${id}" → ${status}`,
-          status: handoff.status,
-        },
-      );
+      return { ...p, handoffs: next };
     });
   }
 
