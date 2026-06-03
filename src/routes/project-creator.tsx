@@ -101,7 +101,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 24; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 25; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1666,6 +1666,7 @@ export type CanonicalWorkflowRow = {
   mode: string;
   holder: string;
   assignment: string;
+  authorityNotes?: string;
   nextStep?: string;
   nextBot?: string;
   groupGate: boolean;
@@ -1685,6 +1686,7 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
         mode: tpl.mode,
         holder: tpl.bot,
         assignment: tpl.assignment,
+        authorityNotes: tpl.authorityNotes,
         nextStep: tpl.nextStep,
         nextBot: tpl.nextBot,
         groupGate: Boolean(tpl.groupGate),
