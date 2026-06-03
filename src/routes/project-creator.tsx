@@ -2219,7 +2219,8 @@ function workflowRecordScore(handoff: Handoff): number {
 function saveProjects(projects: Project[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    const canonical = repairCanonicalHandoffMetadata(repairToCanonicalWorkflow(projects).projects).projects;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical));
   } catch {
     /* ignore */
   }
@@ -2433,28 +2434,9 @@ function advanceProjectAfterHandoffStatusChange(
 }
 
 function createInitialWorkflowHandoffs(projectId: string): Handoff[] {
-  const handoffs: Handoff[] = [];
-  for (const stage of PIPELINE_STAGES) {
-    const templates = STAGE_NESTED_STEPS[stage.id];
-    if (templates) {
-      for (const tpl of templates) {
-        handoffs.push({
-          id: `nested-${projectId}-${stage.id}-${handoffs.length + 1}`,
-          step: handoffs.length + 1,
-          mode: tpl.mode,
-          bot: tpl.bot,
-          assignment: tpl.assignment,
-          status: "Not Started",
-          authorityNotes: tpl.authorityNotes,
-          nextBot: tpl.nextBot,
-          nextStep: tpl.nextStep,
-        });
-      }
-      continue;
-    }
-    handoffs.push(createRequiredStageHandoff(projectId, stage.id, handoffs.length + 1, "initial"));
-  }
-  return handoffs;
+  return CANONICAL_WORKFLOW_ROWS.map((row, index) =>
+    canonicalHandoffFromRow(projectId, row, index),
+  );
 }
 
 // ---------- Status pill ----------
