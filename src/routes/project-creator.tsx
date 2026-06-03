@@ -2398,6 +2398,9 @@ function stepTitleOnly(mode?: string | null, _bot?: string | null): string {
 function splitStepTitle(mode?: string | null): { title: string; phase: string } {
   const m = (mode ?? "").trim();
   if (!m) return { title: "", phase: "" };
+  if (workflowTextKey(m) === "trunk intake / compass opens r&d") {
+    return { title: "Trunk Intake / Compass Opens R&D", phase: "Trunk" };
+  }
   const idx = m.indexOf("/");
   if (idx === -1) return { title: m, phase: "" };
   const left = m.slice(0, idx).trim();
@@ -3823,7 +3826,10 @@ const WORKFLOW_PHASES: WorkflowPhase[] = [
     needsBefore: "Intake checks complete.",
     produces: "R&D synthesis brief for Rook.",
     ownerTeam: "Compass, Vault, Bloom, Luma",
-    match: (h) => / \/ trunk$/i.test(h.mode ?? ""),
+    match: (h) =>
+      / \/ trunk$/i.test(h.mode ?? "") ||
+      workflowTextKey(h.mode) === "trunk intake / compass opens r&d" ||
+      canonicalCodeInHandoff(h) === "3.1",
   },
   {
     id: "knowledge",
