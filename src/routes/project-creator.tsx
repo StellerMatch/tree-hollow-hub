@@ -2075,14 +2075,15 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
 // Ghost / controller handoff payload. Generated from the same canonical row
 // list as the visible board so the two sources cannot drift.
 function buildGhostHandoffPayload(project: Project) {
-  const sync = computeWorkflowSync(project);
+  const repairedProject = repairProjectsForCanonicalStorage([project]).projects[0] ?? project;
+  const sync = computeWorkflowSync(repairedProject);
   return {
-    projectId: project.id,
-    projectName: project.name,
+    projectId: repairedProject.id,
+    projectName: repairedProject.name,
     workflowSource: "STAGE_NESTED_STEPS @ canonical-v1",
     workflowSync: sync.status,
     rows: CANONICAL_WORKFLOW_ROWS.map((row, i) => {
-      const h = project.handoffs[i];
+      const h = repairedProject.handoffs[i];
       return {
         code: row.code,
         mode: row.mode,
@@ -2840,7 +2841,8 @@ function ProjectCreatorPage() {
     // Normalize before export so every project + handoff in the saved file
     // carries a stable id, even if any legacy in-memory row slipped through.
     const { projects: normalized } = normalizeProjectIds(projects);
-    const blob = new Blob([JSON.stringify(normalized, null, 2)], {
+    const { projects: canonical } = repairProjectsForCanonicalStorage(normalized);
+    const blob = new Blob([JSON.stringify(canonical, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
