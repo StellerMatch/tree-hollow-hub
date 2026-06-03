@@ -2001,7 +2001,7 @@ type WorkflowSyncReport = {
   mismatches: Array<{
     index: number;
     code: string;
-    field: "row order" | "holder" | "next step" | "group gate";
+    field: "row order" | "holder" | "next step" | "group gate" | "sub-checks";
     expected: string;
     actual: string;
   }>;
