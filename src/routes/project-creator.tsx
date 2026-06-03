@@ -7462,16 +7462,24 @@ function ProjectMain({
       </div>
 
       <CreatorGuidance project={project} onChange={onChange} />
-      <ProjectContextStrip project={project} />
-      {project.id === GIGI_GARDEN_ID && (
-        <RealRoutePreflight project={project} onChange={onChange} />
-      )}
-      {project.id === HENRY_HANDOFF_ID && <HHBridgeReadinessPanel project={project} />}
-      {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && (
-        <StableBridgeProcessPanel />
-      )}
-      <WorkflowSyncPanel project={project} />
-      <WorkflowStepTrackingPanel project={project} handoff={selectedHandoff ?? null} />
+      <details className="group rounded-xl border bark-texture px-3 py-2 md:px-4" style={{ borderColor: AMBER_SOFT }}>
+        <summary className="cursor-pointer list-none text-[12px] font-semibold tracking-tight text-muted-foreground/90 flex items-center gap-2">
+          <span className="transition-transform group-open:rotate-90">▸</span>
+          Diagnostics & workflow sync (advanced)
+        </summary>
+        <div className="mt-2 space-y-2">
+          <ProjectContextStrip project={project} />
+          {project.id === GIGI_GARDEN_ID && (
+            <RealRoutePreflight project={project} onChange={onChange} />
+          )}
+          {project.id === HENRY_HANDOFF_ID && <HHBridgeReadinessPanel project={project} />}
+          {(project.id === DABOTTREE_BOARD_ID || project.id === HENRY_HANDOFF_ID) && (
+            <StableBridgeProcessPanel />
+          )}
+          <WorkflowSyncPanel project={project} />
+          <WorkflowStepTrackingPanel project={project} handoff={selectedHandoff ?? null} />
+        </div>
+      </details>
 
       {selectedHandoff ? (
         <SelectedStepDetail
