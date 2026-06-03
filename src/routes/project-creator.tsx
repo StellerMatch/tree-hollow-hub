@@ -5627,6 +5627,11 @@ function SelectedStepDetail({
         </div>
       </div>
 
+      {/* Group-gate sub-checks: individual Squirrel / per-assignee checks */}
+      {canonicalRow?.groupGate && handoff.subChecks && handoff.subChecks.length > 0 && (
+        <GroupGateSubCheckPanel handoff={handoff} onChange={onChange} />
+      )}
+
       {tab === "output" && (
         <>
           <CompletedReceiptBanner
