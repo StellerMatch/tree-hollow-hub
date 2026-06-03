@@ -3031,6 +3031,13 @@ function ProjectCreatorPage() {
       if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const h = p.handoffs.find((x) => x.id === id);
       if (!h || h.status === status) return p;
+      // Group-gate row may only flip to Complete once every sub-check is
+      // settled (Completed / Blocked / No finding). Prevents merging the
+      // Squirrel fan-out into a single undifferentiated blob.
+      if (status === "Complete" && h.subChecks && h.subChecks.length > 0) {
+        const unsettled = h.subChecks.some((sc) => sc.status === "Not Started");
+        if (unsettled) return p;
+      }
       // Snapshot project-level Step Result fields onto the handoff record
       // at completion so the receipt captures every field shown in the UI,
       // not just the handoff-scoped stepOutput keys. Without this, Mode 1
