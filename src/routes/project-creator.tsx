@@ -2071,6 +2071,22 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
           actual: h.bot ?? "(unset)",
         });
       }
+      // Structural check: per-assignee sub-checks (e.g. Squirrel fan-out)
+      // must match canonical ids so the visible board and Ghost payload
+      // cannot drift apart on what individual checks exist.
+      if (canonical.subChecks && canonical.subChecks.length > 0) {
+        const expectedIds = canonical.subChecks.map((sc) => sc.id).sort().join(",");
+        const actualIds = (h.subChecks ?? []).map((sc) => sc.id).sort().join(",");
+        if (expectedIds !== actualIds) {
+          mismatches.push({
+            index: i,
+            code: canonical.code,
+            field: "sub-checks",
+            expected: expectedIds || "(none)",
+            actual: actualIds || "(none)",
+          });
+        }
+      }
     }
   }
   return {
