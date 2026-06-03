@@ -1947,6 +1947,46 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
   return { projects: next, changed };
 }
 
+function repairProjectsForCanonicalStorage(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  const canonical = repairToCanonicalWorkflow(projects);
+  const metadata = repairCanonicalHandoffMetadata(canonical.projects);
+  const scrubbed = scrubRetiredIvyWorkflowText(metadata.projects);
+  return {
+    projects: scrubbed.projects,
+    changed: canonical.changed || metadata.changed || scrubbed.changed,
+  };
+}
+
+function scrubRetiredIvyWorkflowText(projects: Project[]): {
+  projects: Project[];
+  changed: boolean;
+} {
+  const next = scrubRetiredWorkflowText(projects) as Project[];
+  return { projects: next, changed: JSON.stringify(next) !== JSON.stringify(projects) };
+}
+
+function scrubRetiredWorkflowText(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value
+      .replace(/Chief\s*->\s*Ivy/g, "Chief")
+      .replace(/Ivy Dispatcher Start Gate\s*\/\s*Intake/g, "Chief Starts Project Board / Intake")
+      .replace(/Ivy Dispatcher Start Gate/g, "Chief Starts Project Board")
+      .replace(/Ivy Dispatcher Stargate/g, "Project Board start gate")
+      .replace(/Dispatcher Start Gate/g, "Project Board Start")
+      .replace(/\bIvy\b/g, "Chief");
+  }
+  if (Array.isArray(value)) return value.map((item) => scrubRetiredWorkflowText(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, scrubRetiredWorkflowText(entry)]),
+    );
+  }
+  return value;
+}
+
 type WorkflowSyncStatus = "workflow_synced" | "workflow_sync_blocked" | "not_applicable";
 
 type WorkflowSyncReport = {
