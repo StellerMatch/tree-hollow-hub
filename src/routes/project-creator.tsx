@@ -1675,6 +1675,7 @@ export type CanonicalWorkflowRow = {
   groupGate: boolean;
   doneMeans: string;
   expectedReceipt?: string;
+  subChecks?: Array<{ id: string; label: string; assignee: string }>;
 };
 
 function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
@@ -1697,6 +1698,9 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
           tpl.doneMeans ??
           "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision.",
         expectedReceipt: tpl.expectedReceipt,
+        subChecks: tpl.subChecks
+          ? tpl.subChecks.map((sc) => ({ id: sc.id, label: sc.label, assignee: sc.assignee }))
+          : undefined,
       });
     }
   }
