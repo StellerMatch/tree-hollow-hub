@@ -2060,89 +2060,76 @@ function repairToCanonicalWorkflow(projects: Project[]): {
   projects: Project[];
   changed: boolean;
 } {
-  const target = canonicalHandoffCount();
   let changed = false;
-  const statusRank: Record<string, number> = {
-    Complete: 6,
-    "Needs Review": 5,
-    Working: 4,
-    Sent: 3,
-    Blocked: 2,
-    Parked: 1,
-    "Not Started": 0,
-  };
-  const titleKey = (mode?: string | null) =>
-    splitStepTitle(mode ?? "")
-      .title.trim()
-      .toLowerCase();
-
   const next = projects.map((project) => {
-    if (project.handoffs.length === target && handoffsMatchCanonicalOrder(project.handoffs))
-      return project;
-
-    // Build canonical handoffs in PIPELINE_STAGES order.
-    const canonical: Handoff[] = [];
-    for (const stage of PIPELINE_STAGES) {
-      const tpls = STAGE_NESTED_STEPS[stage.id];
-      if (tpls && tpls.length > 0) {
-        tpls.forEach((tpl, i) => {
-          canonical.push({
-            id: `canonical-${project.id}-${stage.id}-${i + 1}`,
-            step: canonical.length + 1,
-            mode: tpl.mode,
-            bot: tpl.bot,
-            assignment: tpl.assignment,
-            status: "Not Started",
-            authorityNotes: tpl.authorityNotes,
-            nextBot: tpl.nextBot,
-            nextStep: tpl.nextStep,
-          });
-        });
-      } else {
-        canonical.push(
-          createRequiredStageHandoff(project.id, stage.id, canonical.length + 1, "canonical"),
-        );
-      }
-    }
-
-    // Merge data from existing handoffs into the matching canonical slot.
-    for (const existing of project.handoffs) {
-      const stageId = stageForHandoff(existing).id;
-      const exTitle = titleKey(existing.mode);
-      const slotIdx = canonical.findIndex(
-        (c) => stageForHandoff(c).id === stageId && titleKey(c.mode) === exTitle,
-      );
-      const fallbackIdx =
-        slotIdx >= 0 ? slotIdx : canonical.findIndex((c) => stageForHandoff(c).id === stageId);
-      if (fallbackIdx < 0) continue;
-      const slot = canonical[fallbackIdx];
-      const betterStatus =
-        (statusRank[existing.status] ?? 0) > (statusRank[slot.status] ?? 0)
-          ? existing.status
-          : slot.status;
-      canonical[fallbackIdx] = {
-        ...slot,
-        status: betterStatus,
-        receiptLink: slot.receiptLink || existing.receiptLink,
-        artifactLink: slot.artifactLink || existing.artifactLink,
-        artifactBody: slot.artifactBody || existing.artifactBody,
-        artifactTitle: slot.artifactTitle || existing.artifactTitle,
-        completedAt: slot.completedAt || existing.completedAt,
-        stepOutput: {
-          ...(existing.stepOutput ?? {}),
-          ...(slot.stepOutput ?? {}),
-        },
-      };
-    }
-
-    changed = true;
-    return {
-      ...project,
-      handoffs: canonical.map((h, i) => ({ ...h, step: i + 1 })),
-    };
+    const repaired = repairProjectHandoffsByCanonicalRows(project);
+    if (repaired.changed) changed = true;
+    return repaired.project;
   });
 
   return { projects: next, changed };
+}
+
+function repairProjectHandoffsByCanonicalRows(project: Project): {
+  project: Project;
+  changed: boolean;
+} {
+  const used = new Set<number>();
+  const handoffs = CANONICAL_WORKFLOW_ROWS.map((row, index) => {
+    const existing = selectExistingCanonicalSourceHandoff(project.handoffs, row, index, used);
+    if (existing) used.add(existing.index);
+    return canonicalHandoffFromRow(project.id, row, index, existing?.handoff);
+  });
+  const changed = JSON.stringify(project.handoffs) !== JSON.stringify(handoffs);
+  return { project: changed ? { ...project, handoffs } : project, changed };
+}
+
+function selectExistingCanonicalSourceHandoff(
+  handoffs: Handoff[],
+  row: CanonicalWorkflowRow,
+  rowIndex: number,
+  used: Set<number>,
+): { handoff: Handoff; index: number } | null {
+  const available = handoffs
+    .map((handoff, index) => ({ handoff, index }))
+    .filter(({ index }) => !used.has(index));
+  const coded = available.filter(({ handoff }) => canonicalCodeInHandoff(handoff) === row.code);
+  const semantic = available.filter(({ handoff }) => canonicalRowForHandoff(handoff)?.code === row.code);
+  const positional = available.filter(({ index }) => index === rowIndex);
+  const pool = coded.length > 0 ? coded : semantic.length > 0 ? semantic : positional;
+  if (pool.length === 0) return null;
+  return pool
+    .slice()
+    .sort((a, b) => {
+      const scoreDelta = workflowRecordScore(b.handoff) - workflowRecordScore(a.handoff);
+      if (scoreDelta !== 0) return scoreDelta;
+      return Math.abs(a.index - rowIndex) - Math.abs(b.index - rowIndex);
+    })[0];
+}
+
+function canonicalCodeInHandoff(handoff: Handoff): string | null {
+  const raw = `${handoff.mode ?? ""} ${handoff.assignment ?? ""}`;
+  return raw.match(WORKFLOW_ROW_CODE_RE)?.[0]?.toLowerCase() ?? null;
+}
+
+function canonicalHandoffFromRow(
+  projectId: string,
+  row: CanonicalWorkflowRow,
+  rowIndex: number,
+  existing?: Handoff,
+): Handoff {
+  return {
+    ...(existing ?? {}),
+    id: existing?.id || `canonical-${projectId}-${row.stageId}-${rowIndex + 1}`,
+    step: rowIndex + 1,
+    mode: row.mode,
+    bot: row.holder,
+    assignment: row.assignment,
+    status: existing?.status ?? "Not Started",
+    authorityNotes: row.authorityNotes,
+    nextBot: row.nextBot,
+    nextStep: row.nextStep,
+  };
 }
 
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
