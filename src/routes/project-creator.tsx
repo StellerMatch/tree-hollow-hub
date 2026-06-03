@@ -2062,7 +2062,11 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
       const looksLikeGate = /gate|group|squirrel|lantern|shadows|council|bears/i.test(
         canonical.holder,
       );
-      if (!looksLikeGate) {
+      const hasSubChecks = (canonical.subChecks?.length ?? 0) > 0;
+      // Group-gate rows either name a *Gate / Group* holder, or fan out
+      // via explicit per-assignee subChecks (e.g. Compass-led Lane
+      // Inputs row collecting Vault / Bloom / Luma).
+      if (!looksLikeGate && !hasSubChecks) {
         mismatches.push({
           index: i,
           code: canonical.code,
