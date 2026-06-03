@@ -2259,7 +2259,7 @@ function workflowRecordScore(handoff: Handoff): number {
 function saveProjects(projects: Project[]) {
   if (typeof window === "undefined") return;
   try {
-    const canonical = repairCanonicalHandoffMetadata(repairToCanonicalWorkflow(projects).projects).projects;
+    const canonical = repairProjectsForCanonicalStorage(projects).projects;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical));
   } catch {
     /* ignore */
