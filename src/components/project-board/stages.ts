@@ -27,7 +27,7 @@ export const PIPELINE_STAGES: StageDef[] = [
     id: "trunk",
     label: "Trunk",
     blurb: "Compass, Vault, Bloom, and Luma shape R&D inputs.",
-    match: ["/ trunk", "r&d owner", "sustainability", "audience", "design and trust"],
+    match: ["/ trunk", "compass opens trunk", "r&d owner", "sustainability", "audience", "design and trust"],
     bot: "Compass",
   },
   {
