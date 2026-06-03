@@ -1665,6 +1665,7 @@ export type CanonicalWorkflowRow = {
   stageId: string;
   mode: string;
   holder: string;
+  assignment: string;
   nextStep?: string;
   nextBot?: string;
   groupGate: boolean;
@@ -1683,6 +1684,7 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
         stageId: stage.id,
         mode: tpl.mode,
         holder: tpl.bot,
+        assignment: tpl.assignment,
         nextStep: tpl.nextStep,
         nextBot: tpl.nextBot,
         groupGate: Boolean(tpl.groupGate),
