@@ -5663,6 +5663,7 @@ function SelectedStepDetail({
 }
 
 function StepSummaryPanel({ handoff }: { handoff: Handoff }) {
+  // (intentionally above)
   return (
     <div className="space-y-3 text-sm">
       {handoff.assignment ? (
