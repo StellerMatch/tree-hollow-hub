@@ -2118,6 +2118,18 @@ function buildGhostHandoffPayload(project: Project) {
         doneMeans: row.doneMeans,
         liveStatus: h?.status ?? "Not Started",
         liveReceipt: h?.receiptLink ?? null,
+        subChecks: row.subChecks
+          ? row.subChecks.map((sc) => {
+              const live = h?.subChecks?.find((x) => x.id === sc.id);
+              return {
+                id: sc.id,
+                label: sc.label,
+                assignee: sc.assignee,
+                liveStatus: live?.status ?? "Not Started",
+                note: live?.note ?? null,
+              };
+            })
+          : null,
       };
     }),
   };
