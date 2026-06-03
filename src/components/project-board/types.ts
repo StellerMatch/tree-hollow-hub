@@ -70,6 +70,30 @@ export type Handoff = {
    * legacy artifactBody/artifactLink so existing data keeps working.
    */
   stepOutput?: Record<string, string>;
+  /**
+   * Per-assignee sub-check tracking for group-gate rows (e.g. Squirrel
+   * fan-out at wr1-s11 / s17 / s28). Each entry tracks one named check
+   * with an independent status so Ghost/controller and the visible board
+   * can show individual Squirrel progress rather than one merged blob.
+   */
+  subChecks?: HandoffSubCheck[];
+};
+
+export type SubCheckStatus = "Not Started" | "Completed" | "Blocked" | "No finding";
+
+export const SUB_CHECK_STATUSES: SubCheckStatus[] = [
+  "Not Started",
+  "Completed",
+  "Blocked",
+  "No finding",
+];
+
+export type HandoffSubCheck = {
+  id: string;
+  label: string;
+  assignee: string;
+  status: SubCheckStatus;
+  note?: string;
 };
 
 export type Artifact = {

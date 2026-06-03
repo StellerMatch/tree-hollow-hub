@@ -9,6 +9,8 @@ import type {
   ArtifactType,
   ArtifactSource,
   ProjectType,
+  HandoffSubCheck,
+  SubCheckStatus,
 } from "@/components/project-board/types";
 import {
   ARTIFACT_TYPES,
@@ -16,6 +18,7 @@ import {
   PROJECT_STATUSES,
   HANDOFF_STATUSES,
   PROJECT_TYPES,
+  SUB_CHECK_STATUSES,
 } from "@/components/project-board/types";
 import { SEED_PROJECTS } from "@/components/project-board/seed";
 import {
@@ -101,7 +104,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 25; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 26; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1672,6 +1675,7 @@ export type CanonicalWorkflowRow = {
   groupGate: boolean;
   doneMeans: string;
   expectedReceipt?: string;
+  subChecks?: Array<{ id: string; label: string; assignee: string }>;
 };
 
 function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
@@ -1694,6 +1698,9 @@ function buildCanonicalWorkflowRows(): CanonicalWorkflowRow[] {
           tpl.doneMeans ??
           "Terminal receipt filed as Completed, Blocked, or Needs Boss/Chief decision.",
         expectedReceipt: tpl.expectedReceipt,
+        subChecks: tpl.subChecks
+          ? tpl.subChecks.map((sc) => ({ id: sc.id, label: sc.label, assignee: sc.assignee }))
+          : undefined,
       });
     }
   }
@@ -1994,7 +2001,7 @@ type WorkflowSyncReport = {
   mismatches: Array<{
     index: number;
     code: string;
-    field: "row order" | "holder" | "next step" | "group gate";
+    field: "row order" | "holder" | "next step" | "group gate" | "sub-checks";
     expected: string;
     actual: string;
   }>;
@@ -2064,6 +2071,22 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
           actual: h.bot ?? "(unset)",
         });
       }
+      // Structural check: per-assignee sub-checks (e.g. Squirrel fan-out)
+      // must match canonical ids so the visible board and Ghost payload
+      // cannot drift apart on what individual checks exist.
+      if (canonical.subChecks && canonical.subChecks.length > 0) {
+        const expectedIds = canonical.subChecks.map((sc) => sc.id).sort().join(",");
+        const actualIds = (h.subChecks ?? []).map((sc) => sc.id).sort().join(",");
+        if (expectedIds !== actualIds) {
+          mismatches.push({
+            index: i,
+            code: canonical.code,
+            field: "sub-checks",
+            expected: expectedIds || "(none)",
+            actual: actualIds || "(none)",
+          });
+        }
+      }
     }
   }
   return {
@@ -2095,6 +2118,18 @@ function buildGhostHandoffPayload(project: Project) {
         doneMeans: row.doneMeans,
         liveStatus: h?.status ?? "Not Started",
         liveReceipt: h?.receiptLink ?? null,
+        subChecks: row.subChecks
+          ? row.subChecks.map((sc) => {
+              const live = h?.subChecks?.find((x) => x.id === sc.id);
+              return {
+                id: sc.id,
+                label: sc.label,
+                assignee: sc.assignee,
+                liveStatus: live?.status ?? "Not Started",
+                note: live?.note ?? null,
+              };
+            })
+          : null,
       };
     }),
   };
@@ -2162,6 +2197,7 @@ function canonicalHandoffFromRow(
   rowIndex: number,
   existing?: Handoff,
 ): Handoff {
+  const subChecks = buildCanonicalSubChecks(row, existing);
   return {
     ...(existing ?? {}),
     id: existing?.id || `canonical-${projectId}-${row.stageId}-${rowIndex + 1}`,
@@ -2173,7 +2209,34 @@ function canonicalHandoffFromRow(
     authorityNotes: row.authorityNotes,
     nextBot: row.nextBot,
     nextStep: row.nextStep,
+    subChecks,
   };
+}
+
+function buildCanonicalSubChecks(
+  row: CanonicalWorkflowRow,
+  existing?: Handoff,
+): HandoffSubCheck[] | undefined {
+  if (!row.subChecks || row.subChecks.length === 0) return undefined;
+  const existingById = new Map<string, HandoffSubCheck>(
+    (existing?.subChecks ?? []).map((sc) => [sc.id, sc]),
+  );
+  const completed = existing?.status === "Complete";
+  return row.subChecks.map((tpl) => {
+    const prior = existingById.get(tpl.id);
+    const status: SubCheckStatus = prior
+      ? prior.status
+      : completed
+        ? "Completed"
+        : "Not Started";
+    return {
+      id: tpl.id,
+      label: tpl.label,
+      assignee: tpl.assignee,
+      status,
+      note: prior?.note,
+    };
+  });
 }
 
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
@@ -2968,6 +3031,13 @@ function ProjectCreatorPage() {
       if (computeWorkflowSync(p).status === "workflow_sync_blocked") return p;
       const h = p.handoffs.find((x) => x.id === id);
       if (!h || h.status === status) return p;
+      // Group-gate row may only flip to Complete once every sub-check is
+      // settled (Completed / Blocked / No finding). Prevents merging the
+      // Squirrel fan-out into a single undifferentiated blob.
+      if (status === "Complete" && h.subChecks && h.subChecks.length > 0) {
+        const unsettled = h.subChecks.some((sc) => sc.status === "Not Started");
+        if (unsettled) return p;
+      }
       // Snapshot project-level Step Result fields onto the handoff record
       // at completion so the receipt captures every field shown in the UI,
       // not just the handoff-scoped stepOutput keys. Without this, Mode 1
@@ -5557,6 +5627,11 @@ function SelectedStepDetail({
         </div>
       </div>
 
+      {/* Group-gate sub-checks: individual Squirrel / per-assignee checks */}
+      {canonicalRow?.groupGate && handoff.subChecks && handoff.subChecks.length > 0 && (
+        <GroupGateSubCheckPanel handoff={handoff} onChange={onChange} />
+      )}
+
       {tab === "output" && (
         <>
           <CompletedReceiptBanner
@@ -5583,6 +5658,102 @@ function SelectedStepDetail({
         />
       )}
       {tab === "activity" && <ActivityLog project={project} />}
+    </section>
+  );
+}
+
+function GroupGateSubCheckPanel({
+  handoff,
+  onChange,
+}: {
+  handoff: Handoff;
+  onChange: (mut: (p: Project) => Project) => void;
+}) {
+  const subChecks = handoff.subChecks ?? [];
+  if (subChecks.length === 0) return null;
+  const total = subChecks.length;
+  const settled = subChecks.filter((sc) => sc.status !== "Not Started").length;
+  const blocked = subChecks.some((sc) => sc.status === "Blocked");
+  const allDone = settled === total;
+  const tone = blocked ? "oklch(0.65 0.22 25)" : allDone ? EMERALD : AMBER;
+
+  function setStatus(id: string, status: SubCheckStatus) {
+    onChange((p) => {
+      const next = p.handoffs.map((h) => {
+        if (h.id !== handoff.id) return h;
+        const updated = (h.subChecks ?? []).map((sc) =>
+          sc.id === id ? { ...sc, status } : sc,
+        );
+        return { ...h, subChecks: updated };
+      });
+      return { ...p, handoffs: next };
+    });
+  }
+
+  return (
+    <section
+      className="mb-3 rounded-xl border bark-texture px-3 py-2.5"
+      style={{ borderColor: AMBER_SOFT }}
+      aria-label="Group gate sub-checks"
+    >
+      <div className="mb-1.5 flex items-center gap-2">
+        <div className="h-2 w-2 rounded-full" style={{ background: tone }} />
+        <div className="font-display text-xs font-semibold tracking-tight" style={{ color: tone }}>
+          Assigned sub-checks ({settled}/{total} settled)
+        </div>
+        <span className="ml-auto text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+          group gate
+        </span>
+      </div>
+      <p className="mb-2 text-[11px] text-muted-foreground/90">
+        Each assignee runs its own narrow check. Gate stays open while any sub-check is Not
+        Started. Status options: Completed, Blocked, No finding.
+      </p>
+      <ul className="space-y-1.5">
+        {subChecks.map((sc) => {
+          const subTone =
+            sc.status === "Completed"
+              ? EMERALD
+              : sc.status === "Blocked"
+                ? "oklch(0.65 0.22 25)"
+                : sc.status === "No finding"
+                  ? "oklch(0.6 0.03 80)"
+                  : AMBER;
+          return (
+            <li
+              key={sc.id}
+              className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1.5 text-[11px]"
+              style={{ borderColor: AMBER_SOFT }}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ background: subTone }}
+              />
+              <span className="font-medium text-foreground/90">{sc.assignee}</span>
+              <span className="text-muted-foreground/80">— {sc.label}</span>
+              <span className="font-mono text-[10px] text-muted-foreground/60">{sc.id}</span>
+              <select
+                value={sc.status}
+                onChange={(e) => setStatus(sc.id, e.target.value as SubCheckStatus)}
+                className="ml-auto rounded-md border bg-[oklch(0.15_0.02_60_/_0.5)] px-1.5 py-0.5 text-[11px]"
+                style={{ borderColor: AMBER_SOFT, color: subTone }}
+                aria-label={`change sub-check status ${sc.id}`}
+              >
+                {SUB_CHECK_STATUSES.map((s) => (
+                  <option key={s} value={s} className="bg-[oklch(0.18_0.02_60)]">
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </li>
+          );
+        })}
+      </ul>
+      {!allDone && (
+        <div className="mt-2 text-[11px]" style={{ color: AMBER }}>
+          Gate cannot be marked Complete until every sub-check is settled.
+        </div>
+      )}
     </section>
   );
 }
