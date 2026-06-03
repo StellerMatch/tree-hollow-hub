@@ -2169,6 +2169,7 @@ function canonicalHandoffFromRow(
   rowIndex: number,
   existing?: Handoff,
 ): Handoff {
+  const subChecks = buildCanonicalSubChecks(row, existing);
   return {
     ...(existing ?? {}),
     id: existing?.id || `canonical-${projectId}-${row.stageId}-${rowIndex + 1}`,
@@ -2180,7 +2181,34 @@ function canonicalHandoffFromRow(
     authorityNotes: row.authorityNotes,
     nextBot: row.nextBot,
     nextStep: row.nextStep,
+    subChecks,
   };
+}
+
+function buildCanonicalSubChecks(
+  row: CanonicalWorkflowRow,
+  existing?: Handoff,
+): HandoffSubCheck[] | undefined {
+  if (!row.subChecks || row.subChecks.length === 0) return undefined;
+  const existingById = new Map<string, HandoffSubCheck>(
+    (existing?.subChecks ?? []).map((sc) => [sc.id, sc]),
+  );
+  const completed = existing?.status === "Complete";
+  return row.subChecks.map((tpl) => {
+    const prior = existingById.get(tpl.id);
+    const status: SubCheckStatus = prior
+      ? prior.status
+      : completed
+        ? "Completed"
+        : "Not Started";
+    return {
+      id: tpl.id,
+      label: tpl.label,
+      assignee: tpl.assignee,
+      status,
+      note: prior?.note,
+    };
+  });
 }
 
 function mergeDuplicateWorkflowHandoffs(existing: Handoff, duplicate: Handoff): Handoff {
