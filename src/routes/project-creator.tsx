@@ -104,7 +104,7 @@ const EMERALD = "oklch(0.7 0.14 160)";
 
 const STORAGE_KEY = "dabottree.projects.v1";
 const SCHEMA_KEY = "dabottree.projects.schemaVersion";
-const SCHEMA_VERSION = 27; // bump when adding new seeded projects / migrations
+const SCHEMA_VERSION = 28; // bump when adding new seeded projects / migrations
 const DABOTTREE_BOARD_ID = "dabottree-project-board";
 const HIDDEN_KEY = "dabottree.projects.hidden.v1";
 const GIGI_GARDEN_ID = "gigi-garden-gg";
@@ -1717,7 +1717,7 @@ const CANONICAL_BY_CODE: Map<string, CanonicalWorkflowRow> = new Map(
   CANONICAL_WORKFLOW_ROWS.map((r) => [r.code.trim().toLowerCase(), r]),
 );
 
-const WORKFLOW_ROW_CODE_RE = /\bwr1-(?:pre\d{2}|s\d{2})\b/i;
+const WORKFLOW_ROW_CODE_RE = /\b(?:wr1-(?:pre\d{2}|s\d{2})|trunk-s\d{2})\b/i;
 
 /** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
 function canonicalCodeFor(mode?: string | null): string | null {
@@ -2062,7 +2062,11 @@ function computeWorkflowSync(project: Project): WorkflowSyncReport {
       const looksLikeGate = /gate|group|squirrel|lantern|shadows|council|bears/i.test(
         canonical.holder,
       );
-      if (!looksLikeGate) {
+      const hasSubChecks = (canonical.subChecks?.length ?? 0) > 0;
+      // Group-gate rows either name a *Gate / Group* holder, or fan out
+      // via explicit per-assignee subChecks (e.g. Compass-led Lane
+      // Inputs row collecting Vault / Bloom / Luma).
+      if (!looksLikeGate && !hasSubChecks) {
         mismatches.push({
           index: i,
           code: canonical.code,
