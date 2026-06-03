@@ -1915,15 +1915,17 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
       if (!row) return h;
       const wantBot = row.holder;
       const wantAssignment = row.assignment;
-      const wantNextBot = row.nextBot ?? h.nextBot;
-      const wantNextStep = row.nextStep ?? h.nextStep;
+      const wantNextBot = row.nextBot;
+      const wantNextStep = row.nextStep;
       const wantMode = row.mode;
+      const wantAuthority = row.authorityNotes;
       if (
         h.mode === wantMode &&
         h.bot === wantBot &&
         h.assignment === wantAssignment &&
         (h.nextBot ?? "") === (wantNextBot ?? "") &&
-        (h.nextStep ?? "") === (wantNextStep ?? "")
+        (h.nextStep ?? "") === (wantNextStep ?? "") &&
+        (h.authorityNotes ?? "") === (wantAuthority ?? "")
       ) {
         return h;
       }
@@ -1933,6 +1935,7 @@ function repairCanonicalHandoffMetadata(projects: Project[]): {
         mode: wantMode,
         bot: wantBot,
         assignment: wantAssignment,
+        authorityNotes: wantAuthority,
         nextBot: wantNextBot,
         nextStep: wantNextStep,
       };
