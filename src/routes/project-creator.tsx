@@ -1717,7 +1717,7 @@ const CANONICAL_BY_CODE: Map<string, CanonicalWorkflowRow> = new Map(
   CANONICAL_WORKFLOW_ROWS.map((r) => [r.code.trim().toLowerCase(), r]),
 );
 
-const WORKFLOW_ROW_CODE_RE = /\bwr1-(?:pre\d{2}|s\d{2})\b/i;
+const WORKFLOW_ROW_CODE_RE = /\b(?:wr1-(?:pre\d{2}|s\d{2})|trunk-s\d{2})\b/i;
 
 /** Return the canonical row code (e.g. "wr1-s16") for a given handoff mode, or null if not canonical. */
 function canonicalCodeFor(mode?: string | null): string | null {
