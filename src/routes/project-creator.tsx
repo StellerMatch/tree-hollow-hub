@@ -2539,27 +2539,27 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
-    const { projects: metaRepaired, changed: metaChanged } =
-      repairCanonicalHandoffMetadata(currentRepaired);
+    const { projects: canonicalStored, changed: canonicalStoredChanged } =
+      repairProjectsForCanonicalStorage(currentRepaired);
     if (
       migratedChanged ||
       ensuredChanged ||
       repairedChanged ||
       scrubbedChanged ||
       currentRepairedChanged ||
-      metaChanged
+      canonicalStoredChanged
     )
-      saveProjects(metaRepaired);
-    setProjects(metaRepaired);
+      saveProjects(canonicalStored);
+    setProjects(canonicalStored);
     const hidden = loadHiddenProjectIds();
     setHiddenIds(hidden);
-    const redDonkey = metaRepaired.find(
+    const redDonkey = canonicalStored.find(
       (p) => p.id === RED_DONKEY_ID || normalizeProjectName(p.name) === "red donkey",
     );
-    const firstVisible = metaRepaired.find(
+    const firstVisible = canonicalStored.find(
       (p) => !hidden.includes(p.id) && !isNoisyProjectName(p.name),
     );
-    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? metaRepaired[0]?.id ?? "");
+    setSelectedId(redDonkey?.id ?? firstVisible?.id ?? canonicalStored[0]?.id ?? "");
     setHydrated(true);
   }, []);
 
@@ -2573,11 +2573,11 @@ function ProjectCreatorPage() {
     const { projects: scrubbed, changed: scrubbedChanged } = scrubLegacyStageLabels(repaired);
     const { projects: currentRepaired, changed: currentRepairedChanged } =
       repairKnownVisibleCurrentStages(scrubbed);
-    const { projects: metaRepaired, changed: metaChanged } =
-      repairCanonicalHandoffMetadata(currentRepaired);
-    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged || metaChanged) {
-      saveProjects(metaRepaired);
-      if (!samePersistedProjects(projects, metaRepaired)) setProjects(metaRepaired);
+    const { projects: canonicalStored, changed: canonicalStoredChanged } =
+      repairProjectsForCanonicalStorage(currentRepaired);
+    if (changed || repairedChanged || scrubbedChanged || currentRepairedChanged || canonicalStoredChanged) {
+      saveProjects(canonicalStored);
+      if (!samePersistedProjects(projects, canonicalStored)) setProjects(canonicalStored);
       return;
     }
     saveProjects(projects);
