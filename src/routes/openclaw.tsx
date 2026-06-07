@@ -255,6 +255,7 @@ function NodePill({
       style={{
         borderColor,
         background: bg,
+        marginLeft: node.id === "ledger" ? "0.75rem" : undefined,
         boxShadow: isSelected ? `0 0 30px ${AMBER_GLOW}` : undefined,
       }}
     >
