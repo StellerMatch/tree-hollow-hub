@@ -251,9 +251,7 @@ function NodePill({
 
   return (
     <div
-      className={`group flex items-stretch gap-2 rounded-2xl border transition ${
-        node.id === "ledger" ? "lg:ml-3" : ""
-      }`}
+      className="group flex items-stretch gap-2 rounded-2xl border transition"
       style={{
         borderColor,
         background: bg,
