@@ -12,7 +12,7 @@ export type Project = {
 export const PROJECTS: Project[] = [
   {
     id: "openclaw",
-    name: "OG DaBotTree",
+    name: "DaBotTree Family",
     tagline: "the workshop in the canopy",
     description:
       "An open workbench for bots, agents, and small claws that fetch things. Tools clatter behind the door.",
@@ -23,7 +23,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "zombie-football",
-    name: "Zombie Football",
+    name: "DaBotTree House",
     tagline: "stadium under the roots",
     description:
       "Eleven on eleven, but most of them are decomposing. A weird sports thing in progress.",
@@ -34,7 +34,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "video-tools",
-    name: "Video Tools",
+    name: "OG DaBotTree",
     tagline: "the cutting room window",
     description:
       "Little utilities for trimming, ripping, and reassembling moving pictures. Light leaks out the glass.",
@@ -45,7 +45,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "experiments",
-    name: "Project Creator",
+    name: "DaBotTree Collective",
     tagline: "the operations room",
     description:
       "One source of truth for a project — clarity, handoffs, receipts, and artifacts behind a single warm door.",
@@ -56,7 +56,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "notes",
-    name: "Notes / Ideas",
+    name: "DaBotTree Individual",
     tagline: "the chalkboard alcove",
     description:
       "Half-thoughts pinned to bark. Some of these will become projects. Most won't.",
@@ -67,7 +67,7 @@ export const PROJECTS: Project[] = [
   },
   {
     id: "mystery",
-    name: "Mystery Door",
+    name: "DaBotTree Future",
     tagline: "?",
     description:
       "It hums when you stand near it. The handle is warm. Probably fine to open.",
