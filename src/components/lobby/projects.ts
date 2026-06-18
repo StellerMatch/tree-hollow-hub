@@ -15,7 +15,7 @@ export const PROJECTS: Project[] = [
     name: "DaBotTree Family",
     tagline: "the family tree",
     description:
-      "Meet the characters. See who does what and how the branches connect. The full lineage lives here.",
+      "A map of every bot, room, and level in the DaBotTree system. See who is connected to who and how all the branches fit together.",
     href: "/openclaw",
     icon: "🌲",
     kind: "door",
@@ -24,9 +24,9 @@ export const PROJECTS: Project[] = [
   {
     id: "zombie-football",
     name: "DaBotTree House",
-    tagline: "the creative hub",
+    tagline: "the creation engine",
     description:
-      "Bring an idea and turn it into an app, a story, or anything you dream. This is where making begins.",
+      "The main creation engine. Bring an idea and walk it through guided levels and chapters until it becomes a finished project.",
     href: "#",
     icon: "🏠",
     kind: "tunnel",
@@ -35,9 +35,9 @@ export const PROJECTS: Project[] = [
   {
     id: "video-tools",
     name: "OG DaBotTree",
-    tagline: "our in-house babies",
+    tagline: "house creations",
     description:
-      "Programs we build ourselves, hand-crafted and cared for. These are the original creations that started it all.",
+      "Final programs and products built by the original admin team. The flagship shelf of in-house DaBotTree creations.",
     href: "#",
     icon: "💎",
     kind: "window",
@@ -46,9 +46,9 @@ export const PROJECTS: Project[] = [
   {
     id: "experiments",
     name: "DaBotTree Collective",
-    tagline: "the community catalog",
+    tagline: "community creations",
     description:
-      "A shared library of programs made by everyone on the platform. Browse, discover, and see what others have built with our system.",
+      "Final programs and products made by other users through DaBotTree House. A shared catalog of everything the community has shipped.",
     href: "/project-creator",
     icon: "🤝",
     kind: "door",
@@ -59,7 +59,7 @@ export const PROJECTS: Project[] = [
     name: "DaBotTree Individual",
     tagline: "your personal collection",
     description:
-      "Everything you have made and everything you are using. Your projects, your apps, your own little corner of the tree.",
+      "Your personal shelf. Holds the programs you have built plus anything you saved from OG DaBotTree or the Collective.",
     href: "#",
     icon: "👤",
     kind: "sign",
@@ -68,9 +68,9 @@ export const PROJECTS: Project[] = [
   {
     id: "mystery",
     name: "DaBotTree Future",
-    tagline: "the idea lab",
+    tagline: "the idea garden",
     description:
-      "No idea yet? No problem. Throw things against the wall, play around, and see what sticks. When something clicks, take it to the House.",
+      "A think-tank and idea garden. Explore, submit, and shape new ideas here. When one is ready, send it over to DaBotTree House.",
     href: "#",
     icon: "💡",
     kind: "mystery",
