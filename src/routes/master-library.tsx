@@ -42,6 +42,7 @@ type Book = {
   outputs: string[];
   handoffs: string[];
   finalNotes: string;
+  adminNotes?: string;
 };
 
 const CATEGORIES: Category[] = [
@@ -79,6 +80,7 @@ const BOOKS: Book[] = [
     outputs: ["MVP build", "Landing page draft"],
     handoffs: ["→ OG DaBotTree shelf"],
     finalNotes: "Ready for first user circle once polish ships.",
+    adminNotes: "Owner: core team. Watch sync load after launch.",
   },
   {
     id: "b2",
@@ -100,6 +102,7 @@ const BOOKS: Book[] = [
     outputs: [],
     handoffs: [],
     finalNotes: "Needs host voice test before greenlight.",
+    adminNotes: "Hold until Future garden signs off on format.",
   },
   {
     id: "b3",
@@ -124,6 +127,7 @@ const BOOKS: Book[] = [
     outputs: ["Prod deploy", "Dashboards"],
     handoffs: ["→ OG DaBotTree"],
     finalNotes: "Stable. Owner: platform team.",
+    adminNotes: "Quarterly review on retry policy.",
   },
   {
     id: "b4",
@@ -146,6 +150,7 @@ const BOOKS: Book[] = [
     outputs: ["Beta storefront"],
     handoffs: ["needs admin review"],
     finalNotes: "Pricing copy still rough. Review before publish.",
+    adminNotes: "Legal review pending for storefront terms.",
   },
   {
     id: "b5",
@@ -164,6 +169,7 @@ const BOOKS: Book[] = [
     outputs: [],
     handoffs: [],
     finalNotes: "Waiting on a shaper.",
+    adminNotes: "Low priority. Park in Future until claimed.",
   },
   {
     id: "b6",
@@ -187,6 +193,7 @@ const BOOKS: Book[] = [
     outputs: ["Staging site"],
     handoffs: [],
     finalNotes: "Hero animation pending.",
+    adminNotes: "Coordinate launch with OG shelf refresh.",
   },
 ];
 
@@ -461,6 +468,12 @@ function BookDrawer({ book, onClose }: { book: Book; onClose: () => void }) {
         <Section title="Final product notes">
           <p className="rounded-lg border border-border/60 bg-[oklch(0.16_0.02_60/0.6)] p-3 text-sm text-muted-foreground">
             {book.finalNotes}
+          </p>
+        </Section>
+
+        <Section title="Admin notes">
+          <p className="rounded-lg border border-[var(--ember)]/40 bg-[oklch(0.16_0.02_60/0.6)] p-3 text-sm text-muted-foreground">
+            {book.adminNotes ?? "—"}
           </p>
         </Section>
       </div>
