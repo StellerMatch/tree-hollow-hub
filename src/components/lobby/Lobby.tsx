@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "@tanstack/react-router";
 import { PROJECTS, type Project } from "./projects";
 import { Entrance } from "./Entrance";
 import { ProjectModal } from "./ProjectModal";
@@ -63,9 +64,22 @@ export function Lobby() {
               </div>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground/80 uppercase tracking-[0.2em]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[var(--ember)] animate-pulse" />
-            lobby open
+          <div className="flex items-center gap-3">
+            <Link
+              to="/master-library"
+              className="group flex items-center gap-2 rounded-full border border-border/60 bg-[oklch(0.18_0.02_60/0.6)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-muted-foreground transition hover:border-[var(--ember)] hover:text-foreground"
+              title="Admin only"
+            >
+              <span>📚</span>
+              <span className="hidden sm:inline">Master Library</span>
+              <span className="rounded-full bg-[var(--ember)]/20 px-1.5 py-0.5 text-[9px] tracking-wider text-[var(--ember)]">
+                admin
+              </span>
+            </Link>
+            <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground/80 uppercase tracking-[0.2em]">
+              <span className="inline-block h-2 w-2 rounded-full bg-[var(--ember)] animate-pulse" />
+              lobby open
+            </div>
           </div>
         </header>
 
