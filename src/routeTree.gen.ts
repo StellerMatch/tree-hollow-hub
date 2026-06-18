@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectCreatorRouteImport } from './routes/project-creator'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
+import { Route as MasterLibraryRouteImport } from './routes/master-library'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ProjectCreatorRoute = ProjectCreatorRouteImport.update({
@@ -23,6 +24,11 @@ const OpenclawRoute = OpenclawRouteImport.update({
   path: '/openclaw',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterLibraryRoute = MasterLibraryRouteImport.update({
+  id: '/master-library',
+  path: '/master-library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +37,34 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/openclaw' | '/project-creator'
+  fullPaths: '/' | '/master-library' | '/openclaw' | '/project-creator'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/openclaw' | '/project-creator'
-  id: '__root__' | '/' | '/openclaw' | '/project-creator'
+  to: '/' | '/master-library' | '/openclaw' | '/project-creator'
+  id: '__root__' | '/' | '/master-library' | '/openclaw' | '/project-creator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MasterLibraryRoute: typeof MasterLibraryRoute
   OpenclawRoute: typeof OpenclawRoute
   ProjectCreatorRoute: typeof ProjectCreatorRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpenclawRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master-library': {
+      id: '/master-library'
+      path: '/master-library'
+      fullPath: '/master-library'
+      preLoaderRoute: typeof MasterLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MasterLibraryRoute: MasterLibraryRoute,
   OpenclawRoute: OpenclawRoute,
   ProjectCreatorRoute: ProjectCreatorRoute,
 }
