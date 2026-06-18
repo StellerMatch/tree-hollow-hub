@@ -4,8 +4,53 @@ import { PROJECTS, type Project } from "./projects";
 import { Entrance } from "./Entrance";
 import { ProjectModal } from "./ProjectModal";
 
+export type Role = "admin" | "user";
+
+function getInitialRole(): Role {
+  if (typeof window === "undefined") return "admin";
+  return (window.localStorage.getItem("dbt:role") as Role) || "admin";
+}
+
 export function Lobby() {
   const [selected, setSelected] = useState<Project | null>(null);
+  const [role, setRole] = useState<Role>(getInitialRole);
+
+  function toggleRole() {
+    const next: Role = role === "admin" ? "user" : "admin";
+    setRole(next);
+    if (typeof window !== "undefined")
+      window.localStorage.setItem("dbt:role", next);
+  }
+
+  // role-aware project list: first doorway swaps between Admin and Dashboard
+  const projects: Project[] = useMemo(() => {
+    const rest = PROJECTS.slice(1);
+    const first: Project =
+      role === "admin"
+        ? {
+            id: "admin",
+            name: "DaBotTree Admin",
+            tagline: "the command room",
+            description:
+              "Private admin hub. Family Tree, Master Library, System Map, Project Records, and admin controls all live behind this door.",
+            href: "/admin",
+            icon: "🛠️",
+            kind: "door",
+            hue: "oklch(0.78 0.18 50)",
+          }
+        : {
+            id: "dashboard",
+            name: "Your Dashboard",
+            tagline: "your stats & shelf",
+            description:
+              "Your simple dashboard. See what you've built, what you've saved, what's still moving through the House, and your activity stats.",
+            href: "/dashboard",
+            icon: "📊",
+            kind: "door",
+            hue: "oklch(0.78 0.18 50)",
+          };
+    return [first, ...rest];
+  }, [role]);
 
   // floating leaves
   const leaves = useMemo(
@@ -65,17 +110,28 @@ export function Lobby() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              to="/master-library"
+            <button
+              onClick={toggleRole}
               className="group flex items-center gap-2 rounded-full border border-border/60 bg-[oklch(0.18_0.02_60/0.6)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-muted-foreground transition hover:border-[var(--ember)] hover:text-foreground"
-              title="Admin only"
+              title="Toggle viewer role (visual mock)"
             >
-              <span>📚</span>
-              <span className="hidden sm:inline">Master Library</span>
-              <span className="rounded-full bg-[var(--ember)]/20 px-1.5 py-0.5 text-[9px] tracking-wider text-[var(--ember)]">
-                admin
+              <span>{role === "admin" ? "🛠️" : "👤"}</span>
+              <span className="hidden sm:inline">
+                {role === "admin" ? "Admin view" : "User view"}
               </span>
-            </Link>
+              <span className="rounded-full bg-[var(--ember)]/20 px-1.5 py-0.5 text-[9px] tracking-wider text-[var(--ember)]">
+                switch
+              </span>
+            </button>
+            {role === "admin" && (
+              <Link
+                to="/master-library"
+                className="hidden md:flex items-center gap-2 rounded-full border border-border/60 bg-[oklch(0.18_0.02_60/0.6)] px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-muted-foreground transition hover:border-[var(--ember)] hover:text-foreground"
+              >
+                <span>📚</span>
+                <span>Master Library</span>
+              </Link>
+            )}
             <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground/80 uppercase tracking-[0.2em]">
               <span className="inline-block h-2 w-2 rounded-full bg-[var(--ember)] animate-pulse" />
               lobby open
@@ -86,13 +142,15 @@ export function Lobby() {
         {/* whisper */}
         <div className="mb-14 md:mb-20 text-center animate-fade-up" style={{ animationDelay: "200ms" }}>
           <p className="font-hand text-xl md:text-2xl text-muted-foreground">
-            six little doorways. pick one.
+            {role === "admin"
+              ? "six little doorways. command room is first."
+              : "six little doorways. your shelf is first."}
           </p>
         </div>
 
         {/* the floor of entrances */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 md:gap-x-8 md:gap-y-16">
-          {PROJECTS.map((p, i) => (
+          {projects.map((p, i) => (
             <Entrance
               key={p.id}
               project={p}

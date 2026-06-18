@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProjectCreatorRouteImport } from './routes/project-creator'
 import { Route as OpenclawRouteImport } from './routes/openclaw'
 import { Route as MasterLibraryRouteImport } from './routes/master-library'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ProjectCreatorRoute = ProjectCreatorRouteImport.update({
@@ -29,6 +31,16 @@ const MasterLibraryRoute = MasterLibraryRouteImport.update({
   path: '/master-library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +49,16 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
@@ -50,20 +66,43 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/dashboard': typeof DashboardRoute
   '/master-library': typeof MasterLibraryRoute
   '/openclaw': typeof OpenclawRoute
   '/project-creator': typeof ProjectCreatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/master-library' | '/openclaw' | '/project-creator'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/master-library'
+    | '/openclaw'
+    | '/project-creator'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/master-library' | '/openclaw' | '/project-creator'
-  id: '__root__' | '/' | '/master-library' | '/openclaw' | '/project-creator'
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/master-library'
+    | '/openclaw'
+    | '/project-creator'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/master-library'
+    | '/openclaw'
+    | '/project-creator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  DashboardRoute: typeof DashboardRoute
   MasterLibraryRoute: typeof MasterLibraryRoute
   OpenclawRoute: typeof OpenclawRoute
   ProjectCreatorRoute: typeof ProjectCreatorRoute
@@ -92,6 +131,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterLibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +157,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  DashboardRoute: DashboardRoute,
   MasterLibraryRoute: MasterLibraryRoute,
   OpenclawRoute: OpenclawRoute,
   ProjectCreatorRoute: ProjectCreatorRoute,
