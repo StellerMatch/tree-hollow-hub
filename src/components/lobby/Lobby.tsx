@@ -120,21 +120,21 @@ export function Lobby() {
       },
       {
         id: "top-debauchery-library",
-        name: "Debauchery Library",
+        name: "DaBotTree Library",
         tagline: "the after-hours stacks",
         description:
-          "Coming soon — the Debauchery Library. A private wing for unfiltered notes, late-night drafts, and ideas that don't fit the polite shelves.",
-        href: "#",
+          "The Master Library. A private wing for unfiltered notes, late-night drafts, and every project record on the shelves.",
+        href: "/master-library",
         icon: "📚",
         kind: "window",
         hue: "oklch(0.55 0.18 330)",
       },
       {
         id: "top-debauchery-space",
-        name: "Debauchery Space",
+        name: "DaBotTree Space",
         tagline: "the back room",
         description:
-          "Coming soon — the Debauchery Space. An open back room for loose experiments, rough play, and anything still finding its shape.",
+          "Coming soon — the DaBotTree Space. An open back room for loose experiments, rough play, and anything still finding its shape.",
         href: "#",
         icon: "🍷",
         kind: "mystery",
