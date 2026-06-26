@@ -118,6 +118,28 @@ export function Lobby() {
         kind: "mystery",
         hue: "oklch(0.65 0.2 0)",
       },
+      {
+        id: "top-debauchery-library",
+        name: "Debauchery Library",
+        tagline: "the after-hours stacks",
+        description:
+          "Coming soon — the Debauchery Library. A private wing for unfiltered notes, late-night drafts, and ideas that don't fit the polite shelves.",
+        href: "#",
+        icon: "📚",
+        kind: "window",
+        hue: "oklch(0.55 0.18 330)",
+      },
+      {
+        id: "top-debauchery-space",
+        name: "Debauchery Space",
+        tagline: "the back room",
+        description:
+          "Coming soon — the Debauchery Space. An open back room for loose experiments, rough play, and anything still finding its shape.",
+        href: "#",
+        icon: "🍷",
+        kind: "mystery",
+        hue: "oklch(0.5 0.2 340)",
+      },
     ],
     [],
   );
