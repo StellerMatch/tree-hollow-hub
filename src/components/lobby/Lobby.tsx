@@ -52,6 +52,76 @@ export function Lobby() {
     return [first, ...rest];
   }, [role]);
 
+  // new top row of doorways (visual only for now)
+  const topProjects: Project[] = useMemo(
+    () => [
+      {
+        id: "top-admin",
+        name: "DaBotTree Admin",
+        tagline: "command room",
+        description:
+          "Private admin hub. Family Tree, Master Library, System Map, Project Records, and admin controls all live behind this door.",
+        href: "/admin",
+        icon: "🛠️",
+        kind: "door",
+        hue: "oklch(0.78 0.18 50)",
+      },
+      {
+        id: "top-family",
+        name: "DaBotTree Family",
+        tagline: "the family tree",
+        description:
+          "A map of every bot, room, and level in the DaBotTree system. See who is connected to who and how all the branches fit together.",
+        href: "/openclaw",
+        icon: "🌲",
+        kind: "stall",
+        hue: "oklch(0.72 0.16 280)",
+      },
+      {
+        id: "top-house",
+        name: "DaBotTree House",
+        tagline: "the creation engine",
+        description:
+          "The main creation engine. Bring an idea and walk it through guided levels and chapters until it becomes a finished project.",
+        href: "#",
+        icon: "🏠",
+        kind: "tunnel",
+        hue: "oklch(0.6 0.22 145)",
+      },
+      {
+        id: "top-pond",
+        name: "DaBotTree Pond",
+        tagline: "still waters",
+        description: "Coming soon — the DaBotTree Pond.",
+        href: "#",
+        icon: "🪷",
+        kind: "window",
+        hue: "oklch(0.7 0.18 200)",
+      },
+      {
+        id: "top-farms",
+        name: "DaBotTree Farms",
+        tagline: "growing grounds",
+        description: "Coming soon — the DaBotTree Farms.",
+        href: "#",
+        icon: "🌾",
+        kind: "sign",
+        hue: "oklch(0.8 0.16 85)",
+      },
+      {
+        id: "top-caves",
+        name: "DaBotTree Caves",
+        tagline: "deep tunnels",
+        description: "Coming soon — the DaBotTree Caves.",
+        href: "#",
+        icon: "🕳️",
+        kind: "mystery",
+        hue: "oklch(0.65 0.2 0)",
+      },
+    ],
+    [],
+  );
+
   // floating leaves
   const leaves = useMemo(
     () =>
@@ -147,6 +217,21 @@ export function Lobby() {
               : "six little doorways. your shelf is first."}
           </p>
         </div>
+
+        {/* top row — new doorways */}
+        <div className="mb-16 grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 md:grid-cols-6 md:gap-x-6 md:gap-y-12">
+          {topProjects.map((p, i) => (
+            <Entrance
+              key={p.id}
+              project={p}
+              index={i}
+              onClick={() => setSelected(p)}
+            />
+          ))}
+        </div>
+
+        {/* divider between top row and original six */}
+        <div className="mb-14 h-2 rounded-full bg-gradient-to-r from-transparent via-[oklch(0.35_0.04_70)] to-transparent" />
 
         {/* the floor of entrances */}
         <div className="grid grid-cols-2 gap-x-4 gap-y-12 sm:grid-cols-3 md:gap-x-8 md:gap-y-16">
